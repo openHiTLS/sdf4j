@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.openhitls</groupId>
+    <artifactId>sdf4j</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>SDF4J</name>
+    <description>openHiTLS SDF4J - Java binding for GM/T 0018-2023 SDF (密码设备应用接口)</description>
+    <url>https://github.com/openhitls/sdf4j</url>
+
+    <organization>
+        <name>openHitls</name>
+        <url>https://github.com/openhitls</url>
+    </organization>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- CMake构建配置 -->
+        <cmake.build.type>RelWithDebInfo</cmake.build.type>
+        <cmake.generator>Unix Makefiles</cmake.generator>
+        <!-- SDF库配置 - 编译时可通过 -Dsdf.library.name=xxx 指定 -->
+        <!-- 默认库名称: sdf (对应 libsdf.so) -->
+        <sdf.library.name>sdf</sdf.library.name>
+        <!-- 默认库路径: 空（从系统路径查找） -->
+        <sdf.library.path></sdf.library.path>
+    </properties>
+
+    <dependencies>
+        <!-- JUnit for testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- 启用资源过滤，将Maven属性写入配置文件 -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- CMake构建JNI库 - 使用系统CMake -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <!-- CMake配置和编译 -->
+                    <execution>
+                        <id>cmake-build-jni</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>bash</executable>
+                            <workingDirectory>${project.basedir}/src/main/native</workingDirectory>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                                    mkdir -p build &amp;&amp; \
+                                    cd build &amp;&amp; \
+                                    cmake .. \
+                                        -DCMAKE_BUILD_TYPE=${cmake.build.type} &amp;&amp; \
+                                    cmake --build . --config ${cmake.build.type} -j
+                                </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 验证JNI库是否成功生成 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-jni-library</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="========================================="/>
+                                <echo message="Verifying JNI library..."/>
+                                <echo message="========================================="/>
+                                <condition property="jni.lib.exists">
+                                    <available file="${project.basedir}/target/native/libsdf4j-jni.so"/>
+                                </condition>
+                                <fail unless="jni.lib.exists"
+                                      message="ERROR: JNI library not found at ${project.basedir}/target/native/libsdf4j-jni.so. CMake build may have failed."/>
+                                <echo message="✓ JNI library verified successfully"/>
+                                <exec executable="ls">
+                                    <arg value="-lh"/>
+                                    <arg value="${project.basedir}/target/native/libsdf4j-jni.so"/>
+                                </exec>
+                                <echo message="========================================="/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Java编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- 测试插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.2</version>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.build.directory}/native</argLine>
+                    <!-- SDF库路径可通过 -Dsdf4j.library.path 在运行时指定 -->
+                </configuration>
+            </plugin>
+
+            <!-- JAR打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Javadoc插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <charset>UTF-8</charset>
+                    <docencoding>UTF-8</docencoding>
+                    <show>public</show>
+                    <nohelp>false</nohelp>
+                    <nodeprecated>false</nodeprecated>
+                    <nodeprecatedlist>false</nodeprecatedlist>
+                    <notree>false</notree>
+                    <noindex>false</noindex>
+                    <nonavbar>false</nonavbar>
+                    <doctitle>SDF4J ${project.version} API</doctitle>
+                    <windowtitle>SDF4J ${project.version} API</windowtitle>
+                    <header><![CDATA[<b>SDF4J ${project.version}</b>]]></header>
+                    <footer><![CDATA[<b>OpenHitls Project</b>]]></footer>
+                    <bottom><![CDATA[Copyright &#169; 2025 OpenHitls. All Rights Reserved.<br>Licensed under Mulan PSL v2.]]></bottom>
+                    <locale>zh_CN</locale>
+                    <additionalOptions>
+                        <additionalOption>-html5</additionalOption>
+                    </additionalOptions>
+                    <links>
+                        <link>https://docs.oracle.com/javase/8/docs/api/</link>
+                    </links>
+                    <tags>
+                        <tag>
+                            <name>author</name>
+                            <placement>a</placement>
+                            <head>作者:</head>
+                        </tag>
+                        <tag>
+                            <name>since</name>
+                            <placement>a</placement>
+                            <head>起始版本:</head>
+                        </tag>
+                        <tag>
+                            <name>version</name>
+                            <placement>a</placement>
+                            <head>版本:</head>
+                        </tag>
+                    </tags>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>generate-javadoc</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>javadoc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- 构建配置文件 - 支持不同构建类型 -->
+    <profiles>
+        <!-- Debug模式：启用调试符号，禁用优化 -->
+        <profile>
+            <id>debug</id>
+            <properties>
+                <cmake.build.type>Debug</cmake.build.type>
+            </properties>
+        </profile>
+
+        <!-- Release模式：启用优化，禁用调试符号 -->
+        <profile>
+            <id>release</id>
+            <properties>
+                <cmake.build.type>Release</cmake.build.type>
+            </properties>
+        </profile>
+
+        <!-- 默认模式：带调试符号的优化版本 -->
+        <profile>
+            <id>relwithdebinfo</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <cmake.build.type>RelWithDebInfo</cmake.build.type>
+            </properties>
+        </profile>
+    </profiles>
+</project>
