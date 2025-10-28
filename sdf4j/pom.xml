@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.openhitls</groupId>
+        <artifactId>sdf4j-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>sdf4j-core</artifactId>
+    <packaging>jar</packaging>
+
+    <name>SDF4J Core</name>
+    <description>openHiTLS SDF4J Core - Java binding for GM/T 0018-2023 SDF (密码设备应用接口)</description>
+
+    <dependencies>
+        <!-- JUnit for testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- 启用资源过滤，将Maven属性写入配置文件 -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- CMake构建JNI库 - 使用系统CMake -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <!-- CMake配置和编译 -->
+                    <execution>
+                        <id>cmake-build-jni</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>bash</executable>
+                            <workingDirectory>${project.basedir}/src/main/native</workingDirectory>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                                    mkdir -p build &amp;&amp; \
+                                    cd build &amp;&amp; \
+                                    cmake .. \
+                                        -DCMAKE_BUILD_TYPE=${cmake.build.type} &amp;&amp; \
+                                    cmake --build . --config ${cmake.build.type} -j
+                                </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 验证JNI库并复制到resources目录 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-jni-library</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="========================================="/>
+                                <echo message="Verifying JNI library..."/>
+                                <echo message="========================================="/>
+                                <condition property="jni.lib.exists">
+                                    <available file="${project.basedir}/target/native/libsdf4j-jni.so"/>
+                                </condition>
+                                <fail unless="jni.lib.exists"
+                                      message="ERROR: JNI library not found at ${project.basedir}/target/native/libsdf4j-jni.so. CMake build may have failed."/>
+                                <echo message="✓ JNI library verified successfully"/>
+                                <exec executable="ls">
+                                    <arg value="-lh"/>
+                                    <arg value="${project.basedir}/target/native/libsdf4j-jni.so"/>
+                                </exec>
+                                <echo message="========================================="/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jni-to-jar</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="========================================="/>
+                                <echo message="Packaging JNI library into JAR..."/>
+                                <echo message="========================================="/>
+
+                                <!-- 检测当前平台 - 使用与Java运行时一致的检测逻辑 -->
+                                <!-- Linux x86_64 (handles both "amd64" and "x86_64" arch names) -->
+                                <condition property="platform" value="linux-x86_64">
+                                    <and>
+                                        <os family="unix"/>
+                                        <not><os family="mac"/></not>
+                                        <or>
+                                            <os arch="amd64"/>
+                                            <os arch="x86_64"/>
+                                            <os arch="x64"/>
+                                        </or>
+                                    </and>
+                                </condition>
+
+                                <!-- Linux aarch64 (handles both "aarch64" and "arm64" arch names) -->
+                                <condition property="platform" value="linux-aarch64">
+                                    <and>
+                                        <os family="unix"/>
+                                        <not><os family="mac"/></not>
+                                        <or>
+                                            <os arch="aarch64"/>
+                                            <os arch="arm64"/>
+                                        </or>
+                                    </and>
+                                </condition>
+
+                                <!-- 默认平台（如果未匹配，假定为 linux-x86_64） -->
+                                <property name="platform" value="linux-x86_64"/>
+
+                                <!-- 创建目标目录并复制库 -->
+                                <mkdir dir="${project.build.outputDirectory}/native/${platform}"/>
+                                <copy file="${project.basedir}/target/native/libsdf4j-jni.so"
+                                      tofile="${project.build.outputDirectory}/native/${platform}/libsdf4j-jni.so"
+                                      failonerror="true"/>
+
+                                <echo message="✓ JNI library copied to: native/${platform}/libsdf4j-jni.so"/>
+                                <echo message="  Will be packaged into JAR"/>
+                                <echo message="========================================="/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 测试插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.build.directory}/native</argLine>
+                    <!-- 继承父POM的fork配置 -->
+                </configuration>
+            </plugin>
+
+            <!-- JAR打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

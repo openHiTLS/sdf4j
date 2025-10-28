@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.openhitls</groupId>
+        <artifactId>sdf4j-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>sdf4j-examples</artifactId>
+    <packaging>jar</packaging>
+
+    <name>SDF4J Examples</name>
+    <description>Examples for SDF4J - demonstrating SDF API usage</description>
+
+    <dependencies>
+        <!-- SDF4J Core -->
+        <dependency>
+            <groupId>org.openhitls</groupId>
+            <artifactId>sdf4j-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- JUnit for testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 测试插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.basedir}/../sdf4j-core/target/native</argLine>
+                    <!-- 默认跳过示例测试，需要通过 -DskipTests=false 明确启用 -->
+                    <skipTests>false</skipTests>
+                    <!-- 继承父POM的fork配置 -->
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
