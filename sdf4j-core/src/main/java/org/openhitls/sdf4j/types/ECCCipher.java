@@ -55,6 +55,12 @@ public class ECCCipher {
     private byte[] m;
 
     /**
+     * 密文数据长度L (对应C结构体的ULONG L字段)
+     * Ciphertext length L (corresponds to ULONG L field in C struct)
+     */
+    private long l;
+
+    /**
      * 密文数据C (变长)
      * Ciphertext C (variable length)
      */
@@ -67,6 +73,7 @@ public class ECCCipher {
         this.x = new byte[ECC_MAX_LEN];
         this.y = new byte[ECC_MAX_LEN];
         this.m = new byte[HASH_LEN];
+        this.l = 0;
         this.c = new byte[0];
     }
 
@@ -86,6 +93,7 @@ public class ECCCipher {
         this.y = Arrays.copyOf(y, ECC_MAX_LEN);
         this.m = Arrays.copyOf(m, HASH_LEN);
         this.c = c != null ? Arrays.copyOf(c, c.length) : new byte[0];
+        this.l = this.c.length;
     }
 
     // ========================================================================
@@ -131,12 +139,34 @@ public class ECCCipher {
 
     public void setC(byte[] c) {
         this.c = c != null ? Arrays.copyOf(c, c.length) : new byte[0];
+        this.l = this.c.length;
     }
 
     /**
-     * 获取密文长度
+     * 获取密文长度L (对应C结构体的ULONG L字段)
+     * Get ciphertext length L (corresponds to ULONG L field in C struct)
      *
-     * @return 密文字节长度
+     * @return 密文长度 / Ciphertext length
+     */
+    public long getL() {
+        return l;
+    }
+
+    /**
+     * 设置密文长度L
+     * Set ciphertext length L
+     *
+     * @param l 密文长度 / Ciphertext length
+     */
+    public void setL(long l) {
+        this.l = l;
+    }
+
+    /**
+     * 获取密文长度 (便捷方法，返回int类型)
+     * Get ciphertext length (convenience method, returns int)
+     *
+     * @return 密文字节长度 / Ciphertext length in bytes
      */
     public int getCipherLength() {
         return c != null ? c.length : 0;
@@ -148,6 +178,7 @@ public class ECCCipher {
                 "x=" + bytesToHex(x, 16) +
                 ", y=" + bytesToHex(y, 16) +
                 ", m=" + bytesToHex(m, 16) +
+                ", L=" + l +
                 ", c.length=" + (c != null ? c.length : 0) +
                 '}';
     }

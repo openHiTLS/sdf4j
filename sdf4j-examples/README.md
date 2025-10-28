@@ -1,6 +1,6 @@
 # SDF4J Examples
 
-This module contains example usage of SDF4J implemented as JUnit tests.
+This module contains example usage of SDF4J, including both standalone programs and JUnit tests.
 
 ## Overview
 
@@ -23,6 +23,9 @@ mvn test
 # Basic device and session management
 mvn test -Dtest=BasicExampleTest
 
+# SM3 hash algorithm demonstrations
+mvn test -Dtest=SM3ExampleTest
+
 # SM2 asymmetric cryptography (sign/verify/encrypt)
 mvn test -Dtest=SM2ExampleTest
 
@@ -43,12 +46,24 @@ mvn test -Dsdf4j.library.name=swsds -Dsdf4j.library.path=/opt/sdf/lib
 
 ## Available Examples
 
-### BasicExampleTest
+All examples are implemented as JUnit tests in the `src/test/java` directory.
+
+### JUnit Test Examples
+
+#### BasicExampleTest
 Demonstrates fundamental SDF operations:
 - `testDeviceAndSessionManagement()` - Opening/closing devices and sessions
 - `testGetDeviceInfo()` - Retrieving device information
 - `testGenerateRandom()` - Generating random numbers
 - `testMultipleSessions()` - Managing multiple concurrent sessions
+
+#### SM3ExampleTest
+SM3 (Chinese cryptographic hash algorithm) demonstrations:
+- `testBasicSM3Hash()` - Basic SM3 hash calculation
+- `testStreamingSM3Hash()` - Streaming/chunked SM3 calculation (for large files)
+- `testSM3WithUserID()` - SM3 for SM2 signature scenarios (with user ID and public key)
+- `testSM3HMAC()` - SM3-HMAC (keyed message authentication code)
+- `testCompareHashLengths()` - Comparison of different hash algorithm output lengths
 
 ### SM2ExampleTest
 SM2 asymmetric cryptography examples:

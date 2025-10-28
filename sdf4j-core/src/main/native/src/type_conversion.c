@@ -344,6 +344,12 @@ jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, UL
         }
     }
 
+    /* l - 密文长度 (对应C结构体的ULONG L字段) */
+    fid = (*env)->GetFieldID(env, cls, "l", "J");
+    if (fid != NULL) {
+        (*env)->SetLongField(env, obj, fid, (jlong)native_cipher->L);
+    }
+
     /* c - 变长密文数据 */
     fid = (*env)->GetFieldID(env, cls, "c", "[B");
     if (fid != NULL && cipher_len > 0) {
@@ -433,8 +439,8 @@ bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *nativ
         (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
     }
 
-    /* M (hash/MAC) */
-    fid = (*env)->GetFieldID(env, cls, "M", "[B");
+    /* m (hash/MAC) - Note: Java field is lowercase "m" */
+    fid = (*env)->GetFieldID(env, cls, "m", "[B");
     if (fid == NULL) return false;
     jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher, fid);
     if (m_array != NULL) {
@@ -443,16 +449,29 @@ bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *nativ
         (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_cipher->M);
     }
 
-    /* C (cipher data) - Note: ECCCipher has flexible array member, only copy L value here */
+    /* l - 密文长度 (对应C结构体的ULONG L字段) */
+    fid = (*env)->GetFieldID(env, cls, "l", "J");
+    if (fid != NULL) {
+        jlong l_value = (*env)->GetLongField(env, java_cipher, fid);
+        native_cipher->L = (ULONG)l_value;
+    }
+
+    /* c - 密文数据 (cipher data) - Note: Java field is "c" */
+    /* Note: ECCCipher has flexible array member, only copy L value here */
     /* The actual cipher data C is not copied since it's a flexible array member */
     /* Caller should handle cipher data separately */
-    fid = (*env)->GetFieldID(env, cls, "cipherData", "[B");
-    if (fid == NULL) return false;
-    jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher, fid);
-    if (c_array != NULL) {
-        native_cipher->L = (*env)->GetArrayLength(env, c_array);
-        /* Note: C is not copied here - flexible array member.
-         * If actual cipher data needed, caller must allocate larger struct and copy */
+    fid = (*env)->GetFieldID(env, cls, "c", "[B");
+    if (fid != NULL) {
+        jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher, fid);
+        if (c_array != NULL) {
+            jsize c_len = (*env)->GetArrayLength(env, c_array);
+            /* Update L field if not already set */
+            if (native_cipher->L == 0) {
+                native_cipher->L = c_len;
+            }
+            /* Note: C is not copied here - flexible array member.
+             * If actual cipher data needed, caller must allocate larger struct and copy */
+        }
     }
 
     return true;
