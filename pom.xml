@@ -20,8 +20,8 @@
     </organization>
 
     <modules>
-        <module>sdf4j-core</module>
-        <module>sdf4j-examples</module>
+        <module>sdf4j</module>
+        <module>examples</module>
     </modules>
 
     <properties>
