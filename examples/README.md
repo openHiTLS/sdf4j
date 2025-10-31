@@ -26,8 +26,11 @@ mvn test -Dtest=BasicExampleTest
 # SM3 hash algorithm demonstrations
 mvn test -Dtest=SM3ExampleTest
 
-# SM2 asymmetric cryptography (sign/verify/encrypt)
-mvn test -Dtest=SM2ExampleTest
+# SM2 with internal device keys (complete examples)
+mvn test -Dtest=SM2InternalKeyExampleTest
+
+# SM2 with external generated keys (complete examples)
+mvn test -Dtest=SM2ExternalKeyExampleTest
 
 # SM4 symmetric encryption (ECB/CBC/MAC)
 mvn test -Dtest=SM4ExampleTest
@@ -35,8 +38,10 @@ mvn test -Dtest=SM4ExampleTest
 
 ### Run Specific Test Method
 ```bash
+# Run a specific test method
 mvn test -Dtest=BasicExampleTest#testGenerateRandom
-mvn test -Dtest=SM2ExampleTest#testSM2InternalSignAndVerify
+mvn test -Dtest=SM2InternalKeyExampleTest#testInternalSignAndVerify
+mvn test -Dtest=SM2ExternalKeyExampleTest#testExternalEncryptDecrypt
 ```
 
 ### Run with Custom SDF Library
@@ -65,13 +70,24 @@ SM3 (Chinese cryptographic hash algorithm) demonstrations:
 - `testSM3HMAC()` - SM3-HMAC (keyed message authentication code)
 - `testCompareHashLengths()` - Comparison of different hash algorithm output lengths
 
-### SM2ExampleTest
-SM2 asymmetric cryptography examples:
-- `testExportSM2PublicKey()` - Exporting signing and encryption public keys
-- `testSM2InternalSignAndVerify()` - Signing with internal key and verifying
-- `testSM2ExternalVerify()` - Verifying with exported public key
-- `testSM2ExternalEncrypt()` - Encrypting with public key
-- `testVerifyWithTamperedData()` - Demonstrating signature verification failure
+#### SM2InternalKeyExampleTest (内部密钥完整示例)
+Complete SM2 examples using internal device keys:
+- `testExportInternalPublicKey()` - Export signing and encryption public keys from device
+- `testInternalSignAndVerify()` - Sign with internal private key, verify with internal public key
+- `testInternalEncryptDecrypt()` - Encrypt with exported public key (decrypt requires device support)
+- `testInternalKeyUsageScenario()` - Real-world scenario: signing multiple documents
+
+**Use Case**: Enterprise scenarios requiring hardware-protected keys that never leave the secure device.
+
+#### SM2ExternalKeyExampleTest (外部密钥完整示例)
+Complete SM2 examples using dynamically generated external key pairs:
+- `testGenerateKeyPair()` - Generate temporary SM2 key pair (public + private)
+- `testExternalSignAndVerify()` - Sign with external private key, verify with external public key
+- `testExternalEncryptDecrypt()` - Complete encrypt/decrypt cycle with external keys
+- `testMultipleKeyPairs()` - Generate and use multiple independent key pairs
+- `testCrossVerification()` - Verify key isolation (wrong key pair cannot verify)
+
+**Use Case**: Scenarios requiring temporary keys, multi-user key management, or key exportability.
 
 ### SM4ExampleTest
 SM4 symmetric encryption examples:
