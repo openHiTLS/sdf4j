@@ -35,8 +35,8 @@ public class SM2InternalKeyExampleTest {
     private SDF sdf;
     private long deviceHandle;
     private long sessionHandle;
-    private static final int SIGN_KEY_INDEX = 1;  // 签名密钥索引
-    private static final int ENC_KEY_INDEX = 1;   // 加密密钥索引
+    private static final int SIGN_KEY_INDEX = 10;  // 签名密钥索引
+    private static final int ENC_KEY_INDEX = 10;   // 加密密钥索引
 
     @Before
     public void setUp() throws SDFException {

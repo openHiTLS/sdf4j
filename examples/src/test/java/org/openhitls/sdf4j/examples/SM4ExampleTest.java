@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
 import org.openhitls.sdf4j.constants.ErrorCode;
+import org.openhitls.sdf4j.types.KeyEncryptionResult;
 
 import java.nio.charset.StandardCharsets;
 
@@ -27,13 +28,16 @@ import static org.junit.Assert.*;
  * SM4 对称加密示例测试
  * 演示SM4-ECB和SM4-CBC加解密
  *
- * 注意: 本测试需要先生成或导入密钥，如果没有有效的密钥句柄，相关测试会跳过
+ * 注意: 本测试使用内部ECC密钥生成会话密钥
  */
 public class SM4ExampleTest {
+
+    private static final int ENC_KEY_INDEX = 10;  // 加密密钥索引
 
     private SDF sdf;
     private long deviceHandle;
     private long sessionHandle;
+    private long keyHandle;  // SM4会话密钥句柄
 
     @Before
     public void setUp() throws SDFException {
@@ -44,12 +48,29 @@ public class SM4ExampleTest {
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
-        System.out.println("设备和会话已打开\n");
+        System.out.println("设备和会话已打开");
+
+        // 使用内部ECC密钥生成SM4会话密钥（128位）
+        System.out.println("生成SM4会话密钥 (使用内部ECC密钥索引: " + ENC_KEY_INDEX + ")");
+        try {
+            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, ENC_KEY_INDEX, 128);
+            keyHandle = result.getKeyHandle();
+            System.out.println("✓ SM4密钥生成成功，密钥句柄: " + keyHandle);
+            System.out.println("  加密密钥长度: " + result.getEncryptedKey().length + " bytes\n");
+        } catch (SDFException e) {
+            System.err.println("⚠ 密钥生成失败: " + e.getMessage());
+            System.err.println("  后续测试将跳过加解密操作");
+            keyHandle = 0;
+        }
     }
 
     @After
     public void tearDown() {
         try {
+            if (keyHandle != 0) {
+                sdf.SDF_DestroyKey(sessionHandle, keyHandle);
+                System.out.println("密钥已销毁");
+            }
             if (sessionHandle != 0) {
                 sdf.SDF_CloseSession(sessionHandle);
             }
@@ -74,11 +95,6 @@ public class SM4ExampleTest {
         System.out.println("明文: " + plaintext);
         System.out.println("明文字节: " + bytesToHex(plaintextBytes));
         System.out.println("明文长度: " + plaintextBytes.length + " bytes\n");
-
-        // 注意：实际使用中需要先生成或导入密钥
-        // 这里假设keyHandle是有效的密钥句柄
-        // 在真实环境中，需要调用相应的密钥生成或导入函数
-        long keyHandle = 0; // 需要替换为实际的密钥句柄
 
         if (keyHandle != 0) {
             try {
@@ -118,10 +134,7 @@ public class SM4ExampleTest {
                 }
             }
         } else {
-            System.out.println("注意：需要先生成或导入SM4密钥");
-            System.out.println("密钥生成示例：");
-            System.out.println("  // 生成会话密钥");
-            System.out.println("  keyHandle = sdf.SDF_GenerateKeyWith_KEK(...);");
+            System.out.println("⚠ 跳过测试：密钥未能成功生成");
         }
     }
 
@@ -134,8 +147,6 @@ public class SM4ExampleTest {
         // 准备明文数据
         String plaintext = "Hello SDF4J! 测试SM4加密";
         byte[] plaintextBytes = plaintext.getBytes(StandardCharsets.UTF_8);
-
-        long keyHandle = 0; // 需要替换为实际的密钥句柄
 
         if (keyHandle != 0) {
             try {
@@ -180,7 +191,7 @@ public class SM4ExampleTest {
                 }
             }
         } else {
-            System.out.println("\n注意：需要先生成或导入SM4密钥");
+            System.out.println("⚠ 跳过测试：密钥未能成功生成");
         }
     }
 
@@ -189,8 +200,6 @@ public class SM4ExampleTest {
         System.out.println("\n========================================");
         System.out.println("示例3: SM4-MAC消息认证码");
         System.out.println("========================================");
-
-        long keyHandle = 0; // 需要替换为实际的密钥句柄
 
         if (keyHandle != 0) {
             try {
@@ -217,7 +226,7 @@ public class SM4ExampleTest {
                 }
             }
         } else {
-            System.out.println("\n注意：需要先生成或导入SM4密钥");
+            System.out.println("⚠ 跳过测试：密钥未能成功生成");
         }
 
         System.out.println("\n========================================");
