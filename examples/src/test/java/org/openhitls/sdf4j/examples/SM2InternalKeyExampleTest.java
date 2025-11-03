@@ -129,9 +129,17 @@ public class SM2InternalKeyExampleTest {
             System.out.println("数据长度: " + data.length + " bytes");
             System.out.println("数据十六进制: " + bytesToHex(data));
 
-            // 步骤1: 使用设备内部私钥签名
-            System.out.println("\n步骤1: 使用内部私钥签名 (密钥索引: " + SIGN_KEY_INDEX + ")");
-            ECCSignature signature = sdf.SDF_InternalSign_ECC(sessionHandle, SIGN_KEY_INDEX, data);
+            // 先对数据进行SM3哈希（SM2签名通常需要先哈希）
+            System.out.println("\n先计算SM3哈希值");
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, data);
+            byte[] hashedData = sdf.SDF_HashFinal(sessionHandle);
+            System.out.println("SM3哈希值: " + bytesToHex(hashedData));
+            System.out.println("哈希长度: " + hashedData.length + " bytes");
+
+            // 步骤1: 使用设备内部私钥签名（签名哈希值）
+            System.out.println("\n步骤1: 使用内部私钥签名哈希值 (密钥索引: " + SIGN_KEY_INDEX + ")");
+            ECCSignature signature = sdf.SDF_InternalSign_ECC(sessionHandle, SIGN_KEY_INDEX, hashedData);
             assertNotNull("签名结果不应为空", signature);
 
             System.out.println("签名成功:");
@@ -145,9 +153,9 @@ public class SM2InternalKeyExampleTest {
             assertTrue("签名r分量长度应大于0", signature.getR().length > 0);
             assertTrue("签名s分量长度应大于0", signature.getS().length > 0);
 
-            // 步骤2: 使用设备内部公钥验签
-            System.out.println("\n步骤2: 使用内部公钥验签 (密钥索引: " + SIGN_KEY_INDEX + ")");
-            sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, data, signature);
+            // 步骤2: 使用设备内部公钥验签（验签哈希值）
+            System.out.println("\n步骤2: 使用内部公钥验签哈希值 (密钥索引: " + SIGN_KEY_INDEX + ")");
+            sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, hashedData, signature);
             System.out.println("✓ 内部验签成功 - 签名有效!");
 
             // 步骤3: 验证修改数据后验签会失败
@@ -155,8 +163,13 @@ public class SM2InternalKeyExampleTest {
             byte[] tamperedData = (message + "被篡改").getBytes(StandardCharsets.UTF_8);
             System.out.println("篡改后的数据: \"" + new String(tamperedData, StandardCharsets.UTF_8) + "\"");
 
+            // 计算篡改数据的哈希
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, tamperedData);
+            byte[] tamperedHash = sdf.SDF_HashFinal(sessionHandle);
+
             try {
-                sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, tamperedData, signature);
+                sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, tamperedHash, signature);
                 fail("使用篡改数据验签应该失败");
             } catch (SDFException e) {
                 System.out.println("✓ 篡改数据验签正确失败: " + e.getErrorCodeHex());
@@ -192,11 +205,12 @@ public class SM2InternalKeyExampleTest {
             String plaintext = "这是需要加密的机密信息";
             byte[] plaintextBytes = plaintext.getBytes(StandardCharsets.UTF_8);
 
-            System.out.println("\n步骤2: 使用公钥加密数据");
+            System.out.println("\n步骤2: 使用导出的公钥作为外部公钥加密数据");
             System.out.println("明文: \"" + plaintext + "\"");
             System.out.println("明文长度: " + plaintextBytes.length + " bytes");
             System.out.println("明文十六进制: " + bytesToHex(plaintextBytes));
 
+            // 注意：SDF标准没有定义内部密钥加密接口，只能使用导出的公钥作为外部公钥加密
             ECCCipher cipher = sdf.SDF_ExternalEncrypt_ECC(
                 sessionHandle,
                 AlgorithmID.SGD_SM2_3,
@@ -256,12 +270,17 @@ public class SM2InternalKeyExampleTest {
                 System.out.println((i + 1) + ". 签名文档: \"" + documents[i] + "\"");
                 byte[] docData = documents[i].getBytes(StandardCharsets.UTF_8);
 
-                // 签名
-                ECCSignature signature = sdf.SDF_InternalSign_ECC(sessionHandle, SIGN_KEY_INDEX, docData);
+                // 先计算文档的SM3哈希
+                sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+                sdf.SDF_HashUpdate(sessionHandle, docData);
+                byte[] docHash = sdf.SDF_HashFinal(sessionHandle);
+
+                // 签名哈希值
+                ECCSignature signature = sdf.SDF_InternalSign_ECC(sessionHandle, SIGN_KEY_INDEX, docHash);
                 System.out.println("   签名: r=" + bytesToHex(signature.getR()).substring(0, 16) + "...");
 
-                // 验签
-                sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, docData, signature);
+                // 验签哈希值
+                sdf.SDF_InternalVerify_ECC(sessionHandle, SIGN_KEY_INDEX, docHash, signature);
                 System.out.println("   ✓ 验签通过\n");
             }
 

@@ -147,21 +147,21 @@ typedef LONG (*SDF_AuthDec_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG u
                                BYTE *pucData, ULONG *puiDataLength);
 /* 多包加密 */
 typedef LONG (*SDF_EncryptInit_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                                   BYTE *pucIV);
+                                   BYTE *pucIV, ULONG uiIVLength);
 typedef LONG (*SDF_EncryptUpdate_FN)(HANDLE hSessionHandle, BYTE *pucData, ULONG uiDataLength,
                                      BYTE *pucEncData, ULONG *puiEncDataLength);
 typedef LONG (*SDF_EncryptFinal_FN)(HANDLE hSessionHandle, BYTE *pucEncData,
                                     ULONG *puiEncDataLength);
 /* 多包解密 */
 typedef LONG (*SDF_DecryptInit_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                                   BYTE *pucIV);
+                                   BYTE *pucIV, ULONG uiIVLength);
 typedef LONG (*SDF_DecryptUpdate_FN)(HANDLE hSessionHandle, BYTE *pucEncData,
                                      ULONG uiEncDataLength, BYTE *pucData,
                                      ULONG *puiDataLength);
 typedef LONG (*SDF_DecryptFinal_FN)(HANDLE hSessionHandle, BYTE *pucData, ULONG *puiDataLength);
 /* 多包MAC */
 typedef LONG (*SDF_CalculateMACInit_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                                        BYTE *pucIV);
+                                        BYTE *pucIV, ULONG uiIVLength);
 typedef LONG (*SDF_CalculateMACUpdate_FN)(HANDLE hSessionHandle, BYTE *pucData,
                                           ULONG uiDataLength);
 typedef LONG (*SDF_CalculateMACFinal_FN)(HANDLE hSessionHandle, BYTE *pucMac,

@@ -45,10 +45,11 @@ public class ECCSignature {
 
     /**
      * 默认构造函数
+     * 注意：创建空数组，实际长度由使用时决定
      */
     public ECCSignature() {
-        this.r = new byte[ECC_MAX_LEN];
-        this.s = new byte[ECC_MAX_LEN];
+        this.r = new byte[0];
+        this.s = new byte[0];
     }
 
     /**
@@ -61,8 +62,10 @@ public class ECCSignature {
         if (r == null || s == null) {
             throw new IllegalArgumentException("Signature r and s cannot be null");
         }
-        this.r = Arrays.copyOf(r, ECC_MAX_LEN);
-        this.s = Arrays.copyOf(s, ECC_MAX_LEN);
+        // 保持原始长度，不强制填充到ECC_MAX_LEN
+        // 只在长度超过最大值时截断
+        this.r = r.length > ECC_MAX_LEN ? Arrays.copyOf(r, ECC_MAX_LEN) : r.clone();
+        this.s = s.length > ECC_MAX_LEN ? Arrays.copyOf(s, ECC_MAX_LEN) : s.clone();
     }
 
     // ========================================================================
@@ -77,7 +80,9 @@ public class ECCSignature {
         if (r == null) {
             throw new IllegalArgumentException("Signature r cannot be null");
         }
-        this.r = Arrays.copyOf(r, ECC_MAX_LEN);
+        // 保持原始长度，不强制填充到ECC_MAX_LEN
+        // 只在长度超过最大值时截断
+        this.r = r.length > ECC_MAX_LEN ? Arrays.copyOf(r, ECC_MAX_LEN) : r.clone();
     }
 
     public byte[] getS() {
@@ -88,7 +93,9 @@ public class ECCSignature {
         if (s == null) {
             throw new IllegalArgumentException("Signature s cannot be null");
         }
-        this.s = Arrays.copyOf(s, ECC_MAX_LEN);
+        // 保持原始长度，不强制填充到ECC_MAX_LEN
+        // 只在长度超过最大值时截断
+        this.s = s.length > ECC_MAX_LEN ? Arrays.copyOf(s, ECC_MAX_LEN) : s.clone();
     }
 
     @Override

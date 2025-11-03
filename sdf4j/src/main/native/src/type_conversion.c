@@ -278,9 +278,19 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
     /* r */
     fid = (*env)->GetFieldID(env, cls, "r", "[B");
     if (fid != NULL) {
-        jbyteArray r_array = (*env)->NewByteArray(env, ECCref_MAX_LEN);
+        /* 智能检测实际签名长度：从后往前查找非零字节 */
+        int r_len = ECCref_MAX_LEN;
+        while (r_len > 0 && native_sig->r[r_len - 1] == 0) {
+            r_len--;
+        }
+        /* SM2签名通常是32字节，如果检测到的长度接近32，则使用32 */
+        if (r_len > 0 && r_len <= 32) {
+            r_len = 32;  /* 标准SM2签名长度 */
+        }
+
+        jbyteArray r_array = (*env)->NewByteArray(env, r_len);
         if (r_array != NULL) {
-            (*env)->SetByteArrayRegion(env, r_array, 0, ECCref_MAX_LEN, (jbyte*)native_sig->r);
+            (*env)->SetByteArrayRegion(env, r_array, 0, r_len, (jbyte*)native_sig->r);
             (*env)->SetObjectField(env, obj, fid, r_array);
         }
     }
@@ -288,9 +298,19 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
     /* s */
     fid = (*env)->GetFieldID(env, cls, "s", "[B");
     if (fid != NULL) {
-        jbyteArray s_array = (*env)->NewByteArray(env, ECCref_MAX_LEN);
+        /* 智能检测实际签名长度：从后往前查找非零字节 */
+        int s_len = ECCref_MAX_LEN;
+        while (s_len > 0 && native_sig->s[s_len - 1] == 0) {
+            s_len--;
+        }
+        /* SM2签名通常是32字节，如果检测到的长度接近32，则使用32 */
+        if (s_len > 0 && s_len <= 32) {
+            s_len = 32;  /* 标准SM2签名长度 */
+        }
+
+        jbyteArray s_array = (*env)->NewByteArray(env, s_len);
         if (s_array != NULL) {
-            (*env)->SetByteArrayRegion(env, s_array, 0, ECCref_MAX_LEN, (jbyte*)native_sig->s);
+            (*env)->SetByteArrayRegion(env, s_array, 0, s_len, (jbyte*)native_sig->s);
             (*env)->SetObjectField(env, obj, fid, s_array);
         }
     }

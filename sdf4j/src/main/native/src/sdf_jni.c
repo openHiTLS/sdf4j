@@ -1896,8 +1896,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1EncryptInit
 
     /* 转换IV参数（可能为NULL，ECB模式不需要IV）*/
     BYTE *iv_buf = NULL;
+    jsize iv_len = 0;
     if (iv != NULL) {
-        jsize iv_len = (*env)->GetArrayLength(env, iv);
+        iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             throw_sdf_exception(env, 0x0100001C);
@@ -1910,7 +1911,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1EncryptInit
         (HANDLE)sessionHandle,
         (HANDLE)keyHandle,
         (ULONG)algID,
-        iv_buf
+        iv_buf,
+        (ULONG)iv_len
     );
 
     if (iv_buf != NULL) {
@@ -2536,8 +2538,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1DecryptInit
     }
 
     BYTE *iv_buf = NULL;
+    jsize iv_len = 0;
     if (iv != NULL) {
-        jsize iv_len = (*env)->GetArrayLength(env, iv);
+        iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             throw_sdf_exception(env, 0x0100001C);
@@ -2550,7 +2553,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1DecryptInit
         (HANDLE)sessionHandle,
         (HANDLE)keyHandle,
         (ULONG)algID,
-        iv_buf
+        iv_buf,
+        (ULONG)iv_len
     );
 
     if (iv_buf != NULL) {
@@ -2689,8 +2693,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMACInit
     }
 
     BYTE *iv_buf = NULL;
+    jsize iv_len = 0;
     if (iv != NULL) {
-        jsize iv_len = (*env)->GetArrayLength(env, iv);
+        iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             throw_sdf_exception(env, 0x0100001C);
@@ -2703,7 +2708,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMACInit
         (HANDLE)sessionHandle,
         (HANDLE)keyHandle,
         (ULONG)algID,
-        iv_buf
+        iv_buf,
+        (ULONG)iv_len
     );
 
     if (iv_buf != NULL) {
