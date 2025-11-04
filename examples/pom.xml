@@ -44,6 +44,7 @@
                     <argLine>-Djava.library.path=${project.basedir}/../sdf4j-core/target/native</argLine>
                     <!-- 默认跳过示例测试，需要通过 -DskipTests=false 明确启用 -->
                     <skipTests>false</skipTests>
+                    <!-- 继承父POM的fork配置 -->
                 </configuration>
             </plugin>
         </plugins>

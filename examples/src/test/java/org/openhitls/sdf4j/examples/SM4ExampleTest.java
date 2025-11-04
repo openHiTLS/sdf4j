@@ -32,12 +32,12 @@ import static org.junit.Assert.*;
  */
 public class SM4ExampleTest {
 
-    private static final int ENC_KEY_INDEX = 10;  // 加密密钥索引
-
     private SDF sdf;
     private long deviceHandle;
     private long sessionHandle;
     private long keyHandle;  // SM4会话密钥句柄
+    private TestConfig config;
+    private int keyIndex;
 
     @Before
     public void setUp() throws SDFException {
@@ -45,15 +45,23 @@ public class SM4ExampleTest {
         System.out.println("SM4 对称加密示例");
         System.out.println("========================================\n");
 
+        config = TestConfig.getInstance();
+        keyIndex = config.getSM2InternalKeyIndex();
+
+        System.out.println("Test Configuration:");
+        System.out.println("  Environment: " + config.getEnvironmentName());
+        System.out.println("  Key Index: " + keyIndex);
+        System.out.println();
+
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
         System.out.println("设备和会话已打开");
 
         // 使用内部ECC密钥生成SM4会话密钥（128位）
-        System.out.println("生成SM4会话密钥 (使用内部ECC密钥索引: " + ENC_KEY_INDEX + ")");
+        System.out.println("生成SM4会话密钥 (使用内部ECC密钥索引: " + keyIndex + ")");
         try {
-            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, ENC_KEY_INDEX, 128);
+            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             keyHandle = result.getKeyHandle();
             System.out.println("✓ SM4密钥生成成功，密钥句柄: " + keyHandle);
             System.out.println("  加密密钥长度: " + result.getEncryptedKey().length + " bytes\n");
@@ -98,6 +106,10 @@ public class SM4ExampleTest {
 
         if (keyHandle != 0) {
             try {
+                // 对数据进行PKCS#7填充（SM4块大小为16字节）
+                byte[] paddedData = pkcs7Padding(plaintextBytes, 16);
+                System.out.println("填充后长度: " + paddedData.length + " bytes");
+
                 // ECB模式加密
                 System.out.println("\n加密...");
                 byte[] ciphertext = sdf.SDF_Encrypt(
@@ -105,7 +117,7 @@ public class SM4ExampleTest {
                     keyHandle,
                     AlgorithmID.SGD_SM4_ECB,
                     null,  // ECB模式不需要IV
-                    plaintextBytes
+                    paddedData  // 使用填充后的数据
                 );
                 assertNotNull("密文不应为空", ciphertext);
                 System.out.println("密文: " + bytesToHex(ciphertext));
@@ -120,7 +132,10 @@ public class SM4ExampleTest {
                     null,
                     ciphertext
                 );
-                String decryptedText = new String(decrypted, StandardCharsets.UTF_8);
+
+                // 去除PKCS#7填充
+                byte[] unpaddedData = pkcs7Unpadding(decrypted);
+                String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
                 System.out.println("解密结果: " + decryptedText);
 
                 // 验证
@@ -156,6 +171,10 @@ public class SM4ExampleTest {
                 assertNotNull("IV不应为空", iv);
                 assertEquals("IV长度应为16字节", 16, iv.length);
 
+                // 对数据进行PKCS#7填充（SM4块大小为16字节）
+                byte[] paddedData = pkcs7Padding(plaintextBytes, 16);
+                System.out.println("填充后长度: " + paddedData.length + " bytes");
+
                 // CBC模式加密
                 System.out.println("\n加密...");
                 byte[] ciphertext = sdf.SDF_Encrypt(
@@ -163,7 +182,7 @@ public class SM4ExampleTest {
                     keyHandle,
                     AlgorithmID.SGD_SM4_CBC,
                     iv,
-                    plaintextBytes
+                    paddedData  // 使用填充后的数据
                 );
                 assertNotNull("密文不应为空", ciphertext);
                 System.out.println("密文: " + bytesToHex(ciphertext));
@@ -177,7 +196,10 @@ public class SM4ExampleTest {
                     iv,
                     ciphertext
                 );
-                String decryptedText = new String(decrypted, StandardCharsets.UTF_8);
+
+                // 去除PKCS#7填充
+                byte[] unpaddedData = pkcs7Unpadding(decrypted);
+                String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
                 System.out.println("解密结果: " + decryptedText);
 
                 // 验证
@@ -205,14 +227,24 @@ public class SM4ExampleTest {
             try {
                 byte[] data = "Message to authenticate".getBytes(StandardCharsets.UTF_8);
                 System.out.println("\n待认证消息: " + new String(data, StandardCharsets.UTF_8));
+                System.out.println("原始数据长度: " + data.length + " bytes");
+
+                // 对数据进行PKCS#7填充（SM4块大小为16字节）
+                // 注意：某些SDF实现可能内部处理填充，但为确保兼容性，我们手动填充
+                byte[] paddedData = pkcs7Padding(data, 16);
+                System.out.println("填充后长度: " + paddedData.length + " bytes");
+
+                // 使用SDF随机数接口生成16字节的IV（初始化向量）
+                byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
+                System.out.println("IV: " + bytesToHex(iv));
 
                 // 计算MAC
                 byte[] mac = sdf.SDF_CalculateMAC(
                     sessionHandle,
                     keyHandle,
                     AlgorithmID.SGD_SM4_MAC,
-                    null,
-                    data
+                    iv,
+                    paddedData  // 使用填充后的数据
                 );
                 assertNotNull("MAC值不应为空", mac);
                 System.out.println("MAC值: " + bytesToHex(mac));
@@ -240,5 +272,48 @@ public class SM4ExampleTest {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    /**
+     * PKCS#7填充
+     * 将数据填充到指定块大小的倍数
+     * @param data 原始数据
+     * @param blockSize 块大小（SM4为16字节）
+     * @return 填充后的数据
+     */
+    private static byte[] pkcs7Padding(byte[] data, int blockSize) {
+        int paddingLength = blockSize - (data.length % blockSize);
+        byte[] paddedData = new byte[data.length + paddingLength];
+        System.arraycopy(data, 0, paddedData, 0, data.length);
+        for (int i = 0; i < paddingLength; i++) {
+            paddedData[data.length + i] = (byte) paddingLength;
+        }
+        return paddedData;
+    }
+
+    /**
+     * 去除PKCS#7填充
+     * @param data 填充后的数据
+     * @return 原始数据
+     */
+    private static byte[] pkcs7Unpadding(byte[] data) {
+        if (data == null || data.length == 0) {
+            return data;
+        }
+        int paddingLength = data[data.length - 1] & 0xFF;
+        if (paddingLength > data.length || paddingLength == 0) {
+            // 无效的填充，返回原数据
+            return data;
+        }
+        // 验证填充是否正确
+        for (int i = data.length - paddingLength; i < data.length; i++) {
+            if ((data[i] & 0xFF) != paddingLength) {
+                // 填充不正确，返回原数据
+                return data;
+            }
+        }
+        byte[] unpaddedData = new byte[data.length - paddingLength];
+        System.arraycopy(data, 0, unpaddedData, 0, unpaddedData.length);
+        return unpaddedData;
     }
 }

@@ -198,7 +198,7 @@ public class SM2ExternalKeyExampleTest {
         try {
             // 步骤1: 生成密钥对
             System.out.println("步骤1: 生成加密用密钥对");
-            Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_3, KEY_BITS);
+            Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, KEY_BITS);
             ECCPublicKey publicKey = (ECCPublicKey) keyPair[0];
             ECCPrivateKey privateKey = (ECCPrivateKey) keyPair[1];
             System.out.println("✓ 密钥对生成完成 (公钥位数: " + publicKey.getBits() + " bits)\n");
@@ -214,7 +214,7 @@ public class SM2ExternalKeyExampleTest {
 
             ECCCipher cipher = sdf.SDF_ExternalEncrypt_ECC(
                 sessionHandle,
-                AlgorithmID.SGD_SM2_3,
+                AlgorithmID.SGD_SM2_1,
                 publicKey,
                 plaintextBytes
             );
@@ -232,7 +232,7 @@ public class SM2ExternalKeyExampleTest {
             System.out.println("\n步骤3: 使用外部私钥解密");
             byte[] decryptedBytes = sdf.SDF_ExternalDecrypt_ECC(
                 sessionHandle,
-                AlgorithmID.SGD_SM2_3,
+                AlgorithmID.SGD_SM2_1,
                 privateKey,
                 cipher
             );

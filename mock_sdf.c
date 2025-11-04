@@ -1,222 +1,205 @@
-/**
- * Mock SDF library for testing parameter fixes
- * Returns SDR_NOTSUPPORT for most functions to simulate partial implementation
+/*
+ * Mock SDF library for testing parameter passing
+ * This helps verify that the JNI layer is passing parameters correctly
  */
 
-#include <stddef.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-
-#define SDR_OK           0x00000000
-#define SDR_BASE         0x01000000
-#define SDR_NOTSUPPORT   (SDR_BASE + 0x00000002)
-#define SDR_INARGERR     (SDR_BASE + 0x0000001D)
+#include <stdlib.h>
 
 typedef void* HANDLE;
-typedef unsigned char BYTE;
 typedef unsigned long ULONG;
+typedef unsigned char BYTE;
 typedef long LONG;
 
-// Core functions (mandatory)
-LONG SDF_OpenDevice(HANDLE *phDeviceHandle) {
-    if (phDeviceHandle == NULL) return SDR_INARGERR;
-    *phDeviceHandle = (HANDLE)1;
+#define SDR_OK 0
+#define SDR_INARGERR 0x0100001D
+
+/* Core functions (mandatory) */
+LONG SDF_OpenDevice(HANDLE *phDevice) {
+    printf("[MOCK] SDF_OpenDevice called\n");
+    *phDevice = (HANDLE)0x1234;
     return SDR_OK;
 }
 
-LONG SDF_CloseDevice(HANDLE hDeviceHandle) {
+LONG SDF_CloseDevice(HANDLE hDevice) {
+    printf("[MOCK] SDF_CloseDevice called\n");
     return SDR_OK;
 }
 
-LONG SDF_OpenSession(HANDLE hDeviceHandle, HANDLE *phSessionHandle) {
-    if (phSessionHandle == NULL) return SDR_INARGERR;
-    *phSessionHandle = (HANDLE)1;
+LONG SDF_OpenSession(HANDLE hDevice, HANDLE *phSession) {
+    printf("[MOCK] SDF_OpenSession called\n");
+    *phSession = (HANDLE)0x5678;
     return SDR_OK;
 }
 
-LONG SDF_CloseSession(HANDLE hSessionHandle) {
+LONG SDF_CloseSession(HANDLE hSession) {
+    printf("[MOCK] SDF_CloseSession called\n");
     return SDR_OK;
 }
 
-// Device info structure
-typedef struct {
-    BYTE IssuerName[40];
-    BYTE DeviceName[16];
-    BYTE DeviceSerial[16];
-    ULONG DeviceVersion;
-    ULONG StandardVersion;
-    ULONG AsymAlgAbility[2];
-    ULONG SymAlgAbility;
-    ULONG HashAlgAbility;
-    ULONG BufferSize;
-} DEVICEINFO;
+/* SM4 Key Generation */
+LONG SDF_GenerateKeyWithIPK_ECC(HANDLE hSessionHandle, ULONG uiIPKIndex, ULONG uiKeyBits,
+                                 BYTE *pucKey, ULONG *puiKeyLength, HANDLE *phKeyHandle) {
+    printf("[MOCK] SDF_GenerateKeyWithIPK_ECC(session=%p, index=%lu, bits=%lu)\n",
+           hSessionHandle, uiIPKIndex, uiKeyBits);
 
-LONG SDF_GetDeviceInfo(HANDLE hSessionHandle, DEVICEINFO *pstDeviceInfo) {
-    if (pstDeviceInfo == NULL) return SDR_INARGERR;
-    memset(pstDeviceInfo, 0, sizeof(DEVICEINFO));
-    strcpy((char*)pstDeviceInfo->IssuerName, "Mock SDF");
-    strcpy((char*)pstDeviceInfo->DeviceName, "Mock Device");
-    strcpy((char*)pstDeviceInfo->DeviceSerial, "1234567890");
-    pstDeviceInfo->DeviceVersion = 1;
-    pstDeviceInfo->StandardVersion = 1;
+    *phKeyHandle = (HANDLE)0x9ABC;
+    *puiKeyLength = 32;
+    memset(pucKey, 0xAA, 32);
+    return SDR_OK;
+}
+
+/* SM4 Single-block operations */
+LONG SDF_Encrypt(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                 BYTE *pucIV, BYTE *pucData, ULONG uiDataLength,
+                 BYTE *pucEncData, ULONG *puiEncDataLength) {
+    printf("[MOCK] SDF_Encrypt(session=%p, key=%p, alg=0x%08lX, iv=%p, data_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiDataLength);
+
+    /* Check parameters */
+    if (hSessionHandle == NULL || hKeyHandle == NULL) {
+        printf("[MOCK] ERROR: Invalid handle\n");
+        return SDR_INARGERR;
+    }
+
+    /* For SM4, block size is 16 bytes */
+    ULONG blocks = (uiDataLength + 15) / 16;
+    *puiEncDataLength = blocks * 16;
+
+    /* Mock encryption: just copy and pad */
+    memcpy(pucEncData, pucData, uiDataLength);
+    if (*puiEncDataLength > uiDataLength) {
+        memset(pucEncData + uiDataLength, 0x10, *puiEncDataLength - uiDataLength);
+    }
+
+    printf("[MOCK] Encrypted %lu bytes -> %lu bytes\n", uiDataLength, *puiEncDataLength);
+    return SDR_OK;
+}
+
+LONG SDF_Decrypt(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                 BYTE *pucIV, BYTE *pucEncData, ULONG uiEncDataLength,
+                 BYTE *pucData, ULONG *puiDataLength) {
+    printf("[MOCK] SDF_Decrypt(session=%p, key=%p, alg=0x%08lX, iv=%p, enc_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiEncDataLength);
+
+    /* Check parameters */
+    if (hSessionHandle == NULL || hKeyHandle == NULL) {
+        printf("[MOCK] ERROR: Invalid handle\n");
+        return SDR_INARGERR;
+    }
+
+    /* Mock decryption: just copy */
+    *puiDataLength = uiEncDataLength;
+    memcpy(pucData, pucEncData, uiEncDataLength);
+
+    /* Remove padding if present */
+    if (*puiDataLength >= 16) {
+        BYTE last_byte = pucData[*puiDataLength - 1];
+        if (last_byte == 0x10) {
+            *puiDataLength -= 16;
+        } else if (last_byte > 0 && last_byte <= 16) {
+            *puiDataLength -= last_byte;
+        }
+    }
+
+    printf("[MOCK] Decrypted %lu bytes -> %lu bytes\n", uiEncDataLength, *puiDataLength);
+    return SDR_OK;
+}
+
+LONG SDF_CalculateMAC(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                      BYTE *pucIV, BYTE *pucData, ULONG uiDataLength,
+                      BYTE *pucMac, ULONG *puiMacLength) {
+    printf("[MOCK] SDF_CalculateMAC(session=%p, key=%p, alg=0x%08lX, iv=%p, data_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiDataLength);
+
+    /* Check parameters */
+    if (hSessionHandle == NULL || hKeyHandle == NULL) {
+        printf("[MOCK] ERROR: Invalid handle\n");
+        return SDR_INARGERR;
+    }
+
+    /* Mock MAC: fixed 16 bytes */
+    *puiMacLength = 16;
+    memset(pucMac, 0xBB, 16);
+
+    printf("[MOCK] Calculated MAC: %lu bytes\n", *puiMacLength);
+    return SDR_OK;
+}
+
+/* Multi-block Init operations with 5 parameters */
+LONG SDF_EncryptInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                     BYTE *pucIV, ULONG uiIVLength) {
+    printf("[MOCK] SDF_EncryptInit(session=%p, key=%p, alg=0x%08lX, iv=%p, iv_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiIVLength);
+    return SDR_OK;
+}
+
+LONG SDF_DecryptInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                     BYTE *pucIV, ULONG uiIVLength) {
+    printf("[MOCK] SDF_DecryptInit(session=%p, key=%p, alg=0x%08lX, iv=%p, iv_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiIVLength);
+    return SDR_OK;
+}
+
+LONG SDF_CalculateMACInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
+                          BYTE *pucIV, ULONG uiIVLength) {
+    printf("[MOCK] SDF_CalculateMACInit(session=%p, key=%p, alg=0x%08lX, iv=%p, iv_len=%lu)\n",
+           hSessionHandle, hKeyHandle, uiAlgID, (void*)pucIV, uiIVLength);
+    return SDR_OK;
+}
+
+/* Support functions */
+LONG SDF_DestroyKey(HANDLE hSessionHandle, HANDLE hKeyHandle) {
+    printf("[MOCK] SDF_DestroyKey(session=%p, key=%p)\n", hSessionHandle, hKeyHandle);
     return SDR_OK;
 }
 
 LONG SDF_GenerateRandom(HANDLE hSessionHandle, ULONG uiLength, BYTE *pucRandom) {
-    if (pucRandom == NULL || uiLength == 0) return SDR_INARGERR;
+    printf("[MOCK] SDF_GenerateRandom(session=%p, length=%lu)\n", hSessionHandle, uiLength);
     for (ULONG i = 0; i < uiLength; i++) {
-        pucRandom[i] = (BYTE)(rand() % 256);
+        pucRandom[i] = (BYTE)(rand() & 0xFF);
     }
     return SDR_OK;
 }
 
-// Key management (return not supported)
-typedef struct {
-    ULONG bits;
-    BYTE x[64];
-    BYTE y[64];
-} ECCrefPublicKey;
-
-typedef struct {
-    BYTE x[64];
-    BYTE y[64];
-    BYTE C[96];
-    BYTE M[32];
-    ULONG L;
-} ECCCipher;
-
-LONG SDF_GenerateKeyWithIPK_ECC(HANDLE hSessionHandle, ULONG uiIPKIndex,
-                                ULONG uiKeyBits, ECCCipher *pucKey,
-                                HANDLE *phKeyHandle) {
-    return SDR_NOTSUPPORT;
-}
-
-LONG SDF_DestroyKey(HANDLE hSessionHandle, HANDLE hKeyHandle) {
-    return SDR_NOTSUPPORT;
-}
-
-// Symmetric encryption functions - CHECK PARAMETERS!
-LONG SDF_Encrypt(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                BYTE *pucIV, BYTE *pucData, ULONG uiDataLength,
-                BYTE *pucEncData, ULONG *puiEncDataLength) {
-    // Check for invalid parameters
-    if (pucData == NULL || pucEncData == NULL || puiEncDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    if (uiDataLength == 0) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-LONG SDF_Decrypt(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                BYTE *pucIV, BYTE *pucEncData, ULONG uiEncDataLength,
-                BYTE *pucData, ULONG *puiDataLength) {
-    // Check for invalid parameters
-    if (pucEncData == NULL || pucData == NULL || puiDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    if (uiEncDataLength == 0) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-LONG SDF_CalculateMAC(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                     BYTE *pucIV, BYTE *pucData, ULONG uiDataLength,
-                     BYTE *pucMac, ULONG *puiMacLength) {
-    // Check for invalid parameters
-    if (pucData == NULL || pucMac == NULL || puiMacLength == NULL) {
-        return SDR_INARGERR;
-    }
-    if (uiDataLength == 0) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-// Multi-step encryption functions - FIXED SIGNATURE WITH 5 PARAMETERS!
-LONG SDF_EncryptInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                    BYTE *pucIV, ULONG uiIVLength) {
-    // Validate IV length when IV is provided
-    if (pucIV != NULL && uiIVLength == 0) {
-        return SDR_INARGERR;
-    }
-    // For ECB mode, IV should be NULL and length should be 0
-    // For CBC mode, IV should be non-NULL and length should be 16 for SM4
-    return SDR_NOTSUPPORT;
-}
-
+/* Multi-block Update/Final operations */
 LONG SDF_EncryptUpdate(HANDLE hSessionHandle, BYTE *pucData, ULONG uiDataLength,
-                      BYTE *pucEncData, ULONG *puiEncDataLength) {
-    if (pucData == NULL || pucEncData == NULL || puiEncDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
+                       BYTE *pucEncData, ULONG *puiEncDataLength) {
+    printf("[MOCK] SDF_EncryptUpdate\n");
+    *puiEncDataLength = uiDataLength;
+    memcpy(pucEncData, pucData, uiDataLength);
+    return SDR_OK;
 }
 
 LONG SDF_EncryptFinal(HANDLE hSessionHandle, BYTE *pucEncData, ULONG *puiEncDataLength) {
-    if (pucEncData == NULL || puiEncDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-// Multi-step decryption functions - FIXED SIGNATURE WITH 5 PARAMETERS!
-LONG SDF_DecryptInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                    BYTE *pucIV, ULONG uiIVLength) {
-    // Validate IV length when IV is provided
-    if (pucIV != NULL && uiIVLength == 0) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
+    printf("[MOCK] SDF_EncryptFinal\n");
+    *puiEncDataLength = 0;
+    return SDR_OK;
 }
 
 LONG SDF_DecryptUpdate(HANDLE hSessionHandle, BYTE *pucEncData, ULONG uiEncDataLength,
-                      BYTE *pucData, ULONG *puiDataLength) {
-    if (pucEncData == NULL || pucData == NULL || puiDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
+                       BYTE *pucData, ULONG *puiDataLength) {
+    printf("[MOCK] SDF_DecryptUpdate\n");
+    *puiDataLength = uiEncDataLength;
+    memcpy(pucData, pucEncData, uiEncDataLength);
+    return SDR_OK;
 }
 
 LONG SDF_DecryptFinal(HANDLE hSessionHandle, BYTE *pucData, ULONG *puiDataLength) {
-    if (pucData == NULL || puiDataLength == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-// Multi-step MAC functions - FIXED SIGNATURE WITH 5 PARAMETERS!
-LONG SDF_CalculateMACInit(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
-                         BYTE *pucIV, ULONG uiIVLength) {
-    // Validate IV length when IV is provided
-    if (pucIV != NULL && uiIVLength == 0) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
+    printf("[MOCK] SDF_DecryptFinal\n");
+    *puiDataLength = 0;
+    return SDR_OK;
 }
 
 LONG SDF_CalculateMACUpdate(HANDLE hSessionHandle, BYTE *pucData, ULONG uiDataLength) {
-    if (pucData == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
+    printf("[MOCK] SDF_CalculateMACUpdate\n");
+    return SDR_OK;
 }
 
 LONG SDF_CalculateMACFinal(HANDLE hSessionHandle, BYTE *pucMac, ULONG *puiMacLength) {
-    if (pucMac == NULL || puiMacLength == NULL) {
-        return SDR_INARGERR;
-    }
-    return SDR_NOTSUPPORT;
-}
-
-// Additional functions for completeness
-LONG SDF_GetPrivateKeyAccessRight(HANDLE hSessionHandle, ULONG uiKeyIndex,
-                                  char *pucPassword, ULONG uiPwdLength) {
-    return SDR_NOTSUPPORT;
-}
-
-LONG SDF_ReleasePrivateKeyAccessRight(HANDLE hSessionHandle, ULONG uiKeyIndex) {
-    return SDR_NOTSUPPORT;
+    printf("[MOCK] SDF_CalculateMACFinal\n");
+    *puiMacLength = 16;
+    memset(pucMac, 0xCC, 16);
+    return SDR_OK;
 }

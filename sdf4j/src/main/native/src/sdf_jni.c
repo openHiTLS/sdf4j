@@ -796,7 +796,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
     }
 
     /* 分配MAC缓冲区 */
-    ULONG mac_len = 16;  /* SM4-CBC-MAC 通常为16字节 */
+    ULONG mac_len = 64;  /* SM4-CBC-MAC 通常为16字节,可能是必须要传入固定64 TODO */
     BYTE *mac_buf = (BYTE*)malloc(mac_len);
     if (mac_buf == NULL) {
         free(data_buf);

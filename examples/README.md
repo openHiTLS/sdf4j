@@ -10,6 +10,48 @@ Examples are written as JUnit tests instead of standalone programs with `main()`
 - Easy integration with Maven test lifecycle
 - Graceful handling of optional SDF functions (SDR_NOTSUPPORT)
 
+## Configuration
+
+### Test Configuration Files
+
+SDF4J examples use a configuration file to manage device-specific settings like key indices and passwords. This makes examples more flexible and easier to adapt to different SDF devices.
+
+**Configuration file** (located in `src/test/resources/`):
+- `test-config.properties` - Configuration for test examples
+
+**Configuration properties**:
+```properties
+# SM2 internal key index (used by SM2InternalKeyExampleTest and SM4ExampleTest)
+sm2.internal.key.index=10
+
+# Password to obtain private key access right
+sm2.key.access.password=<your-device-password>
+
+# SM2 default user ID (GM/T 0009-2012 standard)
+sm2.default.user.id=1234567812345678
+
+# Environment identifier
+environment.name=default
+```
+
+### Configuring for Your Device
+
+Edit `test-config.properties` with your device-specific settings:
+
+```bash
+# Edit the config file
+vi examples/src/test/resources/test-config.properties
+
+# Update these values according to your SDF device:
+# sm2.internal.key.index=10
+# sm2.key.access.password=<your-device-password>
+# sm2.default.user.id=1234567812345678
+# environment.name=default
+
+# Run tests
+mvn test
+```
+
 ## Running Examples
 
 ### Run All Examples
@@ -72,12 +114,17 @@ SM3 (Chinese cryptographic hash algorithm) demonstrations:
 
 #### SM2InternalKeyExampleTest (内部密钥完整示例)
 Complete SM2 examples using internal device keys:
-- `testExportInternalPublicKey()` - Export signing and encryption public keys from device
-- `testInternalSignAndVerify()` - Sign with internal private key, verify with internal public key
-- `testInternalEncryptDecrypt()` - Encrypt with exported public key (decrypt requires device support)
-- `testInternalKeyUsageScenario()` - Real-world scenario: signing multiple documents
+- `testSignAndVerify()` - Sign with internal private key and verify signature
+- `testVerifyWithTamperedData()` - Verify data integrity protection
+
+**Configuration Required**: Yes - uses `sm2.internal.key.index` and `sm2.key.access.password`
 
 **Use Case**: Enterprise scenarios requiring hardware-protected keys that never leave the secure device.
+
+**Running with configuration**:
+```bash
+mvn test -Dtest=SM2InternalKeyExampleTest
+```
 
 #### SM2ExternalKeyExampleTest (外部密钥完整示例)
 Complete SM2 examples using dynamically generated external key pairs:
@@ -89,13 +136,20 @@ Complete SM2 examples using dynamically generated external key pairs:
 
 **Use Case**: Scenarios requiring temporary keys, multi-user key management, or key exportability.
 
-### SM4ExampleTest
+#### SM4ExampleTest
 SM4 symmetric encryption examples:
 - `testSM4ECB()` - ECB mode encryption/decryption
 - `testSM4CBC()` - CBC mode encryption/decryption with IV
 - `testSM4MAC()` - Message authentication code calculation
 
-**Note:** SM4 tests require a valid key handle. If not available, tests will indicate that key generation is needed.
+**Configuration Required**: Yes - uses `sm2.internal.key.index` for generating SM4 session keys
+
+**Note:** SM4 tests use internal ECC keys to generate session keys. The key index is read from configuration.
+
+**Running with configuration**:
+```bash
+mvn test -Dtest=SM4ExampleTest
+```
 
 ## Dependencies
 
@@ -145,9 +199,47 @@ The JNI library (`libsdf4j-jni.so`) is loaded from `../sdf4j-core/target/native/
    }
    ```
 
+## Device-Specific Notes
+
+Edit `test-config.properties` with your device-specific settings:
+- Update `sm2.internal.key.index` to match keys provisioned in your device
+- Update `sm2.key.access.password` to match your device's password
+- If your device doesn't require passwords, errors will be gracefully handled
+
+## Troubleshooting
+
+**Configuration file not found**:
+```
+Warning: Configuration file not found: test-config-xxx.properties
+```
+Solution: Check that the config file exists in `src/test/resources/`
+
+**Invalid key index**:
+```
+SDFException: SDR_KEYNOTEXIST (0x01000104)
+```
+Solution: Update `sm2.internal.key.index` to match a key in your device
+
+**Wrong password**:
+```
+SDFException: Authentication failed
+```
+Solution: Update `sm2.key.access.password` to match your device's password
+
+## Security Considerations
+
+- **DO NOT** commit sensitive passwords to version control
+- Consider adding `test-config.properties` to `.gitignore` if it contains sensitive data:
+  ```bash
+  echo "examples/src/test/resources/test-config.properties" >> .gitignore
+  ```
+- Use strong passwords for production environments
+- Consider using environment variables or secure vaults for sensitive data in production
+
 ## Notes
 
 - Examples require a working SDF library configured in `sdf4j-core`
 - Tests will gracefully handle `SDR_NOTSUPPORT` errors for optional functions
-- Some tests (especially SM4) may require pre-configured keys in the SDF device
+- Some tests require pre-configured keys in the SDF device
 - All examples include proper resource cleanup in `@After` methods
+- Configuration-based approach makes examples portable across different devices

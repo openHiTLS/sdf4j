@@ -61,6 +61,11 @@
                     <version>2.22.2</version>
                     <configuration>
                         <argLine>-Djava.library.path=${project.basedir}/../sdf4j-core/target/native</argLine>
+                        <!-- 禁用fork，在Maven主进程中运行测试，避免surefire临时文件 -->
+                        <forkCount>0</forkCount>
+                        <reuseForks>false</reuseForks>
+                        <!-- 使用系统类加载器 -->
+                        <useSystemClassLoader>true</useSystemClassLoader>
                     </configuration>
                 </plugin>
 

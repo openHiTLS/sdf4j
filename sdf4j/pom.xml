@@ -161,6 +161,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>-Djava.library.path=${project.build.directory}/native</argLine>
+                    <!-- 继承父POM的fork配置 -->
                 </configuration>
             </plugin>
 
