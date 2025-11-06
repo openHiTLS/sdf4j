@@ -11,6 +11,7 @@
  */
 
 #include "type_conversion.h"
+#include "sdf_log.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -19,30 +20,41 @@
  * ======================================================================== */
 
 void throw_sdf_exception(JNIEnv *env, int error_code) {
+    SDF_JNI_LOG("throw_sdf_exception: error_code=0x%08X", (unsigned int)error_code);
+
     jclass exc_class = (*env)->FindClass(env, "org/openhitls/sdf4j/SDFException");
     if (exc_class == NULL) {
+        SDF_LOG_ERROR("throw_sdf_exception", "Failed to find SDFException class");
         return;  /* FindClass已经抛出异常 */
     }
 
     jmethodID constructor = (*env)->GetMethodID(env, exc_class, "<init>", "(I)V");
     if (constructor == NULL) {
+        SDF_LOG_ERROR("throw_sdf_exception", "Failed to get SDFException constructor");
         return;
     }
 
     jobject exception = (*env)->NewObject(env, exc_class, constructor, error_code);
     if (exception != NULL) {
         (*env)->Throw(env, (jthrowable)exception);
+    } else {
+        SDF_LOG_ERROR("throw_sdf_exception", "Failed to create SDFException object");
     }
 }
 
 void throw_sdf_exception_with_message(JNIEnv *env, int error_code, const char *message) {
+    SDF_JNI_LOG("throw_sdf_exception_with_message: error_code=0x%08X, message=%s",
+                (unsigned int)error_code, message ? message : "NULL");
+
     jclass exc_class = (*env)->FindClass(env, "org/openhitls/sdf4j/SDFException");
     if (exc_class == NULL) {
+        SDF_LOG_ERROR("throw_sdf_exception_with_message", "Failed to find SDFException class");
         return;
     }
 
     jmethodID constructor = (*env)->GetMethodID(env, exc_class, "<init>", "(ILjava/lang/String;)V");
     if (constructor == NULL) {
+        SDF_LOG_ERROR("throw_sdf_exception_with_message", "Failed to get SDFException constructor");
         return;
     }
 
@@ -50,6 +62,8 @@ void throw_sdf_exception_with_message(JNIEnv *env, int error_code, const char *m
     jobject exception = (*env)->NewObject(env, exc_class, constructor, error_code, jmsg);
     if (exception != NULL) {
         (*env)->Throw(env, (jthrowable)exception);
+    } else {
+        SDF_LOG_ERROR("throw_sdf_exception_with_message", "Failed to create SDFException object");
     }
 }
 

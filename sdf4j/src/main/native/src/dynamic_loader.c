@@ -11,6 +11,7 @@
  */
 
 #include "dynamic_loader.h"
+#include "sdf_log.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,16 +37,21 @@ static bool load_function(void *handle, void **func_ptr, const char *func_name, 
     if (*func_ptr == NULL) {
         if (required) {
             /* 必需函数加载失败，返回错误 */
+            const char *error = dlerror();
             snprintf(g_load_error, sizeof(g_load_error),
-                    "Failed to load required function '%s': %s", func_name, dlerror());
+                    "Failed to load required function '%s': %s", func_name, error);
+            SDF_LOG_ERROR("load_function", g_load_error);
             return false;
         } else {
             /* 可选函数加载失败，只记录警告 */
+            SDF_JNI_LOG("load_function: Optional function '%s' not available", func_name);
             fprintf(stderr, "Warning: Optional SDF function '%s' not available in this implementation\n",
                     func_name);
             return true;  /* 继续加载 */
         }
     }
+    SDF_JNI_LOG("load_function: Successfully loaded %s function '%s' at 0x%lX",
+                required ? "required" : "optional", func_name, (unsigned long)*func_ptr);
     return true;
 }
 
@@ -238,13 +244,18 @@ static bool load_all_functions(void *handle) {
 }
 
 bool sdf_load_library(const char *library_path) {
+    SDF_LOG_ENTER("sdf_load_library");
+    SDF_JNI_LOG("sdf_load_library: library_path=%s", library_path ? library_path : "NULL");
+
     if (library_path == NULL) {
         snprintf(g_load_error, sizeof(g_load_error), "Library path is NULL");
+        SDF_LOG_ERROR("sdf_load_library", "Library path is NULL");
         return false;
     }
 
     /* 如果已经加载，先卸载 */
     if (g_sdf_handle != NULL) {
+        SDF_JNI_LOG("sdf_load_library: Unloading previously loaded library");
         sdf_unload_library();
     }
 
@@ -254,13 +265,18 @@ bool sdf_load_library(const char *library_path) {
     /* 打开库文件 */
     g_sdf_handle = dlopen(library_path, RTLD_LAZY | RTLD_LOCAL);
     if (g_sdf_handle == NULL) {
+        const char *error = dlerror();
         snprintf(g_load_error, sizeof(g_load_error),
-                "Failed to load library '%s': %s", library_path, dlerror());
+                "Failed to load library '%s': %s", library_path, error);
+        SDF_LOG_ERROR("sdf_load_library", g_load_error);
         return false;
     }
 
+    SDF_JNI_LOG("sdf_load_library: dlopen succeeded, handle=0x%lX", (unsigned long)g_sdf_handle);
+
     /* 加载所有函数 */
     if (!load_all_functions(g_sdf_handle)) {
+        SDF_LOG_ERROR("sdf_load_library", "Failed to load all functions");
         dlclose(g_sdf_handle);
         g_sdf_handle = NULL;
         memset(&g_sdf_functions, 0, sizeof(g_sdf_functions));
@@ -268,15 +284,21 @@ bool sdf_load_library(const char *library_path) {
     }
 
     snprintf(g_load_error, sizeof(g_load_error), "Library loaded successfully");
+    SDF_JNI_LOG("sdf_load_library: Library loaded successfully from %s", library_path);
     return true;
 }
 
 void sdf_unload_library(void) {
+    SDF_LOG_ENTER("sdf_unload_library");
+
     if (g_sdf_handle != NULL) {
+        SDF_JNI_LOG("sdf_unload_library: Closing library handle=0x%lX", (unsigned long)g_sdf_handle);
         dlclose(g_sdf_handle);
         g_sdf_handle = NULL;
     }
     memset(&g_sdf_functions, 0, sizeof(g_sdf_functions));
+
+    SDF_JNI_LOG("sdf_unload_library: Library unloaded successfully");
 }
 
 bool sdf_is_loaded(void) {

@@ -39,13 +39,23 @@ include_directories(
 set(SOURCES
     src/dynamic_loader.c
     src/type_conversion.c
-    src/sdf_jni.c
+    src/sdf_log.c
+    src/sdf_jni_loader.c
+    src/sdf_jni_device.c
+    src/sdf_jni_key.c
+    src/sdf_jni_keygen.c
+    src/sdf_jni_asymmetric.c
+    src/sdf_jni_symmetric.c
+    src/sdf_jni_file.c
+    src/sdf_jni_util.c
 )
 
 # 头文件
 set(HEADERS
     include/dynamic_loader.h
     include/type_conversion.h
+    include/sdf_log.h
+    include/sdf_jni_common.h
     include/org_openhitls_sdf4j_SDF.h
     include/org_openhitls_sdf4j_internal_NativeLibraryLoader.h
 )
