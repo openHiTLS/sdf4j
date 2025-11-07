@@ -37,6 +37,11 @@ public class BasicExampleTest {
         System.out.println("SDF4J 基础示例");
         System.out.println("========================================\n");
 
+        // 启用 native 日志输出
+        SDF.setLogger(message -> System.out.println("🔔 [NATIVE] " + message));
+        SDF.setFileLoggingEnabled(false);   // 禁用文件日志
+        SDF.setJavaLoggingEnabled(true);    // 启用 Java 回调日志
+
         sdf = new SDF();
         deviceHandle = 0;
         sessionHandle = 0;

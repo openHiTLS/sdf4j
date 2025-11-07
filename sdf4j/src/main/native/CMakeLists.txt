@@ -40,6 +40,7 @@ set(SOURCES
     src/dynamic_loader.c
     src/type_conversion.c
     src/sdf_log.c
+    src/sdf_jni_log.c
     src/sdf_jni_loader.c
     src/sdf_jni_device.c
     src/sdf_jni_key.c

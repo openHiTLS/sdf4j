@@ -49,6 +49,11 @@ public class SM2InternalKeyExampleTest {
         System.out.println("  Key Password: " + keyPassword);
         System.out.println();
 
+        // 启用 native 日志输出
+        SDF.setLogger(message -> System.out.println("🔔 [NATIVE] " + message));
+        SDF.setFileLoggingEnabled(false);   // 禁用文件日志
+        SDF.setJavaLoggingEnabled(true);    // 启用 Java 回调日志
+
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);

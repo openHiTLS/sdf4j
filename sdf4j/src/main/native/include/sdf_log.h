@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <jni.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,25 @@ extern "C" {
  * @return 成功返回0，失败返回-1
  */
 int write_log(const char *format, ...);
+
+/**
+ * 设置Java日志回调对象（全局引用）
+ * @param env JNI环境指针
+ * @param logger_obj Java日志回调对象
+ */
+void sdf_log_set_java_logger(JNIEnv *env, jobject logger_obj);
+
+/**
+ * 启用/禁用文件日志
+ * @param enable 1启用，0禁用
+ */
+void sdf_log_set_file_enabled(int enable);
+
+/**
+ * 启用/禁用Java回调日志
+ * @param enable 1启用，0禁用
+ */
+void sdf_log_set_java_enabled(int enable);
 
 /**
  * 日志宏定义

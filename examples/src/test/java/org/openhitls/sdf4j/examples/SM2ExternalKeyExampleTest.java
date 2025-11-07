@@ -43,6 +43,11 @@ public class SM2ExternalKeyExampleTest {
         System.out.println("SM2 外部密钥示例测试");
         System.out.println("========================================\n");
 
+        // 启用 native 日志输出
+        SDF.setLogger(message -> System.out.println("🔔 [NATIVE] " + message));
+        SDF.setFileLoggingEnabled(false);   // 禁用文件日志
+        SDF.setJavaLoggingEnabled(true);    // 启用 Java 回调日志
+
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);

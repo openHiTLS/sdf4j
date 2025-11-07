@@ -45,6 +45,11 @@ public class SM4ExampleTest {
         System.out.println("SM4 对称加密示例");
         System.out.println("========================================\n");
 
+        // 启用 native 日志输出
+        SDF.setLogger(message -> System.out.println("🔔 [NATIVE] " + message));
+        SDF.setFileLoggingEnabled(false);   // 禁用文件日志
+        SDF.setJavaLoggingEnabled(true);    // 启用 Java 回调日志
+
         config = TestConfig.getInstance();
         keyIndex = config.getSM2InternalKeyIndex();
 

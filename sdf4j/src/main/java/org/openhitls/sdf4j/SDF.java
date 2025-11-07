@@ -981,4 +981,85 @@ public class SDF {
     public static String getVersion() {
         return "SDF4J 1.0.0-SNAPSHOT (OpenHitls)";
     }
+
+    // ========================================================================
+    // 日志管理 (Logging Management)
+    // ========================================================================
+
+    /**
+     * 当前的日志回调实例（默认使用DefaultSDFLogger）
+     */
+    private static volatile SDFLogger loggerInstance = new DefaultSDFLogger();
+
+    /**
+     * 设置日志回调
+     * Set Logger Callback
+     *
+     * <p>设置用于接收Native层日志的回调实例。
+     * 默认使用DefaultSDFLogger输出到System.out。
+     * <p>Sets the callback instance for receiving native layer logs.
+     * Defaults to DefaultSDFLogger which outputs to System.out.
+     *
+     * @param logger 日志回调实例，传入null将使用默认实现
+     *               Logger callback instance, passing null will use default implementation
+     */
+    public static void setLogger(SDFLogger logger) {
+        if (logger == null) {
+            loggerInstance = new DefaultSDFLogger();
+        } else {
+            loggerInstance = logger;
+        }
+        // 通知Native层更新日志回调
+        setNativeLogger(loggerInstance);
+    }
+
+    /**
+     * 获取当前的日志回调实例
+     * Get Current Logger Instance
+     *
+     * @return 当前的日志回调实例
+     *         Current logger callback instance
+     */
+    public static SDFLogger getLogger() {
+        return loggerInstance;
+    }
+
+    /**
+     * 启用/禁用文件日志
+     * Enable/Disable File Logging
+     *
+     * @param enable true启用文件日志，false禁用文件日志
+     *               true to enable file logging, false to disable
+     */
+    public static native void setFileLoggingEnabled(boolean enable);
+
+    /**
+     * 启用/禁用Java回调日志
+     * Enable/Disable Java Callback Logging
+     *
+     * @param enable true启用Java回调日志，false禁用Java回调日志
+     *               true to enable Java callback logging, false to disable
+     */
+    public static native void setJavaLoggingEnabled(boolean enable);
+
+    /**
+     * Native方法：设置Java日志回调对象
+     * Native method: Set Java logger callback object
+     *
+     * @param logger 日志回调对象
+     *               Logger callback object
+     */
+    private static native void setNativeLogger(SDFLogger logger);
+
+    static {
+        // 默认启用Java回调日志，禁用文件日志
+        // 使用try-catch避免在native库未加载时出错
+        try {
+            setNativeLogger(loggerInstance);
+            setJavaLoggingEnabled(true);
+            setFileLoggingEnabled(true);  // 同时保留文件日志
+        } catch (UnsatisfiedLinkError e) {
+            // Native库尚未加载，忽略
+        }
+    }
 }
