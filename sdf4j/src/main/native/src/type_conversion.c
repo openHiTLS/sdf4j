@@ -760,8 +760,8 @@ jobject native_to_java_ECCPrivateKey(JNIEnv *env, const ECCrefPrivateKey *native
         (*env)->SetIntField(env, obj, fid, (jint)native_key->bits);
     }
 
-    /* K */
-    fid = (*env)->GetFieldID(env, cls, "K", "[B");
+    /* k */
+    fid = (*env)->GetFieldID(env, cls, "k", "[B");
     if (fid != NULL) {
         jbyteArray k = (*env)->NewByteArray(env, ECCref_MAX_LEN);
         (*env)->SetByteArrayRegion(env, k, 0, ECCref_MAX_LEN, (const jbyte*)native_key->K);
@@ -877,8 +877,8 @@ bool java_to_native_ECCPrivateKey(JNIEnv *env, jobject java_key, ECCrefPrivateKe
     if (fid == NULL) return false;
     native_key->bits = (*env)->GetIntField(env, java_key, fid);
 
-    /* K */
-    fid = (*env)->GetFieldID(env, cls, "K", "[B");
+    /* k */
+    fid = (*env)->GetFieldID(env, cls, "k", "[B");
     if (fid == NULL) return false;
     jbyteArray k_array = (jbyteArray)(*env)->GetObjectField(env, java_key, fid);
     if (k_array != NULL) {

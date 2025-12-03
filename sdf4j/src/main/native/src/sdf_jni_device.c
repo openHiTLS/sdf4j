@@ -57,6 +57,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CloseDevice
         return;
     }
 
+    VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_CloseDevice", );
+
     LONG ret = g_sdf_functions.SDF_CloseDevice((HANDLE)deviceHandle);
 
     SDF_LOG_EXIT("SDF_CloseDevice", ret);
@@ -79,6 +81,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1OpenSession
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return 0;
     }
+
+    VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_OpenSession", 0);
 
     HANDLE hSession;
     LONG ret = g_sdf_functions.SDF_OpenSession((HANDLE)deviceHandle, &hSession);
@@ -108,6 +112,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CloseSession
         return;
     }
 
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_CloseSession", );
+
     LONG ret = g_sdf_functions.SDF_CloseSession((HANDLE)sessionHandle);
 
     SDF_LOG_EXIT("SDF_CloseSession", ret);
@@ -126,6 +132,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetDeviceInfo
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
     }
+
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetDeviceInfo", NULL);
 
     if (g_sdf_functions.SDF_GetDeviceInfo == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -159,6 +167,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateRandom
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
     }
+
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GenerateRandom", NULL);
 
     if (g_sdf_functions.SDF_GenerateRandom == NULL) {
         SDF_LOG_ERROR("SDF_GenerateRandom", "Function not supported");
@@ -207,6 +217,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
         return;
     }
 
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetPrivateKeyAccessRight", );
+
     if (g_sdf_functions.SDF_GetPrivateKeyAccessRight == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
         return;
@@ -242,6 +254,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReleasePrivateKeyAccessRight
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return;
     }
+
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleasePrivateKeyAccessRight", );
 
     if (g_sdf_functions.SDF_ReleasePrivateKeyAccessRight == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
