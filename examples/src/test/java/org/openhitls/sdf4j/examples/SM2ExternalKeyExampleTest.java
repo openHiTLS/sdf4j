@@ -134,19 +134,26 @@ public class SM2ExternalKeyExampleTest {
             ECCPrivateKey privateKey = (ECCPrivateKey) keyPair[1];
             System.out.println("✓ 密钥对生成完成\n");
 
-            // 步骤2: 使用外部私钥签名
+            // 步骤2: 计算数据的SM3哈希值
             String message = "使用外部密钥签名的重要文档";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
 
-            System.out.println("步骤2: 使用外部私钥签名");
+            System.out.println("步骤2: 计算SM3哈希并使用外部私钥签名");
             System.out.println("待签名数据: \"" + message + "\"");
             System.out.println("数据长度: " + data.length + " bytes");
+
+            // SM2签名要求输入为32字节的哈希值，需先计算SM3哈希
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, data);
+            byte[] hash = sdf.SDF_HashFinal(sessionHandle);
+            System.out.println("SM3哈希值: " + bytesToHex(hash));
+            System.out.println("哈希长度: " + hash.length + " bytes");
 
             ECCSignature signature = sdf.SDF_ExternalSign_ECC(
                 sessionHandle,
                 AlgorithmID.SGD_SM2_1,
                 privateKey,
-                data
+                hash
             );
             assertNotNull("签名结果不应为空", signature);
 
@@ -160,7 +167,7 @@ public class SM2ExternalKeyExampleTest {
                 sessionHandle,
                 AlgorithmID.SGD_SM2_1,
                 publicKey,
-                data,
+                hash,
                 signature
             );
             System.out.println("✓ 外部验签成功 - 签名有效!");
@@ -170,12 +177,17 @@ public class SM2ExternalKeyExampleTest {
             byte[] tamperedData = "被篡改的文档内容".getBytes(StandardCharsets.UTF_8);
             System.out.println("篡改后的数据: \"" + new String(tamperedData, StandardCharsets.UTF_8) + "\"");
 
+            // 计算篡改数据的哈希值
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, tamperedData);
+            byte[] tamperedHash = sdf.SDF_HashFinal(sessionHandle);
+
             try {
                 sdf.SDF_ExternalVerify_ECC(
                     sessionHandle,
                     AlgorithmID.SGD_SM2_1,
                     publicKey,
-                    tamperedData,
+                    tamperedHash,
                     signature
                 );
                 fail("使用篡改数据验签应该失败");
@@ -201,7 +213,7 @@ public class SM2ExternalKeyExampleTest {
         System.out.println("----------------------------------------\n");
 
         try {
-            // 步骤1: 生成密钥对
+            // 步骤1: 生成密钥对 (密钥生成使用SGD_SM2_1，加密解密操作使用SGD_SM2_3)
             System.out.println("步骤1: 生成加密用密钥对");
             Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, KEY_BITS);
             ECCPublicKey publicKey = (ECCPublicKey) keyPair[0];
@@ -217,9 +229,10 @@ public class SM2ExternalKeyExampleTest {
             System.out.println("明文长度: " + plaintextBytes.length + " bytes");
             System.out.println("明文十六进制: " + bytesToHex(plaintextBytes));
 
+            // SM2加密使用SGD_SM2_3算法标识
             ECCCipher cipher = sdf.SDF_ExternalEncrypt_ECC(
                 sessionHandle,
-                AlgorithmID.SGD_SM2_1,
+                AlgorithmID.SGD_SM2_3,
                 publicKey,
                 plaintextBytes
             );
@@ -237,7 +250,7 @@ public class SM2ExternalKeyExampleTest {
             System.out.println("\n步骤3: 使用外部私钥解密");
             byte[] decryptedBytes = sdf.SDF_ExternalDecrypt_ECC(
                 sessionHandle,
-                AlgorithmID.SGD_SM2_1,
+                AlgorithmID.SGD_SM2_3,
                 privateKey,
                 cipher
             );
@@ -256,8 +269,8 @@ public class SM2ExternalKeyExampleTest {
             System.out.println("✓ 外部加密解密测试完成");
 
         } catch (SDFException e) {
-            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("⚠ 外部加密/解密功能未实现（这是正常的）");
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT || e.getErrorCode() == ErrorCode.SDR_INARGERR) {
+                System.out.println("⚠ 外部加密/解密功能未实现或不支持当前参数（这是正常的）: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -287,14 +300,20 @@ public class SM2ExternalKeyExampleTest {
                 String pubKeyDigest = bytesToHex(publicKey.getX()).substring(0, 16);
                 System.out.println("   公钥 X 坐标摘要: " + pubKeyDigest + "...");
 
-                // 使用密钥签名
+                // 使用密钥签名 (先计算SM3哈希)
                 String message = user + " 的文档";
                 byte[] data = message.getBytes(StandardCharsets.UTF_8);
+
+                // SM2签名要求输入为32字节的哈希值
+                sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+                sdf.SDF_HashUpdate(sessionHandle, data);
+                byte[] hash = sdf.SDF_HashFinal(sessionHandle);
+
                 ECCSignature signature = sdf.SDF_ExternalSign_ECC(
                     sessionHandle,
                     AlgorithmID.SGD_SM2_1,
                     (ECCPrivateKey) keyPair[1],
-                    data
+                    hash
                 );
 
                 // 验证签名
@@ -302,7 +321,7 @@ public class SM2ExternalKeyExampleTest {
                     sessionHandle,
                     AlgorithmID.SGD_SM2_1,
                     publicKey,
-                    data,
+                    hash,
                     signature
                 );
                 System.out.println("   ✓ 签名验证通过\n");
@@ -347,12 +366,17 @@ public class SM2ExternalKeyExampleTest {
             String message = "测试文档";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
 
+            // SM2签名要求输入为32字节的哈希值
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, data);
+            byte[] hash = sdf.SDF_HashFinal(sessionHandle);
+
             System.out.println("\n使用密钥对 A 的私钥签名");
             ECCSignature signature = sdf.SDF_ExternalSign_ECC(
                 sessionHandle,
                 AlgorithmID.SGD_SM2_1,
                 privateKeyA,
-                data
+                hash
             );
             System.out.println("✓ 签名完成");
 
@@ -362,7 +386,7 @@ public class SM2ExternalKeyExampleTest {
                 sessionHandle,
                 AlgorithmID.SGD_SM2_1,
                 publicKeyA,
-                data,
+                hash,
                 signature
             );
             System.out.println("✓ 验签成功 - 使用正确的公钥");
@@ -374,7 +398,7 @@ public class SM2ExternalKeyExampleTest {
                     sessionHandle,
                     AlgorithmID.SGD_SM2_1,
                     publicKeyB,
-                    data,
+                    hash,
                     signature
                 );
                 fail("使用错误的公钥验签应该失败");

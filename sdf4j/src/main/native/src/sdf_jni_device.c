@@ -212,7 +212,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jstring password) {
     UNUSED(obj);
 
+    SDF_LOG_ENTER("SDF_GetPrivateKeyAccessRight");
+    SDF_JNI_LOG("SDF_GetPrivateKeyAccessRight: hSession=0x%lX, keyIndex=%d",
+                (unsigned long)sessionHandle, (int)keyIndex);
+
     if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return;
     }
@@ -220,19 +225,26 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetPrivateKeyAccessRight", );
 
     if (g_sdf_functions.SDF_GetPrivateKeyAccessRight == NULL) {
+        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "Function not supported");
         throw_sdf_exception(env, SDR_NOTSUPPORT);
         return;
     }
 
     char *pwd = java_string_to_native(env, password);
     if (pwd == NULL && password != NULL) {
+        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "Failed to convert password string");
         throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
         return;
     }
 
     ULONG pwd_len = pwd ? strlen(pwd) : 0;
+    SDF_JNI_LOG("SDF_GetPrivateKeyAccessRight: pwd='%s', pwd_len=%lu",
+                pwd ? pwd : "(null)", (unsigned long)pwd_len);
+
     LONG ret = g_sdf_functions.SDF_GetPrivateKeyAccessRight((HANDLE)sessionHandle,
                                                              keyIndex, (LPSTR)pwd, pwd_len);
+
+    SDF_LOG_EXIT("SDF_GetPrivateKeyAccessRight", ret);
 
     if (pwd != NULL) {
         /* 清除密码内存 */

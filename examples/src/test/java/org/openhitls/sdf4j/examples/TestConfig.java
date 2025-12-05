@@ -76,10 +76,11 @@ public class TestConfig {
 
     /**
      * Get SM2 key access password
-     * @return password string
+     * @return password string, may be empty if no password is required
      */
     public String getSM2KeyAccessPassword() {
-        return getString("sm2.key.access.password");
+        String value = properties.getProperty("sm2.key.access.password");
+        return value != null ? value.trim() : "";
     }
 
     /**
