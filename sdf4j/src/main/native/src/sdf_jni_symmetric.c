@@ -939,7 +939,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEnc
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
     /* Allocate output buffers */
-    ULONG enc_len = data_len + 32;  /* Data + possible padding */
+    ULONG enc_len = data_len;  /* Data + possible padding + extra space */
     BYTE *enc_buf = (BYTE*)malloc(enc_len);
     if (enc_buf == NULL) {
         if (iv_buf != NULL) free(iv_buf);
@@ -949,7 +949,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEnc
         return NULL;
     }
 
-    ULONG tag_len = 32;  /* Max tag size */
+    ULONG tag_len = 16;  /* GCM tag size is 16 bytes */
     BYTE *tag_buf = (BYTE*)malloc(tag_len);
     if (tag_buf == NULL) {
         if (iv_buf != NULL) free(iv_buf);
@@ -1031,6 +1031,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDec
  jbyteArray iv, jbyteArray aad, jbyteArray authTag, jbyteArray encData) {
     UNUSED(obj);
 
+    SDF_LOG_ENTER("SDF_AuthDec");
+    SDF_JNI_LOG("SDF_AuthDec: hSession=0x%lX, keyIndex=%lX",
+                (unsigned long)sessionHandle, (unsigned long)keyHandle);
     if (!sdf_is_loaded()) {
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
@@ -1108,6 +1111,30 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDec
         return NULL;
     }
 
+    printf("-----------------iv-------------\n");
+    for (int i = 0; i < iv_len; i++) {
+	    printf("%02x", iv_buf[i]);
+    }
+    printf("\n\n");
+
+    printf("-----------------aad-------------\n");
+    for (int i = 0; i < aad_len; i++) {
+            printf("%02x", aad_buf[i]);
+    }
+    printf("\n\n");
+
+    printf("-----------------tag-------------\n");
+    for (int i = 0; i < tag_len; i++) {
+            printf("%02x", tag_buf[i]);
+    }
+    printf("\n\n");
+
+    printf("-----------------enc-------------\n");
+    for (int i = 0; i < enc_len; i++) {
+            printf("%02x", enc_buf[i]);
+    }
+    printf("\n\n");
+
     LONG ret = g_sdf_functions.SDF_AuthDec(
         (HANDLE)sessionHandle,
         (HANDLE)keyHandle,
@@ -1117,7 +1144,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDec
         aad_buf,
         (ULONG)aad_len,
         tag_buf,
-        (ULONG)tag_len,
+        (ULONG *)&tag_len,
         enc_buf,
         (ULONG)enc_len,
         plaintext_buf,
@@ -1238,7 +1265,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncUpdate
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
     /* Allocate output buffer (worst case: same size as input + block size) */
-    ULONG output_len = data_len + 32;
+    ULONG output_len = data_len + 128;
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         free(data_buf);
@@ -1271,12 +1298,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncUpdate
 /**
  * 认证加密结束
  * SDF_AuthEncFinal
- * Java signature: (long sessionHandle) -> byte[][]
+ * Java signature: (long sessionHandle, byte[] pucEncData) -> byte[][]
  * Returns: [0] = final encrypted data, [1] = authentication tag
  */
 JNIEXPORT jobjectArray JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
-(JNIEnv *env, jobject obj, jlong sessionHandle) {
+(JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray pucEncData) {
     UNUSED(obj);
 
     if (!sdf_is_loaded()) {
@@ -1289,21 +1316,35 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
         return NULL;
     }
 
-    /* Allocate output buffer for final encrypted block */
-    ULONG output_len = 256;  /* Max block size */
-    BYTE *output_buf = (BYTE*)malloc(output_len);
-    if (output_buf == NULL) {
+    /* Convert pucEncData to native buffer */
+    BYTE *output_buf = NULL;
+    ULONG output_len = 0;
+    if (pucEncData != NULL) {
+        output_len = (*env)->GetArrayLength(env, pucEncData);
+        output_buf = (BYTE*)malloc(output_len);
+        if (output_buf == NULL) {
+            throw_sdf_exception(env, 0x0100001C);
+            return NULL;
+        }
+        (*env)->GetByteArrayRegion(env, pucEncData, 0, output_len, (jbyte*)output_buf);
+    }
+
+    /* Allocate tag buffer */
+    ULONG tag_len = 16;  /* GCM tag size is 16 bytes */
+    BYTE *tag_buf = (BYTE*)malloc(tag_len);
+    if (tag_buf == NULL) {
+        if (output_buf != NULL) free(output_buf);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
-    /* Allocate tag buffer */
-    ULONG tag_len = 32;  /* Max tag size */
-    BYTE *tag_buf = (BYTE*)malloc(tag_len);
-    if (tag_buf == NULL) {
-        free(output_buf);
-        throw_sdf_exception(env, 0x0100001C);
-        return NULL;
+    /* Print output_buf before calling SDF_AuthEncFinal */
+    SDF_JNI_LOG("=== Before SDF_AuthEncFinal ===");
+    SDF_JNI_LOG("  output_len: %lu", output_len);
+    if (output_buf != NULL && output_len > 0) {
+        SDF_LOG_HEX("  output_buf (before)", output_buf, output_len);
+    } else {
+        SDF_JNI_LOG("  output_buf: NULL or empty");
     }
 
     LONG ret = g_sdf_functions.SDF_AuthEncFinal(
@@ -1314,8 +1355,22 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
         &tag_len
     );
 
+    /* Print output_buf after calling SDF_AuthEncFinal */
+    SDF_JNI_LOG("=== After SDF_AuthEncFinal ===");
+    SDF_JNI_LOG("  ret: 0x%08X", (unsigned int)ret);
+    SDF_JNI_LOG("  output_len: %lu", output_len);
+    if (output_buf != NULL && output_len > 0) {
+        SDF_LOG_HEX("  output_buf (after)", output_buf, output_len);
+    } else {
+        SDF_JNI_LOG("  output_buf: NULL or empty (len=%lu)", output_len);
+    }
+    SDF_JNI_LOG("  tag_len: %lu", tag_len);
+    if (tag_buf != NULL && tag_len > 0) {
+        SDF_LOG_HEX("  tag_buf (after)", tag_buf, tag_len);
+    }
+
     if (ret != SDR_OK) {
-        free(output_buf);
+        if (output_buf != NULL) free(output_buf);
         free(tag_buf);
         throw_sdf_exception(env, ret);
         return NULL;
@@ -1324,14 +1379,14 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
     /* Create 2D byte array to return both outputs */
     jclass byteArrayClass = (*env)->FindClass(env, "[B");
     if (byteArrayClass == NULL) {
-        free(output_buf);
+        if (output_buf != NULL) free(output_buf);
         free(tag_buf);
         return NULL;
     }
 
     jobjectArray result = (*env)->NewObjectArray(env, 2, byteArrayClass, NULL);
     if (result == NULL) {
-        free(output_buf);
+        if (output_buf != NULL) free(output_buf);
         free(tag_buf);
         return NULL;
     }
@@ -1348,7 +1403,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
         (*env)->SetObjectArrayElement(env, result, 1, authTag);
     }
 
-    free(output_buf);
+    if (output_buf != NULL) free(output_buf);
     free(tag_buf);
 
     return result;
@@ -1471,7 +1526,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDecUpdate
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
     /* Allocate output buffer */
-    ULONG output_len = data_len + 32;
+    ULONG output_len = data_len + 128;
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         free(data_buf);
@@ -1522,19 +1577,33 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDecFinal
         return NULL;
     }
 
-    /* Allocate output buffer for final block */
-    ULONG output_len = 256;
+    /* Allocate output buffer - must be large enough for plaintext data */
+    ULONG output_len = 4096;  /* Allocate sufficient buffer size */
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
+    /* Print before calling SDF_AuthDecFinal */
+    SDF_JNI_LOG("=== Before SDF_AuthDecFinal ===");
+    SDF_JNI_LOG("  output_len (buffer size): %lu", output_len);
+
     LONG ret = g_sdf_functions.SDF_AuthDecFinal(
         (HANDLE)sessionHandle,
         output_buf,
         &output_len
     );
+
+    /* Print output_buf after calling SDF_AuthDecFinal */
+    SDF_JNI_LOG("=== After SDF_AuthDecFinal ===");
+    SDF_JNI_LOG("  ret: 0x%08X", (unsigned int)ret);
+    SDF_JNI_LOG("  output_len: %lu", output_len);
+    if (output_buf != NULL && output_len > 0) {
+        SDF_LOG_HEX("  output_buf (after)", output_buf, output_len);
+    } else {
+        SDF_JNI_LOG("  output_buf: empty (len=%lu)", output_len);
+    }
 
     if (ret != SDR_OK) {
         free(output_buf);

@@ -164,19 +164,19 @@ public final class AlgorithmID {
      * SM2 椭圆曲线签名算法
      * SM2 elliptic curve sign algorithm
      */
-    public static final int SGD_SM2_1 = 0x00020100;
+    public static final int SGD_SM2_1 = 0x00020200;
 
     /**
      * SM2 椭圆曲线密钥交换协议
      * SM2 elliptic curve key exchange protocol
      */
-    public static final int SGD_SM2_2 = 0x00020200;
+    public static final int SGD_SM2_2 = 0x00020400;
 
     /**
      * SM2 椭圆曲线加密算法
      * SM2 elliptic curve encryption algorithm
      */
-    public static final int SGD_SM2_3 = 0x00020400;
+    public static final int SGD_SM2_3 = 0x00020800;
 
     // ========================================================================
     // 杂凑算法 (Hash Algorithms)

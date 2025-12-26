@@ -288,6 +288,25 @@ LONG SDF_ExternalEncrypt_ECC(
     ECCCipher *pucEncData
 );
 
+/* 6.4.9 内部公钥 ECC 加密 */
+LONG SDF_InternalEncrypt_ECC(
+    HANDLE hSessionHandle,
+    ULONG uiISKIndex,
+    BYTE *pucData,
+    ULONG uiDataLength,
+    ECCCipher *pucEncData
+);
+
+/* 6.4.10 内部私钥 ECC 解密 */
+LONG SDF_InternalDecrypt_ECC(
+    HANDLE hSessionHandle,
+    ULONG uiISKIndex,
+    ULONG uiECCKeyType,
+    ECCCipher *pucEncData,
+    BYTE *pucData,
+    ULONG *puiDataLength
+);
+
 
 /************************************************************************
  * 6.5 对称算法运算类函数 (Symmetric Algorithm Functions)
@@ -356,7 +375,7 @@ LONG SDF_AuthDec(
     BYTE *pucAad,
     ULONG uiAadLength,
     BYTE *pucAuthData,
-    ULONG uiAuthDataLength, // 规范中为 puiAuthDataLength，疑为笔误
+    ULONG *uiAuthDataLength, // 规范中为 puiAuthDataLength，疑为笔误
     BYTE *pucEncData,
     ULONG uiEncDataLength,
     BYTE *pucData,
@@ -553,7 +572,7 @@ LONG SDF_HashFinal(
 /* 6.7.2 创建文件 */
 LONG SDF_CreateFile(
     HANDLE hSessionHandle,
-    LPSTR pucFileName,
+    BYTE *pucFileName,
     ULONG uiNameLen,
     ULONG uiFileSize
 );
@@ -561,7 +580,7 @@ LONG SDF_CreateFile(
 /* 6.7.3 读取文件 */
 LONG SDF_ReadFile(
     HANDLE hSessionHandle,
-    LPSTR pucFileName,
+    BYTE *pucFileName,
     ULONG uiNameLen,
     ULONG uiOffset,
     ULONG *puiFileLength,
@@ -571,7 +590,7 @@ LONG SDF_ReadFile(
 /* 6.7.4 写文件 */
 LONG SDF_WriteFile(
     HANDLE hSessionHandle,
-    LPSTR pucFileName,
+    BYTE *pucFileName,
     ULONG uiNameLen,
     ULONG uiOffset,
     ULONG uiFileLength,
@@ -581,7 +600,7 @@ LONG SDF_WriteFile(
 /* 6.7.5 删除文件 */
 LONG SDF_DeleteFile(
     HANDLE hSessionHandle,
-    LPSTR pucFileName,
+    BYTE *pucFileName,
     ULONG uiNameLen
 );
 
