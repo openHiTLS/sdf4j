@@ -203,60 +203,248 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject publicKey, jbyteArray data) {
     UNUSED(obj);
 
+    SDF_LOG_ENTER("SDF_ExternalEncrypt_ECC");
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: hSession=0x%lX, algID=0x%08X",
+                (unsigned long)sessionHandle, (unsigned int)algID);
+
     if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
     }
 
     if (g_sdf_functions.SDF_ExternalEncrypt_ECC == NULL) {
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "Function not supported");
         throw_sdf_exception(env, SDR_NOTSUPPORT);
         return NULL;
     }
 
     if (publicKey == NULL || data == NULL) {
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "Invalid argument: publicKey or data is NULL");
         throw_sdf_exception(env, 0x0100001D);
         return NULL;
     }
 
     ECCrefPublicKey native_key;
     if (!java_to_native_ECCPublicKey(env, publicKey, &native_key)) {
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "Failed to convert ECCPublicKey");
         throw_sdf_exception(env, 0x0100001D);
         return NULL;
     }
 
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: publicKey.bits=%d", native_key.bits);
+    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC publicKey.x", native_key.x, ECCref_MAX_LEN);
+    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC publicKey.y", native_key.y, ECCref_MAX_LEN);
+
     jsize data_len = (*env)->GetArrayLength(env, data);
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: data_len=%d", (int)data_len);
+
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "Memory allocation failed for data_buf");
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
+    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC data", data_buf, data_len);
 
-    /* 分配ECCCipher结构 + 密文空间 */
-    ECCCipher *cipher = (ECCCipher*)malloc(sizeof(ECCCipher) + data_len);
+    /* 分配ECCCipher结构 + 密文空间 + 额外空间*/
+    const unsigned int extra_space = 0;
+    ECCCipher *cipher = (ECCCipher*)malloc(sizeof(ECCCipher) + data_len + extra_space);
     if (cipher == NULL) {
         free(data_buf);
+        SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "Memory allocation failed for cipher");
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
-    memset(cipher, 0, sizeof(ECCCipher) + data_len);
+    memset(cipher, 0, sizeof(ECCCipher) + data_len + extra_space);
+    cipher->L = data_len + extra_space;
 
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: extra_space = %d", (int)(extra_space));
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: cipher.L = %d", (int)(data_len + extra_space));
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: calling SDF_ExternalEncrypt_ECC...");
     LONG ret = g_sdf_functions.SDF_ExternalEncrypt_ECC((HANDLE)sessionHandle, algID,
                                                         &native_key, data_buf, data_len,
                                                         cipher);
 
+    SDF_LOG_EXIT("SDF_ExternalEncrypt_ECC", ret);
+
     free(data_buf);
 
     if (ret != SDR_OK) {
+        SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: SDF function returned error 0x%08X", (unsigned int)ret);
         free(cipher);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
+    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: cipher->L=%d", (int)cipher->L);
+    if (cipher == NULL) {
+        printf("Error: cipher pointer is NULL\n");
+    }
+    
     jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
     free(cipher);
+    return result;
+}
+
+/**
+ * 6.4.9 内部公钥ECC加密
+ * SDF_InternalEncrypt_ECC
+ */
+JNIEXPORT jobject JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
+  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jbyteArray data) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_InternalEncrypt_ECC");
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: hSession=0x%lX, keyIndex=%d",
+                (unsigned long)sessionHandle, (int)keyIndex);
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return NULL;
+    }
+
+    if (g_sdf_functions.SDF_InternalEncrypt_ECC == NULL) {
+        SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return NULL;
+    }
+
+    if (data == NULL) {
+        SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "Invalid argument: data is NULL");
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return NULL;
+    }
+
+    jsize data_len = (*env)->GetArrayLength(env, data);
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: data_len=%d", (int)data_len);
+
+    BYTE *data_buf = (BYTE*)malloc(data_len);
+    if (data_buf == NULL) {
+        SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "Memory allocation failed for data_buf");
+        throw_sdf_exception(env, 0x0100001C);  /* SDR_NOBUFFER */
+        return NULL;
+    }
+
+    (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
+    SDF_LOG_HEX("SDF_InternalEncrypt_ECC data", data_buf, data_len);
+
+    /* 分配ECCCipher结构 + 密文空间 + 额外空间*/
+    const unsigned int extra_space = 0;
+    ECCCipher *cipher = (ECCCipher*)malloc(sizeof(ECCCipher) + data_len + extra_space);
+    if (cipher == NULL) {
+        free(data_buf);
+        SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "Memory allocation failed for cipher");
+        throw_sdf_exception(env, 0x0100001C);  /* SDR_NOBUFFER */
+        return NULL;
+    }
+
+    memset(cipher, 0, sizeof(ECCCipher) + data_len + extra_space);
+    cipher->L = data_len + extra_space;
+
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: extra_space = %d", (int)(extra_space));
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: cipher.L = %d", (int)(data_len + extra_space));
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: calling SDF_InternalEncrypt_ECC...");
+
+    LONG ret = g_sdf_functions.SDF_InternalEncrypt_ECC((HANDLE)sessionHandle, keyIndex,
+                                                        data_buf, data_len, cipher);
+
+    SDF_LOG_EXIT("SDF_InternalEncrypt_ECC", ret);
+
+    free(data_buf);
+
+    if (ret != SDR_OK) {
+        SDF_JNI_LOG("SDF_InternalEncrypt_ECC: SDF function returned error 0x%08X", (unsigned int)ret);
+        free(cipher);
+        throw_sdf_exception(env, ret);
+        return NULL;
+    }
+
+    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: cipher->L=%d", (int)cipher->L);
+    jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
+    free(cipher);
+    return result;
+}
+
+/**
+ * 6.4.10 内部私钥ECC解密
+ * SDF_InternalDecrypt_ECC
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1InternalDecrypt_1ECC
+  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jint eccKeyType, jobject cipher) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_InternalDecrypt_ECC");
+    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: hSession=0x%lX, keyIndex=%d, eccKeyType=0x%08X",
+                (unsigned long)sessionHandle, (int)keyIndex, (unsigned int)eccKeyType);
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return NULL;
+    }
+
+    if (g_sdf_functions.SDF_InternalDecrypt_ECC == NULL) {
+        SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return NULL;
+    }
+
+    if (cipher == NULL) {
+        SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Invalid argument: cipher is NULL");
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return NULL;
+    }
+
+    /* 转换Java ECCCipher到C结构 */
+    ECCCipher ecc_cipher;
+    if (!java_to_native_ECCCipher(env, cipher, &ecc_cipher)) {
+        SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Failed to convert ECCCipher");
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return NULL;
+    }
+
+    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: ecc_cipher.L=%d", (int)ecc_cipher.L);
+
+    /* 分配输出缓冲区 */
+    //ULONG data_len = ecc_cipher.L;
+    ULONG data_len = ecc_cipher.L + 64;
+    BYTE *data_buf = (BYTE*)malloc(data_len);
+    if (data_buf == NULL) {
+        SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Memory allocation failed for data_buf");
+        throw_sdf_exception(env, 0x0100001C);  /* SDR_NOBUFFER */
+        return NULL;
+    }
+
+    memset(data_buf, 0, data_len);
+
+    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: calling SDF_InternalDecrypt_ECC...");
+
+    LONG ret = g_sdf_functions.SDF_InternalDecrypt_ECC((HANDLE)sessionHandle, keyIndex,
+                                                        eccKeyType, &ecc_cipher,
+                                                        data_buf, &data_len);
+
+    SDF_LOG_EXIT("SDF_InternalDecrypt_ECC", ret);
+
+    if (ret != SDR_OK) {
+        SDF_JNI_LOG("SDF_InternalDecrypt_ECC: SDF function returned error 0x%08X", (unsigned int)ret);
+        free(data_buf);
+        throw_sdf_exception(env, ret);
+        return NULL;
+    }
+
+    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: decrypted data_len=%d", (int)data_len);
+    SDF_LOG_HEX("SDF_InternalDecrypt_ECC decrypted data", data_buf, data_len);
+
+    jbyteArray result = native_to_java_byte_array(env, data_buf, data_len);
+    free(data_buf);
+
     return result;
 }
 

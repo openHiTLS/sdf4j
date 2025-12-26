@@ -457,6 +457,33 @@ public class SDF {
     public native ECCCipher SDF_ExternalEncrypt_ECC(long sessionHandle, int algID, ECCPublicKey publicKey, byte[] data)
             throws SDFException;
 
+    /**
+     * 6.4.9 内部公钥ECC加密
+     * Internal Encrypt ECC
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部加密公钥索引号 / Internal encryption public key index
+     * @param data          待加密数据 / Data to be encrypted
+     * @return ECC密文对象 / ECC cipher object
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native ECCCipher SDF_InternalEncrypt_ECC(long sessionHandle, int keyIndex, byte[] data)
+            throws SDFException;
+
+    /**
+     * 6.4.10 内部私钥ECC解密
+     * Internal Decrypt ECC
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部加密私钥索引号 / Internal encryption private key index
+     * @param eccKeyType    私钥使用类型（算法ID，如SGD_SM2_1等）/ Private key usage type (algorithm ID)
+     * @param cipher        ECC密文 / ECC cipher
+     * @return 明文数据 / Decrypted data
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native byte[] SDF_InternalDecrypt_ECC(long sessionHandle, int keyIndex, int eccKeyType, ECCCipher cipher)
+            throws SDFException;
+
     // ========================================================================
     // 6.5 对称算法运算类函数 (Symmetric Algorithm Functions)
     // ========================================================================
@@ -671,10 +698,11 @@ public class SDF {
      * Auth Encrypt Final
      *
      * @param sessionHandle 会话句柄 / Session handle
+     * @param pucEncData    加密数据缓冲区 / Encrypted data buffer
      * @return 包含最后密文和认证标签的结果数组 / Result containing final ciphertext and auth tag
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native byte[][] SDF_AuthEncFinal(long sessionHandle) throws SDFException;
+    public native byte[][] SDF_AuthEncFinal(long sessionHandle, byte[] pucEncData) throws SDFException;
 
     /**
      * 6.5.19 多包可鉴别解密初始化

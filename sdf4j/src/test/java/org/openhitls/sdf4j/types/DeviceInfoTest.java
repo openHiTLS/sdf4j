@@ -45,7 +45,7 @@ public class DeviceInfoTest {
         info.setStandardVersion(0x00020023L);
         assertEquals(0x00020023L, info.getStandardVersion());
 
-        long[] asymAlg = {0x00020100L, 0x00010000L};
+        long[] asymAlg = {0x00020200L, 0x00010000L};
         info.setAsymAlgAbility(asymAlg);
         assertArrayEquals(asymAlg, info.getAsymAlgAbility());
 
@@ -76,13 +76,13 @@ public class DeviceInfoTest {
     @Test
     public void testAsymAlgAbilityArray() {
         DeviceInfo info = new DeviceInfo();
-        long[] asymAlg = {0x00020100L, 0x00010000L};
+        long[] asymAlg = {0x00020200L, 0x00010000L};
         info.setAsymAlgAbility(asymAlg);
 
         long[] retrieved = info.getAsymAlgAbility();
         assertNotNull(retrieved);
         assertEquals(2, retrieved.length);
-        assertEquals(0x00020100L, retrieved[0]);
+        assertEquals(0x00020200L, retrieved[0]);
         assertEquals(0x00010000L, retrieved[1]);
     }
 }

@@ -66,9 +66,9 @@ typedef struct DeviceInfo_st
 #define SGD_RSA                     0x00010000   /* RSA algorithm */
 
 /* SM2 算法 (0x0002xxxx) */
-#define SGD_SM2_1                   0x00020100   /* SM2 elliptic curve sign algorithm */
-#define SGD_SM2_2                   0x00020200   /* SM2 elliptic curve key exchange protocol */
-#define SGD_SM2_3                   0x00020400   /* SM2 elliptic curve encryption algorithm */
+#define SGD_SM2_1                   0x00020200   /* SM2 elliptic curve sign algorithm */
+#define SGD_SM2_2                   0x00020400   /* SM2 elliptic curve key exchange protocol */
+#define SGD_SM2_3                   0x00020800   /* SM2 elliptic curve encryption algorithm */
 
 /* 杂凑算法 (Hash Algorithms) */
 #define SGD_SM3                     0x00000001   /* SM3 cryptographic hash algorithm */
@@ -133,25 +133,7 @@ typedef struct ECCCipher_st
     BYTE  y[ECCref_MAX_LEN];
     BYTE  M[32];
     ULONG L;
-    BYTE  C; // 实际应为变长 C[L]，但在C结构体中常表示为首地址或柔性数组成员
-             // 规范中定义为 BYTE C; 可能是指柔性数组或指针，此处按规范字面定义
-             // 在实际使用中，通常会动态分配 ECCCipher 结构体大小为 (sizeof(ECCCipher_st) - 1 + L)
-             // 或者 C 是一个指针。但规范原文是 BYTE C;
-             // 更安全的做法是将其定义为指针 BYTE *C;
-             // 但为了严格遵循文档，我们保留 BYTE C; 并假定其后跟随L-1字节数据
-             // 
-             // 修正：根据5.7中表7的描述 L是4字节，C是L字节。
-             // 结构体定义中 BYTE C; 后面没有[L]，这在C中通常意味着
-             // 这是一个变长结构体，C代表数据区的开始。
-             // 或者，更可能的是规范在此处省略了指针，或者这是一个拼写错误。
-             // 一个更标准的C定义可能是 BYTE C[1]; (作为变长标记)
-             // 或者 BYTE *C; (但后续函数原型未使用指针的指针)
-             // 
-             // 考虑到函数原型如 SDF_GenerateKeyWithIPK_ECC 使用 ECCCipher *pucKey
-             // 这意味着 pucKey 是一个指向 ECCCipher 结构的指针。
-             // 规范中的 BYTE C; 极有可能是指柔性数组成员 (Flexible Array Member)
-             // 故定义为 BYTE C[0]; 或 BYTE C[]; 可能更合适
-             // 但为保持与文档一致，暂定为 BYTE C; 并注释
+    BYTE  C[]; 
 } ECCCipher;
 
 /* 5.8 ECC 签名数据结构定义 (ECC Signature Structure Definition) */

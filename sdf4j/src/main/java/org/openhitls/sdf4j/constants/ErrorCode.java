@@ -223,10 +223,34 @@ public final class ErrorCode {
     public static final int SDR_OUTARGERR = SDR_BASE + 0x0000001E;
 
     /**
-     * 用户标识错误
-     * User ID error
+     * 普通错误
+     * Generic error
      */
     public static final int SDR_USERIDERR = SDR_BASE + 0x0000001F;
+
+    /**
+     * 缓冲区长度不足
+     * Short buffer
+     */
+    public static final int SDR_SHORT_BUFFER = SDR_BASE + 0x00000021;
+
+    /**
+     * 自测试失败
+     * Self test error
+     */
+    public static final int SDR_SELFTESTERR = SDR_BASE + 0x00000022;
+
+    /**
+     * 设备繁忙
+     * Device busy
+     */
+    public static final int SDR_BUSY = SDR_BASE + 0x10000001;
+
+    /**
+     * 密码重复
+     * Duplicate password
+     */
+    public static final int SDR_DUPLIPWD = SDR_BASE + 0x00A00001;
 
     // ========================================================================
     // 工具方法 (Utility Methods)
@@ -304,6 +328,14 @@ public final class ErrorCode {
                 return "输出参数错误 (Invalid output argument)";
             case SDR_USERIDERR:
                 return "用户标识错误 (User ID error)";
+            case SDR_SHORT_BUFFER:
+                return "缓冲区长度不足 (Short buffer)";
+            case SDR_SELFTESTERR:
+                return "自测试失败 (Self test error)";
+            case SDR_BUSY:
+                return "设备繁忙 (Device busy)";
+            case SDR_DUPLIPWD:
+                return "密码重复 (Duplicate password)";
             default:
                 return "未知错误码 (Unknown error code): 0x" + Integer.toHexString(errorCode).toUpperCase();
         }

@@ -503,8 +503,7 @@ bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *nativ
             if (native_cipher->L == 0) {
                 native_cipher->L = c_len;
             }
-            /* Note: C is not copied here - flexible array member.
-             * If actual cipher data needed, caller must allocate larger struct and copy */
+	    (*env)->GetByteArrayRegion(env, c_array, 0, c_len, (jbyte*)native_cipher->C);
         }
     }
 

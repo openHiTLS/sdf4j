@@ -121,6 +121,12 @@ typedef LONG (*SDF_ExternalEncrypt_ECC_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
                                            ECCrefPublicKey *pucPublicKey,
                                            BYTE *pucData, ULONG uiDataLength,
                                            ECCCipher *pucEncData);
+typedef LONG (*SDF_InternalEncrypt_ECC_FN)(HANDLE hSessionHandle, ULONG uiISKIndex,
+                                           BYTE *pucData, ULONG uiDataLength,
+                                           ECCCipher *pucEncData);
+typedef LONG (*SDF_InternalDecrypt_ECC_FN)(HANDLE hSessionHandle, ULONG uiISKIndex,
+                                           ULONG uiECCKeyType, ECCCipher *pucEncData,
+                                           BYTE *pucData, ULONG *puiDataLength);
 
 /* 对称算法函数 */
 typedef LONG (*SDF_Encrypt_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
@@ -142,7 +148,7 @@ typedef LONG (*SDF_AuthEnc_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG u
 typedef LONG (*SDF_AuthDec_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle, ULONG uiAlgID,
                                BYTE *pucStartVar, ULONG uiStartVarLength,
                                BYTE *pucAad, ULONG uiAadLength,
-                               BYTE *pucAuthData, ULONG uiAuthDataLength,
+                               BYTE *pucAuthData, ULONG *uiAuthDataLength,
                                BYTE *pucEncData, ULONG uiEncDataLength,
                                BYTE *pucData, ULONG *puiDataLength);
 /* 多包加密 */
@@ -197,12 +203,12 @@ typedef LONG (*SDF_HMACUpdate_FN)(HANDLE hSessionHandle, BYTE *pucData, ULONG ui
 typedef LONG (*SDF_HMACFinal_FN)(HANDLE hSessionHandle, BYTE *pucHMAC, ULONG *puiHMACLength);
 
 /* 文件操作函数 */
-typedef LONG (*SDF_CreateFile_FN)(HANDLE hSessionHandle, LPSTR pucFileName, ULONG uiFileSize);
-typedef LONG (*SDF_ReadFile_FN)(HANDLE hSessionHandle, LPSTR pucFileName, ULONG uiOffset,
-                                ULONG uiLength, BYTE *pucBuffer, ULONG *puiReadLength);
-typedef LONG (*SDF_WriteFile_FN)(HANDLE hSessionHandle, LPSTR pucFileName, ULONG uiNameLen,
+typedef LONG (*SDF_CreateFile_FN)(HANDLE hSessionHandle, BYTE *pucFileName, ULONG uiNameLen, ULONG uiFileSize);
+typedef LONG (*SDF_ReadFile_FN)(HANDLE hSessionHandle, BYTE *pucFileName, ULONG uiNameLen,
+                                ULONG uiOffset, ULONG *puiFileLength, BYTE *pucBuffer);
+typedef LONG (*SDF_WriteFile_FN)(HANDLE hSessionHandle, BYTE *pucFileName, ULONG uiNameLen,
                                  ULONG uiOffset, ULONG uiFileLength, BYTE *pucBuffer);
-typedef LONG (*SDF_DeleteFile_FN)(HANDLE hSessionHandle, LPSTR pucFileName, ULONG uiNameLen);
+typedef LONG (*SDF_DeleteFile_FN)(HANDLE hSessionHandle, BYTE *pucFileName, ULONG uiNameLen);
 
 /* 验证调试类函数 */
 typedef LONG (*SDF_GenerateKeyPair_RSA_FN)(HANDLE hSessionHandle, ULONG uiKeyBits,
@@ -284,6 +290,8 @@ typedef struct {
     SDF_InternalVerify_ECC_FN               SDF_InternalVerify_ECC;
     SDF_ExternalVerify_ECC_FN               SDF_ExternalVerify_ECC;
     SDF_ExternalEncrypt_ECC_FN              SDF_ExternalEncrypt_ECC;
+    SDF_InternalEncrypt_ECC_FN              SDF_InternalEncrypt_ECC;
+    SDF_InternalDecrypt_ECC_FN              SDF_InternalDecrypt_ECC;
 
     /* 对称算法 */
     SDF_Encrypt_FN                          SDF_Encrypt;

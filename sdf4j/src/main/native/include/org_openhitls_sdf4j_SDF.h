@@ -145,6 +145,22 @@ JNIEXPORT jobject JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
 
 /*
  * Class:     org_openhitls_sdf4j_SDF
+ * Method:    SDF_InternalEncrypt_ECC
+ * Signature: (JI[B)Lorg/openhitls/sdf4j/types/ECCCipher;
+ */
+JNIEXPORT jobject JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
+  (JNIEnv *, jobject, jlong, jint, jbyteArray);
+
+/*
+ * Class:     org_openhitls_sdf4j_SDF
+ * Method:    SDF_InternalDecrypt_ECC
+ * Signature: (JIILorg/openhitls/sdf4j/types/ECCCipher;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1InternalDecrypt_1ECC
+  (JNIEnv *, jobject, jlong, jint, jint, jobject);
+
+/*
+ * Class:     org_openhitls_sdf4j_SDF
  * Method:    SDF_Encrypt
  * Signature: (JJI[B[B)[B
  */
