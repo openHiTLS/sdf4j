@@ -254,6 +254,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
 (JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject privateKey, jobject cipher) {
     UNUSED(obj);
 
+    SDF_LOG_ENTER("SDF_ExternalDecrypt_ECC");
+    SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: hSession=0x%lX, algID=0x%08X",
+                (unsigned long)sessionHandle, (unsigned int)algID);
     if (!sdf_is_loaded()) {
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
@@ -267,12 +270,15 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
     /* Convert private key */
     ECCrefPrivateKey priv_key;
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
-        return NULL;
+        SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCPrivateKey fail.");
+	return NULL;
     }
+    
 
     /* Convert cipher */
     ECCCipher ecc_cipher;
     if (!java_to_native_ECCCipher(env, cipher, &ecc_cipher)) {
+	SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCCipher fail.");
         return NULL;
     }
 

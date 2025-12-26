@@ -176,7 +176,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateRandom
         return NULL;
     }
 
-    if (length <= 0 || length > 102400) {  /* 限制最大100KB */
+    if (length <= 0 || length > 1024 * 1024) {  /* 限制最大1MB */
         SDF_LOG_ERROR("SDF_GenerateRandom", "Invalid length parameter");
         throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
         return NULL;

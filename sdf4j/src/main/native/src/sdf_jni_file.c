@@ -18,8 +18,8 @@
 
 
 /**
- * 6.7.1 创建文件
- * Pattern: String parameter, void return
+ * 6.7.2 创建文件
+ * SDF_CreateFile(hSessionHandle, pucFileName, uiNameLen, uiFileSize)
  */
 JNIEXPORT void JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1CreateFile
@@ -47,10 +47,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CreateFile
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
+    ULONG name_len = (ULONG)strlen(file_name);
 
     LONG ret = g_sdf_functions.SDF_CreateFile(
         (HANDLE)sessionHandle,
-        (LPSTR)file_name,
+        (BYTE*)file_name,
+        name_len,
         (ULONG)fileSize
     );
 
@@ -62,8 +64,10 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CreateFile
 }
 
 /**
- * 6.7.2 读取文件
- * Pattern: String + offset + length parameters, byte array return
+ * 6.7.3 读取文件
+ * SDF_ReadFile(hSessionHandle, pucFileName, uiNameLen, uiOffset, puiFileLength, pucBuffer)
+ * uiOffset: 读取文件的偏移值
+ * puiFileLength: 输入时为要读取的长度，输出时为实际读取的长度
  */
 JNIEXPORT jbyteArray JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
@@ -91,6 +95,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
+    ULONG name_len = (ULONG)strlen(file_name);
 
     /* 分配读取缓冲区 */
     BYTE *buffer = (BYTE*)malloc(length);
@@ -100,15 +105,16 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
         return NULL;
     }
 
-    ULONG read_len = 0;
+    /* puiFileLength 输入时为要读取的长度 */
+    ULONG file_len = (ULONG)length;
 
     LONG ret = g_sdf_functions.SDF_ReadFile(
         (HANDLE)sessionHandle,
-        (LPSTR)file_name,
+        (BYTE*)file_name,
+        name_len,
         (ULONG)offset,
-        (ULONG)length,
-        buffer,
-        &read_len
+        &file_len,
+        buffer
     );
 
     free(file_name);
@@ -119,15 +125,16 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
         return NULL;
     }
 
-    jbyteArray result = native_to_java_byte_array(env, buffer, read_len);
+    /* file_len 输出时为实际读取的长度 */
+    jbyteArray result = native_to_java_byte_array(env, buffer, file_len);
     free(buffer);
 
     return result;
 }
 
 /**
- * 6.7.3 写文件
- * SDF_WriteFile
+ * 6.7.4 写文件
+ * SDF_WriteFile(hSessionHandle, pucFileName, uiNameLen, uiOffset, uiFileLength, pucBuffer)
  */
 JNIEXPORT void JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
@@ -155,6 +162,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
+    ULONG name_len = (ULONG)strlen(file_name);
 
     /* Get data buffer */
     jsize data_len = (*env)->GetArrayLength(env, data);
@@ -168,8 +176,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
 
     LONG ret = g_sdf_functions.SDF_WriteFile(
         (HANDLE)sessionHandle,
-        (LPSTR)file_name,
-        (ULONG)strlen(file_name),
+        (BYTE*)file_name,
+        name_len,
         (ULONG)offset,
         (ULONG)data_len,
         data_buf
@@ -184,8 +192,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
 }
 
 /**
- * 6.7.4 删除文件
- * SDF_DeleteFile
+ * 6.7.5 删除文件
+ * SDF_DeleteFile(hSessionHandle, pucFileName, uiNameLen)
  */
 JNIEXPORT void JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1DeleteFile
@@ -213,11 +221,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1DeleteFile
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
+    ULONG name_len = (ULONG)strlen(file_name);
 
     LONG ret = g_sdf_functions.SDF_DeleteFile(
         (HANDLE)sessionHandle,
-        (LPSTR)file_name,
-        (ULONG)strlen(file_name)
+        (BYTE*)file_name,
+        name_len
     );
 
     free(file_name);

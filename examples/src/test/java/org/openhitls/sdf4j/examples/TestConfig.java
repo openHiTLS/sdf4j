@@ -92,6 +92,14 @@ public class TestConfig {
     }
 
     /**
+     * Get SM4 internal key index (KEK index)
+     * @return key index
+     */
+    public int getSM4InternalKeyIndex() {
+        return getInt("sm4.internal.key.index");
+    }
+
+    /**
      * Get environment name
      * @return environment name
      */

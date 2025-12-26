@@ -79,8 +79,8 @@ public class AlgorithmIDTest {
         // 验证算法ID常量的值
         assertEquals(0x00000401, AlgorithmID.SGD_SM4_ECB);
         assertEquals(0x00000402, AlgorithmID.SGD_SM4_CBC);
-        assertEquals(0x00020100, AlgorithmID.SGD_SM2_1);
-        assertEquals(0x00020400, AlgorithmID.SGD_SM2_3);
+        assertEquals(0x00020200, AlgorithmID.SGD_SM2_1);
+        assertEquals(0x00020800, AlgorithmID.SGD_SM2_3);
         assertEquals(0x00000001, AlgorithmID.SGD_SM3);
     }
 

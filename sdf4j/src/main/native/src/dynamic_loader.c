@@ -143,6 +143,10 @@ static bool load_all_functions(void *handle) {
                  "SDF_ExternalVerify_ECC", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_ExternalEncrypt_ECC,
                  "SDF_ExternalEncrypt_ECC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_InternalEncrypt_ECC,
+                 "SDF_InternalEncrypt_ECC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_InternalDecrypt_ECC,
+                 "SDF_InternalDecrypt_ECC", false);
 
     /* ========================================
      * 可选对称算法函数
