@@ -37,6 +37,7 @@ include_directories(
 
 # 源文件
 set(SOURCES
+    src/jni_cache.c
     src/dynamic_loader.c
     src/type_conversion.c
     src/sdf_log.c
@@ -53,6 +54,7 @@ set(SOURCES
 
 # 头文件
 set(HEADERS
+    include/jni_cache.h
     include/dynamic_loader.h
     include/type_conversion.h
     include/sdf_log.h

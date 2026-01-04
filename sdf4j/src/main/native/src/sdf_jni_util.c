@@ -11,6 +11,7 @@
  */
 
 #include "sdf_jni_common.h"
+#include "jni_cache.h"
 
 /* ========================================================================
  * Category 6.8 验证调试类函数 (Verification and Debug Functions)
@@ -61,8 +62,10 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1RSA
     }
 
     /* Create Object array */
-    jclass objClass = (*env)->FindClass(env, "java/lang/Object");
-    jobjectArray result = (*env)->NewObjectArray(env, 2, objClass, NULL);
+    if (!jni_cache_is_initialized()) {
+        return NULL;
+    }
+    jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
     (*env)->SetObjectArrayElement(env, result, 0, java_pub);
     (*env)->SetObjectArrayElement(env, result, 1, java_priv);
 
@@ -115,8 +118,10 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1ECC
     }
 
     /* Create Object array */
-    jclass objClass = (*env)->FindClass(env, "java/lang/Object");
-    jobjectArray result = (*env)->NewObjectArray(env, 2, objClass, NULL);
+    if (!jni_cache_is_initialized()) {
+        return NULL;
+    }
+    jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
     (*env)->SetObjectArrayElement(env, result, 0, java_pub);
     (*env)->SetObjectArrayElement(env, result, 1, java_priv);
 
