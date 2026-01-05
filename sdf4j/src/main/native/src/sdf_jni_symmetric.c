@@ -11,6 +11,7 @@
  */
 
 #include "sdf_jni_common.h"
+#include "jni_cache.h"
 
 /* ========================================================================
  * Symmetric Algorithm Functions
@@ -988,14 +989,13 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEnc
     }
 
     /* Create 2D array to return [encrypted data, auth tag] */
-    jclass byteArrayClass = (*env)->FindClass(env, "[B");
-    if (byteArrayClass == NULL) {
+    if (!jni_cache_is_initialized()) {
         free(enc_buf);
         free(tag_buf);
         return NULL;
     }
 
-    jobjectArray result = (*env)->NewObjectArray(env, 2, byteArrayClass, NULL);
+    jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.byteArrayClass, NULL);
     if (result == NULL) {
         free(enc_buf);
         free(tag_buf);
@@ -1377,14 +1377,13 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
     }
 
     /* Create 2D byte array to return both outputs */
-    jclass byteArrayClass = (*env)->FindClass(env, "[B");
-    if (byteArrayClass == NULL) {
+    if (!jni_cache_is_initialized()) {
         if (output_buf != NULL) free(output_buf);
         free(tag_buf);
         return NULL;
     }
 
-    jobjectArray result = (*env)->NewObjectArray(env, 2, byteArrayClass, NULL);
+    jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.byteArrayClass, NULL);
     if (result == NULL) {
         if (output_buf != NULL) free(output_buf);
         free(tag_buf);
