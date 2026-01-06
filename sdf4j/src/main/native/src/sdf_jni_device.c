@@ -281,3 +281,85 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReleasePrivateKeyAccessRight
     }
 }
 
+JNIEXPORT void JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1GetKEKAccessRight
+  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jstring password) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_GetKEKAccessRight");
+    SDF_JNI_LOG("SDF_GetKEKAccessRight: hSession=0x%lX, keyIndex=%d",
+                (unsigned long)sessionHandle, (int)keyIndex);
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return;
+    }
+
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetKEKAccessRight", );
+
+    if (g_sdf_functions.SDF_GetKEKAccessRight == NULL) {
+        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return;
+    }
+
+    char *pwd = java_string_to_native(env, password);
+    if (pwd == NULL && password != NULL) {
+        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "Failed to convert password string");
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return;
+    }
+
+    ULONG pwd_len = pwd ? strlen(pwd) : 0;
+    SDF_JNI_LOG("SDF_GetKEKAccessRight: pwd='%s', pwd_len=%lu",
+                pwd ? pwd : "(null)", (unsigned long)pwd_len);
+
+    LONG ret = g_sdf_functions.SDF_GetKEKAccessRight((HANDLE)sessionHandle,
+                                                      keyIndex, (LPSTR)pwd, pwd_len);
+
+    SDF_LOG_EXIT("SDF_GetKEKAccessRight", ret);
+
+    if (pwd != NULL) {
+        /* 清除密码内存 */
+        memset(pwd, 0, pwd_len);
+        free(pwd);
+    }
+
+    if (ret != SDR_OK) {
+        throw_sdf_exception(env, ret);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1ReleaseKEKAccessRight
+  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_ReleaseKEKAccessRight");
+    SDF_JNI_LOG("SDF_ReleaseKEKAccessRight: hSession=0x%lX, keyIndex=%d",
+                (unsigned long)sessionHandle, (int)keyIndex);
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_ReleaseKEKAccessRight", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return;
+    }
+
+    VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleaseKEKAccessRight", );
+
+    if (g_sdf_functions.SDF_ReleaseKEKAccessRight == NULL) {
+        SDF_LOG_ERROR("SDF_ReleaseKEKAccessRight", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return;
+    }
+
+    LONG ret = g_sdf_functions.SDF_ReleaseKEKAccessRight((HANDLE)sessionHandle, keyIndex);
+
+    SDF_LOG_EXIT("SDF_ReleaseKEKAccessRight", ret);
+
+    if (ret != SDR_OK) {
+        throw_sdf_exception(env, ret);
+    }
+}
+

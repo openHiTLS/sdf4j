@@ -138,6 +138,28 @@ public class SDF {
      */
     public native void SDF_ReleasePrivateKeyAccessRight(long sessionHandle, int keyIndex) throws SDFException;
 
+    /**
+     * 6.2.10 获取KEK密钥使用权限
+     * Get KEK Access Right
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      KEK密钥索引号 / KEK key index
+     * @param password      授权口令 / Authorization password
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native void SDF_GetKEKAccessRight(long sessionHandle, int keyIndex, String password)
+            throws SDFException;
+
+    /**
+     * 6.2.11 释放KEK密钥使用权限
+     * Release KEK Access Right
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      KEK密钥索引号 / KEK key index
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native void SDF_ReleaseKEKAccessRight(long sessionHandle, int keyIndex) throws SDFException;
+
     // ========================================================================
     // 6.3 密钥管理类函数 (Key Management Functions)
     // ========================================================================

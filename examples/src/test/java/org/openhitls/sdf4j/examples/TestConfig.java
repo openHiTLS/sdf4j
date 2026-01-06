@@ -100,6 +100,15 @@ public class TestConfig {
     }
 
     /**
+     * Get SM4 key access password (KEK password)
+     * @return password string, may be empty if no password is required
+     */
+    public String getSM4KeyAccessPassword() {
+        String value = properties.getProperty("sm4.key.access.password");
+        return value != null ? value.trim() : "";
+    }
+
+    /**
      * Get environment name
      * @return environment name
      */
