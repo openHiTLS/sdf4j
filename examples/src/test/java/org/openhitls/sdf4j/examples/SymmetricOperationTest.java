@@ -69,6 +69,7 @@ public class SymmetricOperationTest {
     private long keyHandle;
     private TestConfig config;
     private int keyIndex;
+    private boolean kekAccessRightObtained;
 
     @Before
     public void setUp() throws SDFException {
@@ -83,11 +84,28 @@ public class SymmetricOperationTest {
 
         config = TestConfig.getInstance();
         keyIndex = config.getSM4InternalKeyIndex();  // Key索引，默认为4
+        kekAccessRightObtained = false;
 
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
         System.out.println("设备和会话已打开");
+
+        // 获取KEK访问权限
+        try {
+            String kekPassword = config.getSM4KeyAccessPassword();
+            System.out.println("获取KEK访问权限 (密钥索引: " + keyIndex + ")");
+            sdf.SDF_GetKEKAccessRight(sessionHandle, keyIndex, kekPassword);
+            kekAccessRightObtained = true;
+            System.out.println("成功获取KEK访问权限");
+        } catch (SDFException e) {
+            if (e.getErrorCode() == org.openhitls.sdf4j.constants.ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("获取KEK权限不需要或不支持，继续测试...");
+            } else {
+                System.err.println("获取KEK访问权限失败: " + e.getMessage());
+            }
+        }
+
         // 使用KEK（密钥加密密钥）生成SM4会话密钥（128位）
         System.out.println("生成SM4会话密钥 (使用Key索引: " + keyIndex + ")");
         try {
@@ -105,6 +123,14 @@ public class SymmetricOperationTest {
         try {
             if (keyHandle != 0) {
                 sdf.SDF_DestroyKey(sessionHandle, keyHandle);
+            }
+            if (kekAccessRightObtained) {
+                try {
+                    sdf.SDF_ReleaseKEKAccessRight(sessionHandle, keyIndex);
+                    System.out.println("已释放KEK访问权限");
+                } catch (SDFException e) {
+                    System.err.println("释放KEK访问权限失败: " + e.getMessage());
+                }
             }
             if (sessionHandle != 0) {
                 sdf.SDF_CloseSession(sessionHandle);

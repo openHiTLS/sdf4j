@@ -87,15 +87,15 @@ target_compile_options(sdf4j-jni PRIVATE
 # 根据构建类型设置优化选项
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(sdf4j-jni PRIVATE -g -O0)
-    message(STATUS "Debug build - optimizations disabled")
+    message(STATUS "Debug build - optimizations disabled, logging enabled")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(sdf4j-jni PRIVATE -O2 -DNDEBUG)
-    message(STATUS "Release build - optimizations enabled")
+    message(STATUS "Release build - optimizations enabled, logging disabled")
 else()
-    # 默认为 RelWithDebInfo
+    # 默认为 RelWithDebInfo，禁用日志以消除开销
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
-    target_compile_options(sdf4j-jni PRIVATE -g -O2)
-    message(STATUS "RelWithDebInfo build")
+    target_compile_options(sdf4j-jni PRIVATE -g -O2 -DNDEBUG)
+    message(STATUS "RelWithDebInfo build - logging disabled")
 endif()
 
 # 安装配置（可选）

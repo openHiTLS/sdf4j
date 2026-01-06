@@ -59,6 +59,8 @@ public class KeyManagementTest {
     // 默认配置
     private static final int DEFAULT_KEY_INDEX = 1;
     private static final String DEFAULT_KEY_PASSWORD = "123abc!@";
+    private static final int DEFAULT_KEK_INDEX = 4;
+    private static final String DEFAULT_KEK_PASSWORD = "123abc!@";
 
     // 会话密钥长度
     private static final int SESSION_KEY_BITS_128 = 128;
@@ -69,6 +71,8 @@ public class KeyManagementTest {
     // 实际使用的配置
     private static int keyIndex;
     private static String keyPassword;
+    private static int kekIndex;
+    private static String kekPassword;
 
     private SDF sdf;
     private long deviceHandle;
@@ -85,7 +89,10 @@ public class KeyManagementTest {
                     keyIndex = Integer.parseInt(
                             testConfig.getProperty("sm2.internal.key.index", String.valueOf(DEFAULT_KEY_INDEX)));
                     keyPassword = testConfig.getProperty("sm2.key.access.password", DEFAULT_KEY_PASSWORD);
-                    System.out.println("已从配置文件加载测试配置: keyIndex=" + keyIndex);
+                    kekIndex = Integer.parseInt(
+                            testConfig.getProperty("sm4.internal.key.index", String.valueOf(DEFAULT_KEK_INDEX)));
+                    kekPassword = testConfig.getProperty("sm4.key.access.password", DEFAULT_KEK_PASSWORD);
+                    System.out.println("已从配置文件加载测试配置: keyIndex=" + keyIndex + ", kekIndex=" + kekIndex);
                     return;
                 }
             } catch (IOException e) {
@@ -95,7 +102,9 @@ public class KeyManagementTest {
         // 使用默认值
         keyIndex = DEFAULT_KEY_INDEX;
         keyPassword = DEFAULT_KEY_PASSWORD;
-        System.out.println("使用默认测试配置: keyIndex=" + keyIndex);
+        kekIndex = DEFAULT_KEK_INDEX;
+        kekPassword = DEFAULT_KEK_PASSWORD;
+        System.out.println("使用默认测试配置: keyIndex=" + keyIndex + ", kekIndex=" + kekIndex);
     }
 
     @Before
@@ -710,10 +719,24 @@ public class KeyManagementTest {
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
 
         long keyHandle = 0;
+        boolean kekAccessRightObtained = false;
         try {
-            int kekIndex = 4;  // SM4 密钥索引
             System.out.println("生成会话密钥，KEK 索引: " + kekIndex + ", 密钥长度: " + SESSION_KEY_BITS_128 + " bits");
             System.out.println("使用 SM4 算法 (SGD_SM4_ECB)");
+
+            // 获取 KEK 访问权限
+            System.out.println("获取 KEK 访问权限，密钥索引: " + kekIndex);
+            try {
+                sdf.SDF_GetKEKAccessRight(sessionHandle, kekIndex, kekPassword);
+                kekAccessRightObtained = true;
+                System.out.println("成功获取 KEK 访问权限");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("获取 KEK 权限不需要或不支持，继续测试...");
+                } else {
+                    throw e;
+                }
+            }
 
             KeyEncryptionResult result = sdf.SDF_GenerateKeyWithKEK(
                     sessionHandle, SESSION_KEY_BITS_128, AlgorithmID.SGD_SM4_ECB, kekIndex);
@@ -736,7 +759,7 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] KEK 生成会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] KEK 密钥不存在，密钥索引: 4\n");
+                System.out.println("[跳过] KEK 密钥不存在，密钥索引: " + kekIndex + "\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
                 System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
             } else {
@@ -749,6 +772,14 @@ public class KeyManagementTest {
                     System.out.println("会话密钥已销毁");
                 } catch (SDFException e) {
                     System.err.println("销毁密钥失败: " + e.getMessage());
+                }
+            }
+            if (kekAccessRightObtained) {
+                try {
+                    sdf.SDF_ReleaseKEKAccessRight(sessionHandle, kekIndex);
+                    System.out.println("已释放 KEK 访问权限");
+                } catch (SDFException e) {
+                    System.err.println("释放 KEK 访问权限失败: " + e.getMessage());
                 }
             }
         }
@@ -767,8 +798,21 @@ public class KeyManagementTest {
 
         long keyHandle1 = 0;
         long keyHandle2 = 0;
+        boolean kekAccessRightObtained = false;
         try {
-            int kekIndex = 4;  // SM4 密钥索引
+            // 获取 KEK 访问权限
+            System.out.println("获取 KEK 访问权限，密钥索引: " + kekIndex);
+            try {
+                sdf.SDF_GetKEKAccessRight(sessionHandle, kekIndex, kekPassword);
+                kekAccessRightObtained = true;
+                System.out.println("成功获取 KEK 访问权限");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("获取 KEK 权限不需要或不支持，继续测试...");
+                } else {
+                    throw e;
+                }
+            }
 
             // 先生成一个加密的会话密钥
             System.out.println("先生成会话密钥用于测试导入，KEK 索引: " + kekIndex);
@@ -792,7 +836,7 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] KEK 导入会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] KEK 密钥不存在，密钥索引: 4\n");
+                System.out.println("[跳过] KEK 密钥不存在，密钥索引: " + kekIndex + "\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
                 System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
             } else {
@@ -811,6 +855,14 @@ public class KeyManagementTest {
                     sdf.SDF_DestroyKey(sessionHandle, keyHandle2);
                 } catch (SDFException e) {
                     System.err.println("销毁密钥失败: " + e.getMessage());
+                }
+            }
+            if (kekAccessRightObtained) {
+                try {
+                    sdf.SDF_ReleaseKEKAccessRight(sessionHandle, kekIndex);
+                    System.out.println("已释放 KEK 访问权限");
+                } catch (SDFException e) {
+                    System.err.println("释放 KEK 访问权限失败: " + e.getMessage());
                 }
             }
         }

@@ -73,6 +73,22 @@ JNIEXPORT void JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1ReleasePrivateKeyAccess
 
 /*
  * Class:     org_openhitls_sdf4j_SDF
+ * Method:    SDF_GetKEKAccessRight
+ * Signature: (JILjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1GetKEKAccessRight
+  (JNIEnv *, jobject, jlong, jint, jstring);
+
+/*
+ * Class:     org_openhitls_sdf4j_SDF
+ * Method:    SDF_ReleaseKEKAccessRight
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_sdf4j_SDF_SDF_1ReleaseKEKAccessRight
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     org_openhitls_sdf4j_SDF
  * Method:    SDF_ExportSignPublicKey_RSA
  * Signature: (JI)Lorg/openhitls/sdf4j/types/RSAPublicKey;
  */
