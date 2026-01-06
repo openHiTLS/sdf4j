@@ -30,6 +30,9 @@ typedef LONG (*SDF_GenerateRandom_FN)(HANDLE hSessionHandle, ULONG uiLength, BYT
 typedef LONG (*SDF_GetPrivateKeyAccessRight_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
                                                 LPSTR pucPassword, ULONG uiPwdLength);
 typedef LONG (*SDF_ReleasePrivateKeyAccessRight_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex);
+typedef LONG (*SDF_GetKEKAccessRight_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                         LPSTR pucPassword, ULONG uiPwdLength);
+typedef LONG (*SDF_ReleaseKEKAccessRight_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex);
 
 /* 密钥管理函数 */
 typedef LONG (*SDF_ExportSignPublicKey_RSA_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
@@ -263,6 +266,8 @@ typedef struct {
     SDF_GenerateRandom_FN                   SDF_GenerateRandom;
     SDF_GetPrivateKeyAccessRight_FN         SDF_GetPrivateKeyAccessRight;
     SDF_ReleasePrivateKeyAccessRight_FN     SDF_ReleasePrivateKeyAccessRight;
+    SDF_GetKEKAccessRight_FN                SDF_GetKEKAccessRight;
+    SDF_ReleaseKEKAccessRight_FN            SDF_ReleaseKEKAccessRight;
 
     /* 密钥管理 */
     SDF_ExportSignPublicKey_RSA_FN          SDF_ExportSignPublicKey_RSA;

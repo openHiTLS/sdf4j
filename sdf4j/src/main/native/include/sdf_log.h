@@ -58,13 +58,13 @@ void sdf_log_set_java_enabled(int enable);
  * 在Release版本（定义了NDEBUG）时为空，不输出日志
  * 在Debug版本时调用write_log函数
  */
-//#ifdef NDEBUG
+#ifdef NDEBUG
     /* Release版本：禁用日志 */
- //   #define SDF_JNI_LOG(...)  ((void)0)
-//#else
+    #define SDF_JNI_LOG(...)  ((void)0)
+#else
     /* Debug版本：启用日志 */
     #define SDF_JNI_LOG(...)  write_log(__VA_ARGS__)
-//#endif
+#endif
 
 /**
  * 日志辅助宏：记录函数入口

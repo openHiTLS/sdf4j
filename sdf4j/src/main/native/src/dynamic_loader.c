@@ -89,6 +89,10 @@ static bool load_all_functions(void *handle) {
                  "SDF_GetPrivateKeyAccessRight", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_ReleasePrivateKeyAccessRight,
                  "SDF_ReleasePrivateKeyAccessRight", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_GetKEKAccessRight,
+                 "SDF_GetKEKAccessRight", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ReleaseKEKAccessRight,
+                 "SDF_ReleaseKEKAccessRight", false);
 
     /* ========================================
      * 可选密钥管理函数
