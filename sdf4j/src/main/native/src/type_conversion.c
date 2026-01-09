@@ -360,9 +360,8 @@ bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *nativ
     native_cipher->L = (ULONG)l_value;
 
     /* c - 密文数据 (cipher data) - Note: Java field is "c" */
-    /* Note: ECCCipher has flexible array member, only copy L value here */
-    /* The actual cipher data C is not copied since it's a flexible array member */
-    /* Caller should handle cipher data separately */
+    /* WARNING: This function does NOT copy cipher data C because ECCCipher uses
+     * flexible array member. Use java_to_native_ECCCipher_alloc() for full conversion. */
     jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.c);
     if (c_array != NULL) {
@@ -371,10 +370,83 @@ bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *nativ
         if (native_cipher->L == 0) {
             native_cipher->L = c_len;
         }
-        (*env)->GetByteArrayRegion(env, c_array, 0, c_len, (jbyte*)native_cipher->C);
+        /* NOTE: Not copying C data here - use java_to_native_ECCCipher_alloc instead */
     }
 
     return true;
+}
+
+/**
+ * Convert Java ECCCipher to native ECCCipher with dynamic memory allocation.
+ * This function properly handles the flexible array member C[].
+ * Caller MUST free the returned pointer using free().
+ */
+ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
+    if (java_cipher == NULL || !jni_cache_is_initialized()) {
+        return NULL;
+    }
+
+    /* First, get the cipher data length to determine allocation size */
+    jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
+                                                             g_jni_cache.eccCipher.c);
+    jsize c_len = 0;
+    if (c_array != NULL) {
+        c_len = (*env)->GetArrayLength(env, c_array);
+    }
+
+    /* Also check L field */
+    jlong l_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.eccCipher.l);
+    if (c_len == 0 && l_value > 0) {
+        c_len = (jsize)l_value;
+    }
+
+    /* Allocate memory for ECCCipher struct + flexible array C[] */
+    size_t alloc_size = sizeof(ECCCipher) + c_len;
+    ECCCipher *native_cipher = (ECCCipher*)malloc(alloc_size);
+    if (native_cipher == NULL) {
+        return NULL;
+    }
+    memset(native_cipher, 0, alloc_size);
+
+    /* x */
+    jbyteArray x_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
+                                                             g_jni_cache.eccCipher.x);
+    if (x_array != NULL) {
+        jsize len = (*env)->GetArrayLength(env, x_array);
+        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
+        (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_cipher->x);
+    }
+
+    /* y */
+    jbyteArray y_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
+                                                             g_jni_cache.eccCipher.y);
+    if (y_array != NULL) {
+        jsize len = (*env)->GetArrayLength(env, y_array);
+        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
+        (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
+    }
+
+    /* m (hash/MAC) */
+    jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
+                                                             g_jni_cache.eccCipher.m);
+    if (m_array != NULL) {
+        jsize len = (*env)->GetArrayLength(env, m_array);
+        if (len > 32) len = 32;
+        (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_cipher->M);
+    }
+
+    /* L - cipher data length */
+    native_cipher->L = (ULONG)l_value;
+    if (native_cipher->L == 0 && c_len > 0) {
+        native_cipher->L = c_len;
+    }
+
+    /* C - cipher data (now properly allocated) */
+    if (c_array != NULL && c_len > 0) {
+        (*env)->GetByteArrayRegion(env, c_array, 0, c_len, (jbyte*)native_cipher->C);
+    }
+
+    return native_cipher;
 }
 
 bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey *native_key) {

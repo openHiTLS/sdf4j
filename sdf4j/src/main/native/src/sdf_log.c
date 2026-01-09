@@ -20,8 +20,8 @@
 #include <string.h>
 
 /* 日志模式控制 */
-static int file_logging_enabled = 1;     // 默认启用文件日志
-static int java_logging_enabled = 1;     // 默认启用Java回调日志
+static int file_logging_enabled = 0;     // 默认启用文件日志
+static int java_logging_enabled = 0;     // 默认启用Java回调日志
 
 /* Java日志回调相关的全局变量 */
 static JavaVM *g_jvm = NULL;              // Java虚拟机指针
