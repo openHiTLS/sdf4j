@@ -45,8 +45,10 @@ static bool load_function(void *handle, void **func_ptr, const char *func_name, 
         } else {
             /* 可选函数加载失败，只记录警告 */
             SDF_JNI_LOG("load_function: Optional function '%s' not available", func_name);
+#ifndef NDEBUG
             fprintf(stderr, "Warning: Optional SDF function '%s' not available in this implementation\n",
                     func_name);
+#endif
             return true;  /* 继续加载 */
         }
     }

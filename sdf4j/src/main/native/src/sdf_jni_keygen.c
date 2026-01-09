@@ -316,10 +316,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ImportKeyWithISK_1ECC
         return 0;
     }
 
-    /* 转换Java ECCCipher到C结构 */
-    ECCCipher ecc_cipher;
-    if (!java_to_native_ECCCipher(env, cipher, &ecc_cipher)) {
-        return 0;  /* Exception already thrown */
+    /* 转换Java ECCCipher到C结构 (使用动态分配以支持柔性数组成员) */
+    ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
+    if (ecc_cipher == NULL) {
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return 0;
     }
 
     HANDLE key_handle = 0;
@@ -327,9 +328,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ImportKeyWithISK_1ECC
     LONG ret = g_sdf_functions.SDF_ImportKeyWithISK_ECC(
         (HANDLE)sessionHandle,
         (ULONG)keyIndex,
-        &ecc_cipher,
+        ecc_cipher,
         &key_handle
     );
+
+    free(ecc_cipher);
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);

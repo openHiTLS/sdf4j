@@ -24,10 +24,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalSign_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jbyteArray data) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_InternalSign_ECC");
-    SDF_JNI_LOG("SDF_InternalSign_ECC: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_InternalSign_ECC", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -47,7 +43,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalSign_1ECC
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("SDF_InternalSign_ECC: data_len=%d", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -57,7 +52,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalSign_1ECC
     }
 
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("SDF_InternalSign_ECC data", data_buf, data_len);
 
     ECCSignature signature;
     memset(&signature, 0, sizeof(signature));
@@ -65,7 +59,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalSign_1ECC
     LONG ret = g_sdf_functions.SDF_InternalSign_ECC((HANDLE)sessionHandle, keyIndex,
                                                      data_buf, data_len, &signature);
 
-    SDF_LOG_EXIT("SDF_InternalSign_ECC", ret);
     if (ret == SDR_OK) {
         SDF_LOG_HEX("SDF_InternalSign_ECC signature.r", signature.r, ECCref_MAX_LEN);
         SDF_LOG_HEX("SDF_InternalSign_ECC signature.s", signature.s, ECCref_MAX_LEN);
@@ -86,10 +79,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalVerify_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jbyteArray data, jobject signature) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_InternalVerify_ECC");
-    SDF_JNI_LOG("SDF_InternalVerify_ECC: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_InternalVerify_ECC", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -109,7 +98,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalVerify_1ECC
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("SDF_InternalVerify_ECC: data_len=%d", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -119,7 +107,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalVerify_1ECC
     }
 
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("SDF_InternalVerify_ECC data", data_buf, data_len);
 
     ECCSignature native_sig;
     if (!java_to_native_ECCSignature(env, signature, &native_sig)) {
@@ -129,13 +116,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalVerify_1ECC
         return;
     }
 
-    SDF_LOG_HEX("SDF_InternalVerify_ECC signature.r", native_sig.r, ECCref_MAX_LEN);
-    SDF_LOG_HEX("SDF_InternalVerify_ECC signature.s", native_sig.s, ECCref_MAX_LEN);
-
     LONG ret = g_sdf_functions.SDF_InternalVerify_ECC((HANDLE)sessionHandle, keyIndex,
                                                        data_buf, data_len, &native_sig);
-
-    SDF_LOG_EXIT("SDF_InternalVerify_ECC", ret);
 
     free(data_buf);
 
@@ -203,10 +185,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject publicKey, jbyteArray data) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExternalEncrypt_ECC");
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: hSession=0x%lX, algID=0x%08X",
-                (unsigned long)sessionHandle, (unsigned int)algID);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_ExternalEncrypt_ECC", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -232,12 +210,7 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
         return NULL;
     }
 
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: publicKey.bits=%d", native_key.bits);
-    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC publicKey.x", native_key.x, ECCref_MAX_LEN);
-    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC publicKey.y", native_key.y, ECCref_MAX_LEN);
-
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: data_len=%d", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -247,7 +220,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
     }
 
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("SDF_ExternalEncrypt_ECC data", data_buf, data_len);
 
     /* 分配ECCCipher结构 + 密文空间 + 额外空间*/
     const unsigned int extra_space = 0;
@@ -262,14 +234,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
     memset(cipher, 0, sizeof(ECCCipher) + data_len + extra_space);
     cipher->L = data_len + extra_space;
 
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: extra_space = %d", (int)(extra_space));
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: cipher.L = %d", (int)(data_len + extra_space));
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: calling SDF_ExternalEncrypt_ECC...");
     LONG ret = g_sdf_functions.SDF_ExternalEncrypt_ECC((HANDLE)sessionHandle, algID,
                                                         &native_key, data_buf, data_len,
                                                         cipher);
-
-    SDF_LOG_EXIT("SDF_ExternalEncrypt_ECC", ret);
 
     free(data_buf);
 
@@ -280,11 +247,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalEncrypt_1ECC
         return NULL;
     }
 
-    SDF_JNI_LOG("SDF_ExternalEncrypt_ECC: cipher->L=%d", (int)cipher->L);
-    if (cipher == NULL) {
-        printf("Error: cipher pointer is NULL\n");
-    }
-    
     jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
     free(cipher);
     return result;
@@ -298,10 +260,6 @@ JNIEXPORT jobject JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jbyteArray data) {
     UNUSED(obj);
-
-    SDF_LOG_ENTER("SDF_InternalEncrypt_ECC");
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
 
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_InternalEncrypt_ECC", "SDF library not loaded");
@@ -322,7 +280,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: data_len=%d", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -332,7 +289,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
     }
 
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("SDF_InternalEncrypt_ECC data", data_buf, data_len);
 
     /* 分配ECCCipher结构 + 密文空间 + 额外空间*/
     const unsigned int extra_space = 0;
@@ -347,14 +303,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
     memset(cipher, 0, sizeof(ECCCipher) + data_len + extra_space);
     cipher->L = data_len + extra_space;
 
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: extra_space = %d", (int)(extra_space));
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: cipher.L = %d", (int)(data_len + extra_space));
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: calling SDF_InternalEncrypt_ECC...");
-
     LONG ret = g_sdf_functions.SDF_InternalEncrypt_ECC((HANDLE)sessionHandle, keyIndex,
                                                         data_buf, data_len, cipher);
-
-    SDF_LOG_EXIT("SDF_InternalEncrypt_ECC", ret);
 
     free(data_buf);
 
@@ -365,7 +315,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalEncrypt_1ECC
         return NULL;
     }
 
-    SDF_JNI_LOG("SDF_InternalEncrypt_ECC: cipher->L=%d", (int)cipher->L);
     jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
     free(cipher);
     return result;
@@ -379,10 +328,6 @@ JNIEXPORT jbyteArray JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1InternalDecrypt_1ECC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jint eccKeyType, jobject cipher) {
     UNUSED(obj);
-
-    SDF_LOG_ENTER("SDF_InternalDecrypt_ECC");
-    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: hSession=0x%lX, keyIndex=%d, eccKeyType=0x%08X",
-                (unsigned long)sessionHandle, (int)keyIndex, (unsigned int)eccKeyType);
 
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "SDF library not loaded");
@@ -402,47 +347,40 @@ Java_org_openhitls_sdf4j_SDF_SDF_1InternalDecrypt_1ECC
         return NULL;
     }
 
-    /* 转换Java ECCCipher到C结构 */
-    ECCCipher ecc_cipher;
-    if (!java_to_native_ECCCipher(env, cipher, &ecc_cipher)) {
+    /* 转换Java ECCCipher到C结构 (使用动态分配以支持柔性数组成员) */
+    ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
+    if (ecc_cipher == NULL) {
         SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Failed to convert ECCCipher");
         throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
         return NULL;
     }
 
-    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: ecc_cipher.L=%d", (int)ecc_cipher.L);
-
     /* 分配输出缓冲区 */
-    //ULONG data_len = ecc_cipher.L;
-    ULONG data_len = ecc_cipher.L + 64;
+    ULONG data_len = ecc_cipher->L + 64;
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
         SDF_LOG_ERROR("SDF_InternalDecrypt_ECC", "Memory allocation failed for data_buf");
+        free(ecc_cipher);
         throw_sdf_exception(env, 0x0100001C);  /* SDR_NOBUFFER */
         return NULL;
     }
 
     memset(data_buf, 0, data_len);
 
-    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: calling SDF_InternalDecrypt_ECC...");
-
     LONG ret = g_sdf_functions.SDF_InternalDecrypt_ECC((HANDLE)sessionHandle, keyIndex,
-                                                        eccKeyType, &ecc_cipher,
+                                                        eccKeyType, ecc_cipher,
                                                         data_buf, &data_len);
-
-    SDF_LOG_EXIT("SDF_InternalDecrypt_ECC", ret);
 
     if (ret != SDR_OK) {
         SDF_JNI_LOG("SDF_InternalDecrypt_ECC: SDF function returned error 0x%08X", (unsigned int)ret);
+        free(ecc_cipher);
         free(data_buf);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
-    SDF_JNI_LOG("SDF_InternalDecrypt_ECC: decrypted data_len=%d", (int)data_len);
-    SDF_LOG_HEX("SDF_InternalDecrypt_ECC decrypted data", data_buf, data_len);
-
     jbyteArray result = native_to_java_byte_array(env, data_buf, data_len);
+    free(ecc_cipher);
     free(data_buf);
 
     return result;

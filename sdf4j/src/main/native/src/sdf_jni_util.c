@@ -259,9 +259,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
 (JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject privateKey, jobject cipher) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExternalDecrypt_ECC");
-    SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: hSession=0x%lX, algID=0x%08X",
-                (unsigned long)sessionHandle, (unsigned int)algID);
     if (!sdf_is_loaded()) {
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
@@ -279,18 +276,19 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
 	return NULL;
     }
     
-
-    /* Convert cipher */
-    ECCCipher ecc_cipher;
-    if (!java_to_native_ECCCipher(env, cipher, &ecc_cipher)) {
-	SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCCipher fail.");
+    /* Convert cipher (使用动态分配以支持柔性数组成员) */
+    ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
+    if (ecc_cipher == NULL) {
+        SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCCipher fail.");
         return NULL;
     }
 
     /* Allocate output buffer */
-    ULONG plaintext_len = 256;  /* Reasonable max */
+    ULONG plaintext_len = ecc_cipher->L + 64;
+    if (plaintext_len < 256) plaintext_len = 256;  /* Reasonable min */
     BYTE *plaintext_buf = (BYTE*)malloc(plaintext_len);
     if (plaintext_buf == NULL) {
+        free(ecc_cipher);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
@@ -299,18 +297,20 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
         (HANDLE)sessionHandle,
         (ULONG)algID,
         &priv_key,
-        &ecc_cipher,
+        ecc_cipher,
         plaintext_buf,
         &plaintext_len
     );
 
     if (ret != SDR_OK) {
+        free(ecc_cipher);
         free(plaintext_buf);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
     jbyteArray result = native_to_java_byte_array(env, plaintext_buf, plaintext_len);
+    free(ecc_cipher);
     free(plaintext_buf);
 
     return result;

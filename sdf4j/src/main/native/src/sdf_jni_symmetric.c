@@ -211,10 +211,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Encrypt
   (JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle, jint algID, jbyteArray iv, jbyteArray data) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_Encrypt");
-    SDF_JNI_LOG("SDF_Encrypt: hSession=0x%lX, hKey=0x%lX, algID=0x%08X",
-                (unsigned long)sessionHandle, (unsigned long)keyHandle, (unsigned int)algID);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_Encrypt", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -235,7 +231,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Encrypt
 
     /* 获取输入数据 */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("SDF_Encrypt: data_len=%d", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -244,13 +239,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Encrypt
         return NULL;
     }
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("SDF_Encrypt plaintext", data_buf, data_len);
 
     /* 获取IV（可选）*/
     BYTE *iv_buf = NULL;
     if (iv != NULL) {
         jsize iv_len = (*env)->GetArrayLength(env, iv);
-        SDF_JNI_LOG("SDF_Encrypt: iv_len=%d", (int)iv_len);
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             free(data_buf);
@@ -259,7 +252,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Encrypt
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
-        SDF_LOG_HEX("SDF_Encrypt IV", iv_buf, iv_len);
     }
 
     /* 分配输出缓冲区（预留足够空间用于填充）*/
@@ -277,7 +269,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Encrypt
                                             algID, iv_buf, data_buf, data_len,
                                             enc_data_buf, &enc_data_len);
 
-    SDF_LOG_EXIT("SDF_Encrypt", ret);
     if (ret == SDR_OK) {
         SDF_JNI_LOG("SDF_Encrypt: output_len=%lu", enc_data_len);
         SDF_LOG_HEX("SDF_Encrypt ciphertext", enc_data_buf, enc_data_len);
@@ -302,10 +293,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Decrypt
   (JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle, jint algID, jbyteArray iv, jbyteArray encData) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_Decrypt");
-    SDF_JNI_LOG("SDF_Decrypt: hSession=0x%lX, hKey=0x%lX, algID=0x%08X",
-                (unsigned long)sessionHandle, (unsigned long)keyHandle, (unsigned int)algID);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_Decrypt", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -326,7 +313,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Decrypt
 
     /* 获取加密数据 */
     jsize enc_data_len = (*env)->GetArrayLength(env, encData);
-    SDF_JNI_LOG("SDF_Decrypt: enc_data_len=%d", (int)enc_data_len);
 
     BYTE *enc_data_buf = (BYTE*)malloc(enc_data_len);
     if (enc_data_buf == NULL) {
@@ -335,13 +321,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Decrypt
         return NULL;
     }
     (*env)->GetByteArrayRegion(env, encData, 0, enc_data_len, (jbyte*)enc_data_buf);
-    SDF_LOG_HEX("SDF_Decrypt ciphertext", enc_data_buf, enc_data_len);
 
     /* 获取IV（可选）*/
     BYTE *iv_buf = NULL;
     if (iv != NULL) {
         jsize iv_len = (*env)->GetArrayLength(env, iv);
-        SDF_JNI_LOG("SDF_Decrypt: iv_len=%d", (int)iv_len);
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             free(enc_data_buf);
@@ -350,7 +334,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Decrypt
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
-        SDF_LOG_HEX("SDF_Decrypt IV", iv_buf, iv_len);
     }
 
     /* 分配输出缓冲区 */
@@ -368,7 +351,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1Decrypt
                                             algID, iv_buf, enc_data_buf, enc_data_len,
                                             data_buf, &data_len);
 
-    SDF_LOG_EXIT("SDF_Decrypt", ret);
     if (ret == SDR_OK) {
         SDF_JNI_LOG("SDF_Decrypt: output_len=%lu", data_len);
         SDF_LOG_HEX("SDF_Decrypt plaintext", data_buf, data_len);
@@ -547,12 +529,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
   (JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle, jint algID, jbyteArray iv, jbyteArray data) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_CalculateMAC");
-    SDF_JNI_LOG("=== SDF_CalculateMAC Input Parameters ===");
-    SDF_JNI_LOG("  sessionHandle: 0x%lX", (unsigned long)sessionHandle);
-    SDF_JNI_LOG("  keyHandle: 0x%lX", (unsigned long)keyHandle);
-    SDF_JNI_LOG("  algID: 0x%08X (%d)", (unsigned int)algID, (int)algID);
-
     if (!sdf_is_loaded()) {
         SDF_LOG_ERROR("SDF_CalculateMAC", "SDF library not loaded");
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
@@ -573,7 +549,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
 
     /* 获取输入数据 */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    SDF_JNI_LOG("  data length: %d bytes", (int)data_len);
 
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
@@ -582,15 +557,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
         return NULL;
     }
     (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
-    SDF_LOG_HEX("  data", data_buf, data_len);
 
     /* 获取IV（可选）*/
     BYTE *iv_buf = NULL;
     jsize iv_len = 0;
     if (iv != NULL) {
         iv_len = (*env)->GetArrayLength(env, iv);
-        SDF_JNI_LOG("  iv length: %d bytes", (int)iv_len);
-
         iv_buf = (BYTE*)malloc(iv_len);
         if (iv_buf == NULL) {
             SDF_LOG_ERROR("SDF_CalculateMAC", "Failed to allocate memory for IV buffer");
@@ -599,14 +571,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
-        SDF_LOG_HEX("  iv", iv_buf, iv_len);
     } else {
         SDF_JNI_LOG("  iv: NULL (no IV provided)");
     }
 
     /* 分配MAC缓冲区 */
     ULONG mac_len = 64;  /* SM4-CBC-MAC 通常为16字节,可能是必须要传入固定64 TODO */
-    SDF_JNI_LOG("  Allocated MAC buffer size: %lu bytes", mac_len);
 
     BYTE *mac_buf = (BYTE*)malloc(mac_len);
     if (mac_buf == NULL) {
@@ -617,18 +587,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
         return NULL;
     }
 
-    SDF_JNI_LOG("=== Calling native SDF_CalculateMAC ===");
-    SDF_JNI_LOG("  Parameters: hSession=0x%lX, hKey=0x%lX, algID=0x%08X, ivLen=%d, dataLen=%d, macBufSize=%lu",
-                (unsigned long)sessionHandle, (unsigned long)keyHandle,
-                (unsigned int)algID, (int)iv_len, (int)data_len, mac_len);
-
     LONG ret = g_sdf_functions.SDF_CalculateMAC((HANDLE)sessionHandle, (HANDLE)keyHandle,
                                                  algID, iv_buf, data_buf, data_len,
                                                  mac_buf, &mac_len);
-
-    SDF_JNI_LOG("=== Native SDF_CalculateMAC returned ===");
-    SDF_JNI_LOG("  Return code: 0x%08X", (unsigned int)ret);
-    SDF_JNI_LOG("  Output MAC length: %lu bytes", mac_len);
 
     free(data_buf);
     if (iv_buf) free(iv_buf);
@@ -641,8 +602,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
         return NULL;
     }
 
-    SDF_LOG_HEX("  Output MAC", mac_buf, mac_len);
-
     jbyteArray result = native_to_java_byte_array(env, mac_buf, mac_len);
     free(mac_buf);
 
@@ -652,7 +611,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CalculateMAC
         SDF_LOG_ERROR("SDF_CalculateMAC", "Failed to create Java byte array");
     }
 
-    SDF_LOG_EXIT("SDF_CalculateMAC", SDR_OK);
     return result;
 }
 
@@ -1031,9 +989,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDec
  jbyteArray iv, jbyteArray aad, jbyteArray authTag, jbyteArray encData) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_AuthDec");
-    SDF_JNI_LOG("SDF_AuthDec: hSession=0x%lX, keyIndex=%lX",
-                (unsigned long)sessionHandle, (unsigned long)keyHandle);
     if (!sdf_is_loaded()) {
         throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
         return NULL;
@@ -1110,30 +1065,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDec
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-
-    printf("-----------------iv-------------\n");
-    for (int i = 0; i < iv_len; i++) {
-	    printf("%02x", iv_buf[i]);
-    }
-    printf("\n\n");
-
-    printf("-----------------aad-------------\n");
-    for (int i = 0; i < aad_len; i++) {
-            printf("%02x", aad_buf[i]);
-    }
-    printf("\n\n");
-
-    printf("-----------------tag-------------\n");
-    for (int i = 0; i < tag_len; i++) {
-            printf("%02x", tag_buf[i]);
-    }
-    printf("\n\n");
-
-    printf("-----------------enc-------------\n");
-    for (int i = 0; i < enc_len; i++) {
-            printf("%02x", enc_buf[i]);
-    }
-    printf("\n\n");
 
     LONG ret = g_sdf_functions.SDF_AuthDec(
         (HANDLE)sessionHandle,
@@ -1338,15 +1269,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
         return NULL;
     }
 
-    /* Print output_buf before calling SDF_AuthEncFinal */
-    SDF_JNI_LOG("=== Before SDF_AuthEncFinal ===");
-    SDF_JNI_LOG("  output_len: %lu", output_len);
-    if (output_buf != NULL && output_len > 0) {
-        SDF_LOG_HEX("  output_buf (before)", output_buf, output_len);
-    } else {
-        SDF_JNI_LOG("  output_buf: NULL or empty");
-    }
-
     LONG ret = g_sdf_functions.SDF_AuthEncFinal(
         (HANDLE)sessionHandle,
         output_buf,
@@ -1354,20 +1276,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthEncFinal
         tag_buf,
         &tag_len
     );
-
-    /* Print output_buf after calling SDF_AuthEncFinal */
-    SDF_JNI_LOG("=== After SDF_AuthEncFinal ===");
-    SDF_JNI_LOG("  ret: 0x%08X", (unsigned int)ret);
-    SDF_JNI_LOG("  output_len: %lu", output_len);
-    if (output_buf != NULL && output_len > 0) {
-        SDF_LOG_HEX("  output_buf (after)", output_buf, output_len);
-    } else {
-        SDF_JNI_LOG("  output_buf: NULL or empty (len=%lu)", output_len);
-    }
-    SDF_JNI_LOG("  tag_len: %lu", tag_len);
-    if (tag_buf != NULL && tag_len > 0) {
-        SDF_LOG_HEX("  tag_buf (after)", tag_buf, tag_len);
-    }
 
     if (ret != SDR_OK) {
         if (output_buf != NULL) free(output_buf);
@@ -1584,25 +1492,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1AuthDecFinal
         return NULL;
     }
 
-    /* Print before calling SDF_AuthDecFinal */
-    SDF_JNI_LOG("=== Before SDF_AuthDecFinal ===");
-    SDF_JNI_LOG("  output_len (buffer size): %lu", output_len);
-
     LONG ret = g_sdf_functions.SDF_AuthDecFinal(
         (HANDLE)sessionHandle,
         output_buf,
         &output_len
     );
-
-    /* Print output_buf after calling SDF_AuthDecFinal */
-    SDF_JNI_LOG("=== After SDF_AuthDecFinal ===");
-    SDF_JNI_LOG("  ret: 0x%08X", (unsigned int)ret);
-    SDF_JNI_LOG("  output_len: %lu", output_len);
-    if (output_buf != NULL && output_len > 0) {
-        SDF_LOG_HEX("  output_buf (after)", output_buf, output_len);
-    } else {
-        SDF_JNI_LOG("  output_buf: empty (len=%lu)", output_len);
-    }
 
     if (ret != SDR_OK) {
         free(output_buf);
