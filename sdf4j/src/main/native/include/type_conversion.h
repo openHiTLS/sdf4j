@@ -89,8 +89,21 @@ bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey 
 
 /**
  * ECCCipher → ECCCipher
+ * NOTE: This function is UNSAFE for ECCCipher with cipher data (C array)
+ * because ECCCipher uses flexible array member. Use java_to_native_ECCCipher_alloc instead.
  */
 bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *native_cipher);
+
+/**
+ * ECCCipher → ECCCipher (with dynamic memory allocation)
+ * This function allocates memory for the complete ECCCipher structure including
+ * the flexible array member C[]. Caller MUST free the returned pointer.
+ *
+ * @param env JNI环境
+ * @param java_cipher Java ECCCipher对象
+ * @return 动态分配的ECCCipher指针，失败返回NULL。调用者必须释放内存。
+ */
+ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher);
 
 /**
  * RSAPrivateKey → RSArefPrivateKey
