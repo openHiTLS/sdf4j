@@ -21,6 +21,7 @@
 
     <modules>
         <module>sdf4j</module>
+        <module>sdf4j-jce</module>
         <module>examples</module>
     </modules>
 
@@ -126,7 +127,7 @@
         <profile>
             <id>core-only</id>
             <modules>
-                <module>sdf4j-core</module>
+                <module>sdf4j</module>
             </modules>
         </profile>
 
@@ -134,7 +135,7 @@
         <profile>
             <id>examples-only</id>
             <modules>
-                <module>sdf4j-examples</module>
+                <module>examples</module>
             </modules>
         </profile>
     </profiles>
