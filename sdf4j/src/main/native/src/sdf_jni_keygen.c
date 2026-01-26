@@ -214,18 +214,19 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyWithIPK_1ECC
 
 
     /* 创建KeyEncryptionResult，其中encryptedKey是ECCCipher的序列化 */
-    /* 序列化ECCCipher: x(32) + y(32) + M(32) + C(cipher_len) */
-    ULONG cipher_data_len = 32 + 32 + 32 + ecc_cipher.L;
+    /* 序列化ECCCipher: x(64) + y(64) + M(32) + C(cipher_len) */
+    /* 注意：ECCref_MAX_LEN = 64，x和y都是64字节数组 */
+    ULONG cipher_data_len = ECCref_MAX_LEN + ECCref_MAX_LEN + 32 + ecc_cipher.L;
     BYTE *cipher_data = (BYTE*)malloc(cipher_data_len);
     if (cipher_data == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
-    memcpy(cipher_data, ecc_cipher.x, 32);
-    memcpy(cipher_data + 32, ecc_cipher.y, 32);
-    memcpy(cipher_data + 64, ecc_cipher.M, 32);
-    memcpy(cipher_data + 96, &ecc_cipher.C, ecc_cipher.L);
+    memcpy(cipher_data, ecc_cipher.x, ECCref_MAX_LEN);
+    memcpy(cipher_data + ECCref_MAX_LEN, ecc_cipher.y, ECCref_MAX_LEN);
+    memcpy(cipher_data + ECCref_MAX_LEN * 2, ecc_cipher.M, 32);
+    memcpy(cipher_data + ECCref_MAX_LEN * 2 + 32, &ecc_cipher.C, ecc_cipher.L);
 
     jobject result = create_key_encryption_result(env, cipher_data, cipher_data_len, key_handle);
     free(cipher_data);
@@ -278,18 +279,19 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyWithEPK_1ECC
         return NULL;
     }
 
-    /* 序列化ECCCipher */
-    ULONG cipher_data_len = 32 + 32 + 32 + ecc_cipher.L;
+    /* 序列化ECCCipher: x(64) + y(64) + M(32) + C(cipher_len) */
+    /* 注意：ECCref_MAX_LEN = 64，x和y都是64字节数组 */
+    ULONG cipher_data_len = ECCref_MAX_LEN + ECCref_MAX_LEN + 32 + ecc_cipher.L;
     BYTE *cipher_data = (BYTE*)malloc(cipher_data_len);
     if (cipher_data == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
-    memcpy(cipher_data, ecc_cipher.x, 32);
-    memcpy(cipher_data + 32, ecc_cipher.y, 32);
-    memcpy(cipher_data + 64, ecc_cipher.M, 32);
-    memcpy(cipher_data + 96, &ecc_cipher.C, ecc_cipher.L);
+    memcpy(cipher_data, ecc_cipher.x, ECCref_MAX_LEN);
+    memcpy(cipher_data + ECCref_MAX_LEN, ecc_cipher.y, ECCref_MAX_LEN);
+    memcpy(cipher_data + ECCref_MAX_LEN * 2, ecc_cipher.M, 32);
+    memcpy(cipher_data + ECCref_MAX_LEN * 2 + 32, &ecc_cipher.C, ecc_cipher.L);
 
     jobject result = create_key_encryption_result(env, cipher_data, cipher_data_len, key_handle);
     free(cipher_data);
