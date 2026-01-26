@@ -68,6 +68,19 @@ public class SDF {
     public native long SDF_OpenDevice() throws SDFException;
 
     /**
+     * 打开设备（带配置文件）
+     * Open Device with Configuration File
+     *
+     * <p>使用用户自定义配置文件打开密码设备
+     * <p>Open cryptographic device with user-defined configuration file
+     *
+     * @param configFile 配置文件路径 / Configuration file path
+     * @return 设备句柄 / Device handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native long SDF_OpenDeviceWithConf(String configFile) throws SDFException;
+
+    /**
      * 6.2.3 关闭设备
      * Close Device
      *
@@ -371,6 +384,21 @@ public class SDF {
      */
     public native long SDF_ImportKeyWithKEK(
             long sessionHandle, int algID, int kekIndex, byte[] encryptedKey) throws SDFException;
+
+    /**
+     * 导入明文会话密钥
+     * Import Plaintext Session Key
+     *
+     * <p>将外部明文会话密钥导入密码设备，返回密钥句柄用于后续加密操作
+     * <p>Import external plaintext session key into cryptographic device,
+     * returns key handle for subsequent encryption operations
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param key           明文密钥数据 / Plaintext key data
+     * @return 密钥句柄 / Key handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native long SDF_ImportKey(long sessionHandle, byte[] key) throws SDFException;
 
     /**
      * 6.3.17 销毁会话密钥

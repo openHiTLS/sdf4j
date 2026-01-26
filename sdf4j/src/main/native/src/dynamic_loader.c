@@ -70,6 +70,8 @@ static bool load_all_functions(void *handle) {
     if (!load_function(handle, (void**)&g_sdf_functions.SDF_OpenDevice,
                       "SDF_OpenDevice", true))
         return false;
+    load_function(handle, (void**)&g_sdf_functions.SDF_OpenDeviceWithConf,
+                 "SDF_OpenDeviceWithConf", false);
     if (!load_function(handle, (void**)&g_sdf_functions.SDF_CloseDevice,
                       "SDF_CloseDevice", true))
         return false;
@@ -129,6 +131,8 @@ static bool load_all_functions(void *handle) {
                  "SDF_GenerateKeyWithKEK", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_ImportKeyWithKEK,
                  "SDF_ImportKeyWithKEK", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ImportKey,
+                 "SDF_ImportKey", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_DestroyKey,
                  "SDF_DestroyKey", false);
 

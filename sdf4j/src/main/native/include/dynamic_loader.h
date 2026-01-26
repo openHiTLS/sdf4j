@@ -22,6 +22,7 @@
 
 /* 设备管理函数 */
 typedef LONG (*SDF_OpenDevice_FN)(HANDLE *phDeviceHandle);
+typedef LONG (*SDF_OpenDeviceWithConf_FN)(HANDLE *phDeviceHandle, const char *configFile);
 typedef LONG (*SDF_CloseDevice_FN)(HANDLE hDeviceHandle);
 typedef LONG (*SDF_OpenSession_FN)(HANDLE hDeviceHandle, HANDLE *phSessionHandle);
 typedef LONG (*SDF_CloseSession_FN)(HANDLE hSessionHandle);
@@ -89,6 +90,8 @@ typedef LONG (*SDF_GenerateKeyWithKEK_FN)(HANDLE hSessionHandle, ULONG uiKeyBits
 typedef LONG (*SDF_ImportKeyWithKEK_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
                                        ULONG uiKEKIndex, BYTE *pucKey,
                                        ULONG uiKeyLength, HANDLE *phKeyHandle);
+typedef LONG (*SDF_ImportKey_FN)(HANDLE hSessionHandle, BYTE *pucKey,
+                                 ULONG uiKeyLength, HANDLE *phKeyHandle);
 typedef LONG (*SDF_DestroyKey_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle);
 
 /* 非对称算法函数 */
@@ -259,6 +262,7 @@ typedef LONG (*SDF_ExternalKeyHMACInit_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
 typedef struct {
     /* 设备管理 */
     SDF_OpenDevice_FN                       SDF_OpenDevice;
+    SDF_OpenDeviceWithConf_FN               SDF_OpenDeviceWithConf;
     SDF_CloseDevice_FN                      SDF_CloseDevice;
     SDF_OpenSession_FN                      SDF_OpenSession;
     SDF_CloseSession_FN                     SDF_CloseSession;
@@ -285,6 +289,7 @@ typedef struct {
     SDF_GenerateAgreementDataAndKeyWithECC_FN SDF_GenerateAgreementDataAndKeyWithECC;
     SDF_GenerateKeyWithKEK_FN               SDF_GenerateKeyWithKEK;
     SDF_ImportKeyWithKEK_FN                 SDF_ImportKeyWithKEK;
+    SDF_ImportKey_FN                        SDF_ImportKey;
     SDF_DestroyKey_FN                       SDF_DestroyKey;
 
     /* 非对称算法 */

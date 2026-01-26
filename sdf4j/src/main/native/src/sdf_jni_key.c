@@ -180,6 +180,63 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1ECC
     return native_to_java_ECCPublicKey(env, &publicKey);
 }
 
+JNIEXPORT jlong JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1ImportKey
+  (JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray key) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_ImportKey");
+    SDF_JNI_LOG("SDF_ImportKey: hSession=0x%lX", (unsigned long)sessionHandle);
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_ImportKey", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return 0;
+    }
+
+    if (g_sdf_functions.SDF_ImportKey == NULL) {
+        SDF_LOG_ERROR("SDF_ImportKey", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return 0;
+    }
+
+    if (key == NULL) {
+        SDF_LOG_ERROR("SDF_ImportKey", "Key is NULL");
+        throw_sdf_exception(env, SDR_INARGERR);
+        return 0;
+    }
+
+    jsize keyLength = (*env)->GetArrayLength(env, key);
+    jbyte *keyData = (*env)->GetByteArrayElements(env, key, NULL);
+    if (keyData == NULL) {
+        SDF_LOG_ERROR("SDF_ImportKey", "Failed to get key data");
+        throw_sdf_exception(env, SDR_INARGERR);
+        return 0;
+    }
+
+    SDF_JNI_LOG("SDF_ImportKey: keyLength=%d", (int)keyLength);
+
+    HANDLE keyHandle = NULL;
+    LONG ret = g_sdf_functions.SDF_ImportKey((HANDLE)sessionHandle,
+                                              (BYTE *)keyData,
+                                              (ULONG)keyLength,
+                                              &keyHandle);
+
+    (*env)->ReleaseByteArrayElements(env, key, keyData, JNI_ABORT);
+
+    SDF_LOG_EXIT("SDF_ImportKey", ret);
+    if (ret == SDR_OK) {
+        SDF_JNI_LOG("SDF_ImportKey: keyHandle=0x%lX", (unsigned long)keyHandle);
+    }
+
+    if (ret != SDR_OK) {
+        throw_sdf_exception(env, ret);
+        return 0;
+    }
+
+    return (jlong)keyHandle;
+}
+
 JNIEXPORT void JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1DestroyKey
   (JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle) {
