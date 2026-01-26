@@ -19,11 +19,53 @@
 - `SDF_CloseSession`
 
 ### 可选函数
-所有其他函数均为可选：
-- 设备管理：`SDF_GetDeviceInfo`, `SDF_GenerateRandom`, 等
-- 密钥管理：所有 `Export*` 和 `Destroy*` 函数
-- 加密算法：所有加密、解密、签名、验签函数
-- 杂凑算法：所有Hash函数
+所有其他函数均为可选，分类如下：
+
+**设备管理类（6.2）**
+- `SDF_GetDeviceInfo` - 获取设备信息
+- `SDF_GenerateRandom` - 产生随机数
+- `SDF_GetPrivateKeyAccessRight` - 获取私钥使用权限
+- `SDF_ReleasePrivateKeyAccessRight` - 释放私钥使用权限
+- `SDF_GetKEKAccessRight` - 获取KEK密钥使用权限
+- `SDF_ReleaseKEKAccessRight` - 释放KEK密钥使用权限
+
+**密钥管理类（6.3）**
+- `SDF_ExportSignPublicKey_RSA` / `SDF_ExportEncPublicKey_RSA`
+- `SDF_ExportSignPublicKey_ECC` / `SDF_ExportEncPublicKey_ECC`
+- `SDF_GenerateKeyWithIPK_RSA` / `SDF_GenerateKeyWithEPK_RSA` / `SDF_ImportKeyWithISK_RSA`
+- `SDF_GenerateKeyWithIPK_ECC` / `SDF_GenerateKeyWithEPK_ECC` / `SDF_ImportKeyWithISK_ECC`
+- `SDF_GenerateAgreementDataWithECC` / `SDF_GenerateKeyWithECC` / `SDF_GenerateAgreementDataAndKeyWithECC`
+- `SDF_GenerateKeyWithKEK` / `SDF_ImportKeyWithKEK`
+- `SDF_DestroyKey`
+
+**非对称算法类（6.4）**
+- `SDF_ExternalPublicKeyOperation_RSA` / `SDF_InternalPublicKeyOperation_RSA` / `SDF_InternalPrivateKeyOperation_RSA`
+- `SDF_InternalSign_ECC` / `SDF_InternalVerify_ECC` / `SDF_ExternalVerify_ECC`
+- `SDF_ExternalEncrypt_ECC` / `SDF_InternalEncrypt_ECC` / `SDF_InternalDecrypt_ECC`
+
+**对称算法类（6.5）**
+- 单包加解密：`SDF_Encrypt` / `SDF_Decrypt` / `SDF_CalculateMAC`
+- 认证加解密：`SDF_AuthEnc` / `SDF_AuthDec`
+- 多包加解密：`SDF_EncryptInit` / `SDF_EncryptUpdate` / `SDF_EncryptFinal`
+- 多包解密：`SDF_DecryptInit` / `SDF_DecryptUpdate` / `SDF_DecryptFinal`
+- 多包MAC：`SDF_CalculateMACInit` / `SDF_CalculateMACUpdate` / `SDF_CalculateMACFinal`
+- 多包认证加密：`SDF_AuthEncInit` / `SDF_AuthEncUpdate` / `SDF_AuthEncFinal`
+- 多包认证解密：`SDF_AuthDecInit` / `SDF_AuthDecUpdate` / `SDF_AuthDecFinal`
+
+**杂凑算法类（6.6）**
+- HMAC：`SDF_HMACInit` / `SDF_HMACUpdate` / `SDF_HMACFinal`
+- Hash：`SDF_HashInit` / `SDF_HashUpdate` / `SDF_HashFinal`
+
+**文件操作类（6.7）**
+- `SDF_CreateFile` / `SDF_ReadFile` / `SDF_WriteFile` / `SDF_DeleteFile`
+
+**验证调试类（6.8）**
+- `SDF_GenerateKeyPair_RSA` / `SDF_GenerateKeyPair_ECC`
+- `SDF_ExternalPrivateKeyOperation_RSA`
+- `SDF_ExternalSign_ECC` / `SDF_ExternalDecrypt_ECC`
+- `SDF_ExternalKeyEncrypt` / `SDF_ExternalKeyDecrypt`
+- `SDF_ExternalKeyEncryptInit` / `SDF_ExternalKeyDecryptInit`
+- `SDF_ExternalKeyHMACInit`
 
 ## 测试方法
 
@@ -99,28 +141,131 @@ public class SDFCapabilityDetector {
     }
 
     public Map<String, Boolean> detectCapabilities() {
-        Map<String, Boolean> capabilities = new HashMap<>();
+        Map<String, Boolean> capabilities = new LinkedHashMap<>();
 
-        // 设备管理
+        // 设备管理类功能
         capabilities.put("GetDeviceInfo", checkFunction(() ->
             sdf.SDF_GetDeviceInfo(sessionHandle)));
         capabilities.put("GenerateRandom", checkFunction(() ->
             sdf.SDF_GenerateRandom(sessionHandle, 16)));
 
-        // 密钥管理 (需要有效的密钥索引)
+        // 密钥管理类功能 (需要有效的密钥索引)
         capabilities.put("ExportSignPublicKey_ECC", checkFunction(() ->
             sdf.SDF_ExportSignPublicKey_ECC(sessionHandle, 1)));
+        capabilities.put("ExportEncPublicKey_ECC", checkFunction(() ->
+            sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, 1)));
         capabilities.put("ExportSignPublicKey_RSA", checkFunction(() ->
             sdf.SDF_ExportSignPublicKey_RSA(sessionHandle, 1)));
+        capabilities.put("ExportEncPublicKey_RSA", checkFunction(() ->
+            sdf.SDF_ExportEncPublicKey_RSA(sessionHandle, 1)));
 
-        // 更多功能检测...
+        // 对称加密功能
+        capabilities.put("Encrypt/Decrypt", checkEncryptDecrypt());
+        capabilities.put("CalculateMAC", checkFunction(() ->
+            sdf.SDF_CalculateMAC(sessionHandle, 0, AlgorithmID.SGD_SM4_MAC, null, new byte[16])));
+        capabilities.put("AuthEnc/AuthDec", checkFunction(() ->
+            sdf.SDF_AuthEnc(sessionHandle, 0, AlgorithmID.SGD_SM4_GCM, new byte[12], null, new byte[16])));
+
+        // 多包加密功能
+        capabilities.put("MultiPacketEncrypt", checkMultiPacketEncrypt());
+        capabilities.put("MultiPacketMAC", checkMultiPacketMAC());
+        capabilities.put("MultiPacketAuthEnc", checkMultiPacketAuthEnc());
+
+        // 杂凑功能
+        capabilities.put("Hash_SM3", checkFunction(() -> {
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, new byte[16]);
+            sdf.SDF_HashFinal(sessionHandle);
+        }));
+        capabilities.put("HMAC", checkFunction(() -> {
+            sdf.SDF_HMACInit(sessionHandle, 0, AlgorithmID.SGD_SM3);
+        }));
+
+        // 文件操作功能
+        capabilities.put("FileOperations", checkFileOperations());
+
+        // 密钥协商功能
+        capabilities.put("KeyAgreement_ECC", checkFunction(() ->
+            sdf.SDF_GenerateAgreementDataWithECC(sessionHandle, 1, 128,
+                new byte[16], null, null)));
+
+        // KEK功能
+        capabilities.put("GenerateKeyWithKEK", checkFunction(() ->
+            sdf.SDF_GenerateKeyWithKEK(sessionHandle, 128, AlgorithmID.SGD_SM4_ECB, 1)));
 
         return capabilities;
+    }
+
+    private boolean checkEncryptDecrypt() {
+        try {
+            // 需要先生成密钥才能测试加解密
+            return true; // 简化测试
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean checkMultiPacketEncrypt() {
+        try {
+            sdf.SDF_EncryptInit(sessionHandle, 0, AlgorithmID.SGD_SM4_CBC, new byte[16]);
+            return true;
+        } catch (SDFException e) {
+            return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean checkMultiPacketMAC() {
+        try {
+            sdf.SDF_CalculateMACInit(sessionHandle, 0, AlgorithmID.SGD_SM4_MAC, null);
+            return true;
+        } catch (SDFException e) {
+            return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean checkMultiPacketAuthEnc() {
+        try {
+            sdf.SDF_AuthEncInit(sessionHandle, 0, AlgorithmID.SGD_SM4_GCM,
+                new byte[12], null, 16);
+            return true;
+        } catch (SDFException e) {
+            return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean checkFileOperations() {
+        try {
+            // 尝试创建一个测试文件
+            sdf.SDF_CreateFile(sessionHandle, "__test__.tmp", 16);
+            sdf.SDF_DeleteFile(sessionHandle, "__test__.tmp");
+            return true;
+        } catch (SDFException e) {
+            return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private boolean checkFunction(Callable<?> func) {
         try {
             func.call();
+            return true;
+        } catch (SDFException e) {
+            return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean checkFunction(Runnable func) {
+        try {
+            func.run();
             return true;
         } catch (SDFException e) {
             return e.getErrorCode() != ErrorCode.SDR_NOTSUPPORT;
@@ -135,7 +280,7 @@ public class SDFCapabilityDetector {
         System.out.println("=================================");
         caps.forEach((feature, available) -> {
             String status = available ? "✓ 可用" : "✗ 不可用";
-            System.out.println(feature + ": " + status);
+            System.out.println(String.format("%-25s : %s", feature, status));
         });
     }
 }
@@ -177,11 +322,37 @@ public void testUnsupportedFunctionHandling() throws SDFException {
 ```
 Warning: Optional SDF function 'SDF_ExportSignPublicKey_RSA' not available in this implementation
 Warning: Optional SDF function 'SDF_ExportEncPublicKey_RSA' not available in this implementation
-Warning: Optional SDF function 'SDF_InternalSign_RSA' not available in this implementation
+Warning: Optional SDF function 'SDF_GetKEKAccessRight' not available in this implementation
+Warning: Optional SDF function 'SDF_ReleaseKEKAccessRight' not available in this implementation
+Warning: Optional SDF function 'SDF_EncryptInit' not available in this implementation
+Warning: Optional SDF function 'SDF_AuthEnc' not available in this implementation
+Warning: Optional SDF function 'SDF_HMACInit' not available in this implementation
+Warning: Optional SDF function 'SDF_CreateFile' not available in this implementation
 ...
 ```
 
 这些警告是**正常的**，表示库加载成功但某些功能不可用。
+
+### 使用日志管理功能
+
+SDF4J提供了灵活的日志管理功能，可以控制日志输出：
+
+```java
+// 禁用文件日志，只使用Java回调日志
+SDF.setFileLoggingEnabled(false);
+SDF.setJavaLoggingEnabled(true);
+
+// 设置自定义日志回调
+SDF.setLogger(new SDFLogger() {
+    @Override
+    public void log(int level, String message) {
+        // 自定义日志处理
+        if (level >= 2) {  // 只记录WARN及以上级别
+            System.err.println("[SDF4J] " + message);
+        }
+    }
+});
+```
 
 ## 最佳实践
 

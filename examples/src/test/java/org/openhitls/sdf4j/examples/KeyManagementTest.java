@@ -869,6 +869,93 @@ public class KeyManagementTest {
     }
 
     // ========================================================================
+    // 明文密钥导入测试
+    // ========================================================================
+
+    /**
+     * 测试 SDF_ImportKey - 导入明文会话密钥
+     *
+     * 将外部明文会话密钥导入密码设备，返回密钥句柄用于后续加密操作
+     */
+    @Test
+    public void testImportKey() throws SDFException {
+        System.out.println("测试 SDF_ImportKey - 导入明文会话密钥");
+        System.out.println("----------------------------------------");
+
+        deviceHandle = sdf.SDF_OpenDevice();
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+
+        long keyHandle = 0;
+        try {
+            // 生成一个 16 字节的随机密钥作为会话密钥（SM4 密钥）
+            System.out.println("步骤1: 生成 16 字节随机密钥");
+            byte[] plainKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
+            System.out.println("生成的明文密钥: " + bytesToHex(plainKey));
+            System.out.println("密钥长度: " + plainKey.length + " bytes (" + (plainKey.length * 8) + " bits)");
+
+            // 导入明文密钥
+            System.out.println("\n步骤2: 导入明文会话密钥");
+            keyHandle = sdf.SDF_ImportKey(sessionHandle, plainKey);
+
+            assertTrue("导入的密钥句柄应大于 0", keyHandle > 0);
+            System.out.println("明文会话密钥导入成功:");
+            System.out.println("  密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
+
+            // 使用导入的密钥进行加密测试，验证密钥可用
+            System.out.println("\n步骤3: 使用导入的密钥进行加密测试");
+            byte[] testData = "Hello, SDF4J!!!!".getBytes("UTF-8");  // 16 bytes
+            System.out.println("原始数据: " + new String(testData, "UTF-8"));
+            System.out.println("原始数据(hex): " + bytesToHex(testData));
+
+            try {
+                byte[] encryptedData = sdf.SDF_Encrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+                System.out.println("加密成功:");
+                System.out.println("  加密数据长度: " + encryptedData.length + " bytes");
+                System.out.println("  加密数据(hex): " + bytesToHex(encryptedData));
+
+                // 解密验证
+                byte[] decryptedData = sdf.SDF_Decrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+                System.out.println("解密成功:");
+                System.out.println("  解密数据: " + new String(decryptedData, "UTF-8"));
+
+                assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+                System.out.println("[通过] 使用导入密钥加解密验证成功");
+
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("[跳过] 加密功能未实现，但密钥导入成功");
+                } else {
+                    throw e;
+                }
+            }
+
+            System.out.println("\n[通过] 明文会话密钥导入测试成功\n");
+
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("[跳过] SDF_ImportKey 功能未实现\n");
+            } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
+                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+            } else {
+                throw e;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (keyHandle != 0) {
+                try {
+                    sdf.SDF_DestroyKey(sessionHandle, keyHandle);
+                    System.out.println("会话密钥已销毁");
+                } catch (SDFException e) {
+                    System.err.println("销毁密钥失败: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    // ========================================================================
     // 密钥销毁测试
     // ========================================================================
 

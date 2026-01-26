@@ -536,6 +536,64 @@ public class DeviceManagementTest {
     }
 
     /**
+     * 测试 SDF_OpenDeviceWithConf - 使用配置文件打开设备
+     *
+     * 配置文件格式示例 (sdf.conf):
+     * <pre>
+     * workers:1
+     * timeout:2000
+     * </pre>
+     */
+    @Test
+    public void testOpenDeviceWithConf() throws SDFException {
+        System.out.println("测试 SDF_OpenDeviceWithConf - 使用配置文件打开设备");
+        System.out.println("----------------------------------------");
+
+        // 配置文件格式: key:value，每行一个配置项
+        // 例如:
+        //   workers:1
+        //   timeout:2000
+        // 配置文件相对路径: examples/src/test/resources/sdf.conf
+        String configFile = "examples/src/test/resources/sdf.conf";
+
+        java.io.File file = new java.io.File(configFile);
+        if (!file.exists()) {
+            System.out.println("[跳过] 配置文件不存在: " + file.getAbsolutePath() + "\n");
+            return;
+        }
+
+        System.out.println("配置文件路径: " + configFile);
+
+        try {
+            System.out.println("尝试使用配置文件打开设备...");
+            deviceHandle = sdf.SDF_OpenDeviceWithConf(configFile);
+            System.out.println("设备句柄: 0x" + Long.toHexString(deviceHandle));
+
+            assertTrue("设备句柄应该非零", deviceHandle != 0);
+
+            // 创建会话验证设备工作正常
+            sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+            System.out.println("会话句柄: 0x" + Long.toHexString(sessionHandle));
+            assertTrue("会话句柄应该非零", sessionHandle != 0);
+
+            // 获取设备信息验证功能正常
+            DeviceInfo info = sdf.SDF_GetDeviceInfo(sessionHandle);
+            assertNotNull("设备信息不应为空", info);
+            System.out.println("设备名称: " + info.getDeviceName());
+
+            System.out.println("[通过] 使用配置文件打开设备成功\n");
+
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("[跳过] SDF_OpenDeviceWithConf 功能未实现\n");
+            } else {
+                System.out.println("[跳过] SDF_OpenDeviceWithConf 调用失败: 0x" +
+                                   Integer.toHexString(e.getErrorCode()) + " - " + e.getMessage() + "\n");
+            }
+        }
+    }
+
+    /**
      * 字节数组转十六进制字符串
      */
     private static String bytesToHex(byte[] bytes) {

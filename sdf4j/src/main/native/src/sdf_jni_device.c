@@ -43,6 +43,59 @@ Java_org_openhitls_sdf4j_SDF_SDF_1OpenDevice
     return (jlong)hDevice;
 }
 
+JNIEXPORT jlong JNICALL
+Java_org_openhitls_sdf4j_SDF_SDF_1OpenDeviceWithConf
+  (JNIEnv *env, jobject obj, jstring configFile) {
+    UNUSED(obj);
+
+    SDF_LOG_ENTER("SDF_OpenDeviceWithConf");
+
+    if (!sdf_is_loaded()) {
+        SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "SDF library not loaded");
+        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
+        return 0;
+    }
+
+    if (g_sdf_functions.SDF_OpenDeviceWithConf == NULL) {
+        SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "Function not supported");
+        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        return 0;
+    }
+
+    /* 转换配置文件路径 */
+    const char *configPath = NULL;
+    if (configFile != NULL) {
+        configPath = (*env)->GetStringUTFChars(env, configFile, NULL);
+        if (configPath == NULL) {
+            SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "Failed to get config file path");
+            throw_sdf_exception(env, SDR_INARGERR);
+            return 0;
+        }
+    }
+
+    SDF_JNI_LOG("SDF_OpenDeviceWithConf: configFile=%s", configPath ? configPath : "(null)");
+
+    HANDLE hDevice = NULL;
+    LONG ret = g_sdf_functions.SDF_OpenDeviceWithConf(&hDevice, configPath);
+
+    /* 释放字符串 */
+    if (configPath != NULL) {
+        (*env)->ReleaseStringUTFChars(env, configFile, configPath);
+    }
+
+    SDF_LOG_EXIT("SDF_OpenDeviceWithConf", ret);
+    if (ret == SDR_OK) {
+        SDF_JNI_LOG("SDF_OpenDeviceWithConf: hDevice=0x%lX", (unsigned long)hDevice);
+    }
+
+    if (ret != SDR_OK) {
+        throw_sdf_exception(env, ret);
+        return 0;
+    }
+
+    return (jlong)hDevice;
+}
+
 JNIEXPORT void JNICALL
 Java_org_openhitls_sdf4j_SDF_SDF_1CloseDevice
   (JNIEnv *env, jobject obj, jlong deviceHandle) {
