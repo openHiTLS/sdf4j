@@ -88,13 +88,6 @@ bool java_to_native_RSAPublicKey(JNIEnv *env, jobject java_key, RSArefPublicKey 
 bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey *native_key);
 
 /**
- * ECCCipher → ECCCipher
- * NOTE: This function is UNSAFE for ECCCipher with cipher data (C array)
- * because ECCCipher uses flexible array member. Use java_to_native_ECCCipher_alloc instead.
- */
-bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *native_cipher);
-
-/**
  * ECCCipher → ECCCipher (with dynamic memory allocation)
  * This function allocates memory for the complete ECCCipher structure including
  * the flexible array member C[]. Caller MUST free the returned pointer.
@@ -124,11 +117,6 @@ bool java_to_native_ECCSignature(JNIEnv *env, jobject java_sig, ECCSignature *na
  * String → char* (需要调用者释放内存)
  */
 char* java_string_to_native(JNIEnv *env, jstring java_str);
-
-/**
- * byte[] → BYTE* (复制数据到已分配的缓冲区)
- */
-bool java_byte_array_to_native(JNIEnv *env, jbyteArray java_array, BYTE *native_buffer, ULONG buffer_size);
 
 /**
  * BYTE* → byte[] (创建新的Java字节数组)

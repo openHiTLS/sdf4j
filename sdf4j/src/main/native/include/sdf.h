@@ -215,6 +215,14 @@ LONG SDF_DestroyKey(
     HANDLE hKeyHandle
 );
 
+/* 6.3.18 通用密钥导入接口（扩展） */
+LONG SDF_ImportKey(
+    HANDLE hSessionHandle,
+    BYTE *pucKey,
+    ULONG uiKeyLength,
+    HANDLE *phKeyHandle
+);
+
 
 /************************************************************************
  * 6.4 非对称算法运算类函数 (Asymmetric Algorithm Functions)
@@ -305,6 +313,16 @@ LONG SDF_InternalDecrypt_ECC(
     ECCCipher *pucEncData,
     BYTE *pucData,
     ULONG *puiDataLength
+);
+
+/* 6.4.11 ECC 数字信封转换 */
+LONG SDF_ExchangeDigitEnvelopeBaseOnECC(
+    HANDLE hSessionHandle,
+    ULONG keyIndex,
+    ULONG uiAlgID,
+    ECCrefPublicKey *pucPublicKey,
+    ECCCipher *pucEncDataIn,
+    ECCCipher *pucEncDataOut
 );
 
 

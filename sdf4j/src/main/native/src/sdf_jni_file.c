@@ -21,15 +21,9 @@
  * 6.7.2 创建文件
  * SDF_CreateFile(hSessionHandle, pucFileName, uiNameLen, uiFileSize)
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1CreateFile
-(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName, jint fileSize) {
+JNIEXPORT void JNICALL JNI_SDF_CreateFile(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName,
+    jint fileSize) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_CreateFile == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -69,15 +63,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CreateFile
  * uiOffset: 读取文件的偏移值
  * puiFileLength: 输入时为要读取的长度，输出时为实际读取的长度
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
-(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName, jint offset, jint length) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ReadFile(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName,
+    jint offset, jint length) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ReadFile == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -136,15 +124,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReadFile
  * 6.7.4 写文件
  * SDF_WriteFile(hSessionHandle, pucFileName, uiNameLen, uiOffset, uiFileLength, pucBuffer)
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
-(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName, jint offset, jbyteArray data) {
+JNIEXPORT void JNICALL JNI_SDF_WriteFile(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName, jint offset,
+    jbyteArray data) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_WriteFile == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -166,13 +148,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
 
     /* Get data buffer */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    BYTE *data_buf = (BYTE*)malloc(data_len);
+    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
         free(file_name);
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
-    (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
     LONG ret = g_sdf_functions.SDF_WriteFile(
         (HANDLE)sessionHandle,
@@ -180,11 +161,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
         name_len,
         (ULONG)offset,
         (ULONG)data_len,
-        data_buf
+        (BYTE*)data_buf
     );
 
     free(file_name);
-    free(data_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
@@ -195,15 +176,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1WriteFile
  * 6.7.5 删除文件
  * SDF_DeleteFile(hSessionHandle, pucFileName, uiNameLen)
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1DeleteFile
-(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName) {
+JNIEXPORT void JNICALL JNI_SDF_DeleteFile(JNIEnv *env, jobject obj, jlong sessionHandle, jstring fileName) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_DeleteFile == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);

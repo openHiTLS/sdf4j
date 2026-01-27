@@ -23,11 +23,6 @@
 void throw_sdf_exception(JNIEnv *env, int error_code) {
     SDF_JNI_LOG("throw_sdf_exception: error_code=0x%08X", (unsigned int)error_code);
 
-    if (!jni_cache_is_initialized()) {
-        SDF_LOG_ERROR("throw_sdf_exception", "JNI cache not initialized");
-        return;
-    }
-
     jobject exception = (*env)->NewObject(env, g_jni_cache.sdfException.cls,
                                           g_jni_cache.sdfException.ctor_int, error_code);
     if (exception != NULL) {
@@ -40,11 +35,6 @@ void throw_sdf_exception(JNIEnv *env, int error_code) {
 void throw_sdf_exception_with_message(JNIEnv *env, int error_code, const char *message) {
     SDF_JNI_LOG("throw_sdf_exception_with_message: error_code=0x%08X, message=%s",
                 (unsigned int)error_code, message ? message : "NULL");
-
-    if (!jni_cache_is_initialized()) {
-        SDF_LOG_ERROR("throw_sdf_exception_with_message", "JNI cache not initialized");
-        return;
-    }
 
     jstring jmsg = (*env)->NewStringUTF(env, message);
     jobject exception = (*env)->NewObject(env, g_jni_cache.sdfException.cls,
@@ -81,10 +71,6 @@ static jstring native_string_to_java(JNIEnv *env, const CHAR *str, size_t max_le
  * ======================================================================== */
 
 jobject native_to_java_DeviceInfo(JNIEnv *env, const DEVICEINFO *native_info) {
-    if (native_info == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
-
     /* 创建对象 */
     jobject obj = (*env)->NewObject(env, g_jni_cache.deviceInfo.cls,
                                     g_jni_cache.deviceInfo.ctor);
@@ -138,9 +124,6 @@ jobject native_to_java_DeviceInfo(JNIEnv *env, const DEVICEINFO *native_info) {
 }
 
 jobject native_to_java_RSAPublicKey(JNIEnv *env, const RSArefPublicKey *native_key) {
-    if (native_key == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.rsaPublicKey.cls,
                                     g_jni_cache.rsaPublicKey.ctor);
@@ -167,10 +150,6 @@ jobject native_to_java_RSAPublicKey(JNIEnv *env, const RSArefPublicKey *native_k
 }
 
 jobject native_to_java_ECCPublicKey(JNIEnv *env, const ECCrefPublicKey *native_key) {
-    if (native_key == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
-
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccPublicKey.cls,
                                     g_jni_cache.eccPublicKey.ctor);
     if (obj == NULL) return NULL;
@@ -196,10 +175,6 @@ jobject native_to_java_ECCPublicKey(JNIEnv *env, const ECCrefPublicKey *native_k
 }
 
 jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig) {
-    if (native_sig == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
-
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccSignature.cls,
                                     g_jni_cache.eccSignature.ctor);
     if (obj == NULL) return NULL;
@@ -242,10 +217,6 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
 }
 
 jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, ULONG cipher_len) {
-    if (native_cipher == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
-
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccCipher.cls,
                                     g_jni_cache.eccCipher.ctor);
     if (obj == NULL) return NULL;
@@ -291,9 +262,6 @@ jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, UL
  * ======================================================================== */
 
 bool java_to_native_RSAPublicKey(JNIEnv *env, jobject java_key, RSArefPublicKey *native_key) {
-    if (java_key == NULL || native_key == NULL || !jni_cache_is_initialized()) {
-        return false;
-    }
 
     memset(native_key, 0, sizeof(RSArefPublicKey));
 
@@ -321,71 +289,12 @@ bool java_to_native_RSAPublicKey(JNIEnv *env, jobject java_key, RSArefPublicKey 
     return true;
 }
 
-bool java_to_native_ECCCipher(JNIEnv *env, jobject java_cipher, ECCCipher *native_cipher) {
-    if (java_cipher == NULL || native_cipher == NULL || !jni_cache_is_initialized()) {
-        return false;
-    }
-
-    memset(native_cipher, 0, sizeof(ECCCipher));
-
-    /* x */
-    jbyteArray x_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                             g_jni_cache.eccCipher.x);
-    if (x_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, x_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
-        (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_cipher->x);
-    }
-
-    /* y */
-    jbyteArray y_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                             g_jni_cache.eccCipher.y);
-    if (y_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, y_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
-        (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
-    }
-
-    /* m (hash/MAC) - Note: Java field is lowercase "m" */
-    jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                             g_jni_cache.eccCipher.m);
-    if (m_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, m_array);
-        if (len > 32) len = 32;
-        (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_cipher->M);
-    }
-
-    /* l - 密文长度 (对应C结构体的ULONG L字段) */
-    jlong l_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.eccCipher.l);
-    native_cipher->L = (ULONG)l_value;
-
-    /* c - 密文数据 (cipher data) - Note: Java field is "c" */
-    /* WARNING: This function does NOT copy cipher data C because ECCCipher uses
-     * flexible array member. Use java_to_native_ECCCipher_alloc() for full conversion. */
-    jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                             g_jni_cache.eccCipher.c);
-    if (c_array != NULL) {
-        jsize c_len = (*env)->GetArrayLength(env, c_array);
-        /* Update L field if not already set */
-        if (native_cipher->L == 0) {
-            native_cipher->L = c_len;
-        }
-        /* NOTE: Not copying C data here - use java_to_native_ECCCipher_alloc instead */
-    }
-
-    return true;
-}
-
 /**
  * Convert Java ECCCipher to native ECCCipher with dynamic memory allocation.
  * This function properly handles the flexible array member C[].
  * Caller MUST free the returned pointer using free().
  */
 ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
-    if (java_cipher == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
-
     /* First, get the cipher data length to determine allocation size */
     jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.c);
@@ -402,18 +311,16 @@ ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
 
     /* Allocate memory for ECCCipher struct + flexible array C[] */
     size_t alloc_size = sizeof(ECCCipher) + c_len;
-    ECCCipher *native_cipher = (ECCCipher*)malloc(alloc_size);
+    ECCCipher *native_cipher = (ECCCipher*)calloc(1, alloc_size);
     if (native_cipher == NULL) {
         return NULL;
     }
-    memset(native_cipher, 0, alloc_size);
 
     /* x */
     jbyteArray x_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.x);
     if (x_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, x_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_cipher->x);
     }
 
@@ -422,7 +329,6 @@ ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
                                                              g_jni_cache.eccCipher.y);
     if (y_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, y_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
     }
 
@@ -450,9 +356,6 @@ ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
 }
 
 bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey *native_key) {
-    if (java_key == NULL || native_key == NULL || !jni_cache_is_initialized()) {
-        return false;
-    }
 
     memset(native_key, 0, sizeof(ECCrefPublicKey));
 
@@ -464,7 +367,6 @@ bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey 
                                                              g_jni_cache.eccPublicKey.x);
     if (x_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, x_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_key->x);
     }
 
@@ -473,7 +375,6 @@ bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey 
                                                              g_jni_cache.eccPublicKey.y);
     if (y_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, y_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_key->y);
     }
 
@@ -481,18 +382,12 @@ bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey 
 }
 
 bool java_to_native_ECCSignature(JNIEnv *env, jobject java_sig, ECCSignature *native_sig) {
-    if (java_sig == NULL || native_sig == NULL || !jni_cache_is_initialized()) {
-        return false;
-    }
-
-    memset(native_sig, 0, sizeof(ECCSignature));
 
     /* r */
     jbyteArray r_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
                                                              g_jni_cache.eccSignature.r);
     if (r_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, r_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, r_array, 0, len, (jbyte*)native_sig->r);
     }
 
@@ -501,7 +396,6 @@ bool java_to_native_ECCSignature(JNIEnv *env, jobject java_sig, ECCSignature *na
                                                              g_jni_cache.eccSignature.s);
     if (s_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, s_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, s_array, 0, len, (jbyte*)native_sig->s);
     }
 
@@ -510,7 +404,7 @@ bool java_to_native_ECCSignature(JNIEnv *env, jobject java_sig, ECCSignature *na
 
 char* java_string_to_native(JNIEnv *env, jstring java_str) {
     if (java_str == NULL) {
-        return NULL;
+        return NULL; 
     }
 
     const char *str = (*env)->GetStringUTFChars(env, java_str, NULL);
@@ -523,24 +417,7 @@ char* java_string_to_native(JNIEnv *env, jstring java_str) {
     return result;
 }
 
-bool java_byte_array_to_native(JNIEnv *env, jbyteArray java_array, BYTE *native_buffer, ULONG buffer_size) {
-    if (java_array == NULL || native_buffer == NULL) {
-        return false;
-    }
-
-    jsize len = (*env)->GetArrayLength(env, java_array);
-    if ((ULONG)len > buffer_size) {
-        len = buffer_size;
-    }
-
-    (*env)->GetByteArrayRegion(env, java_array, 0, len, (jbyte*)native_buffer);
-    return true;
-}
-
 jbyteArray native_to_java_byte_array(JNIEnv *env, const BYTE *native_data, ULONG data_len) {
-    if (native_data == NULL || data_len == 0) {
-        return NULL;
-    }
 
     jbyteArray array = (*env)->NewByteArray(env, data_len);
     if (array == NULL) {
@@ -553,9 +430,6 @@ jbyteArray native_to_java_byte_array(JNIEnv *env, const BYTE *native_data, ULONG
 
 jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
                                      ULONG key_length, HANDLE key_handle) {
-    if (encrypted_key == NULL || key_length == 0 || !jni_cache_is_initialized()) {
-        return NULL;
-    }
 
     /* Create byte array for encrypted key */
     jbyteArray key_array = (*env)->NewByteArray(env, key_length);
@@ -572,9 +446,6 @@ jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
 }
 
 jobject native_to_java_RSAPrivateKey(JNIEnv *env, const RSArefPrivateKey *native_key) {
-    if (native_key == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.rsaPrivateKey.cls,
                                     g_jni_cache.rsaPrivateKey.ctor);
@@ -645,9 +516,6 @@ jobject native_to_java_RSAPrivateKey(JNIEnv *env, const RSArefPrivateKey *native
 }
 
 jobject native_to_java_ECCPrivateKey(JNIEnv *env, const ECCrefPrivateKey *native_key) {
-    if (native_key == NULL || !jni_cache_is_initialized()) {
-        return NULL;
-    }
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccPrivateKey.cls,
                                     g_jni_cache.eccPrivateKey.ctor);
@@ -667,12 +535,11 @@ jobject native_to_java_ECCPrivateKey(JNIEnv *env, const ECCrefPrivateKey *native
 }
 
 bool java_to_native_RSAPrivateKey(JNIEnv *env, jobject java_key, RSArefPrivateKey *native_key) {
-    if (java_key == NULL || native_key == NULL || !jni_cache_is_initialized()) {
+    if (java_key == NULL) {
         return false;
     }
 
     memset(native_key, 0, sizeof(RSArefPrivateKey));
-
     /* bits */
     native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.rsaPrivateKey.bits);
 
@@ -744,11 +611,6 @@ bool java_to_native_RSAPrivateKey(JNIEnv *env, jobject java_key, RSArefPrivateKe
 }
 
 bool java_to_native_ECCPrivateKey(JNIEnv *env, jobject java_key, ECCrefPrivateKey *native_key) {
-    if (java_key == NULL || native_key == NULL || !jni_cache_is_initialized()) {
-        return false;
-    }
-
-    memset(native_key, 0, sizeof(ECCrefPrivateKey));
 
     /* bits */
     native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.eccPrivateKey.bits);
@@ -758,7 +620,6 @@ bool java_to_native_ECCPrivateKey(JNIEnv *env, jobject java_key, ECCrefPrivateKe
                                                              g_jni_cache.eccPrivateKey.k);
     if (k_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, k_array);
-        if (len > ECCref_MAX_LEN) len = ECCref_MAX_LEN;
         (*env)->GetByteArrayRegion(env, k_array, 0, len, (jbyte*)native_key->K);
     }
 

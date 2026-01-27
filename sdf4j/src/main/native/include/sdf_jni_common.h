@@ -13,8 +13,6 @@
 #ifndef SDF_JNI_COMMON_H
 #define SDF_JNI_COMMON_H
 
-#include "org_openhitls_sdf4j_SDF.h"
-#include "org_openhitls_sdf4j_internal_NativeLibraryLoader.h"
 #include "dynamic_loader.h"
 #include "type_conversion.h"
 #include "sdf_log.h"

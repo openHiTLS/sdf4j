@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  */
 
-#include "org_openhitls_sdf4j_SDF.h"
 #include "sdf_log.h"
 
 /**
