@@ -1027,6 +1027,91 @@ public class KeyManagementTest {
         }
     }
 
+    @Test
+    public void testExchangeDigitEnvelopeBaseOnECC() throws SDFException {
+        System.out.println("测试 SDF_ExchangeDigitEnvelopeBaseOnECC - ECC 数字信封转换");
+        System.out.println("----------------------------------------");
+    
+        deviceHandle = sdf.SDF_OpenDevice();
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+    
+        boolean keyAccessRightObtained = false;
+        long keyHandle = 0;
+
+        try {
+            try {
+                sdf.SDF_GetPrivateKeyAccessRight(sessionHandle, keyIndex, keyPassword);
+                keyAccessRightObtained = true;
+                System.out.println("成功获取私钥访问权限");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("获取私钥权限不需要或不支持，继续测试...");
+                } else {
+                    throw e;
+                }
+            }
+
+            byte[] sessionKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
+            System.out.println("生成待封装的随机密钥: " + bytesToHex(sessionKey));
+
+            // 使用内部加密公钥加密该会话密钥，直接生成 ECCCipher 对象
+            ECCCipher encDataIn = sdf.SDF_InternalEncrypt_ECC(sessionHandle, keyIndex, sessionKey);
+            assertNotNull("使用内部公钥加密生成的 ECCCipher 不应为空", encDataIn);
+            System.out.println("使用内部公钥加密成功，C2 长度: " + encDataIn.getL());
+
+            // 准备外部 ECC 公钥（目标公钥）
+            System.out.println("生成外部 ECC 密钥对...");
+            Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_3, ECC_KEY_BITS);
+            ECCPublicKey externalPub = (ECCPublicKey) keyPair[0];
+            System.out.println("外部公钥生成成功，X: " + bytesToHex(externalPub.getX()).substring(0, 16) + "...");
+
+            // 调用数字信封转换接口
+            System.out.println("调用 SDF_ExchangeDigitEnvelopeBaseOnECC...");
+            ECCCipher encDataOut = sdf.SDF_ExchangeDigitEnvelopeBaseOnECC(
+                    sessionHandle, keyIndex, AlgorithmID.SGD_SM2_3, externalPub, encDataIn);
+
+            assertNotNull(encDataOut);
+            assertTrue(encDataOut.getL() > 0);
+
+            System.out.println("数字信封转换成功:");
+            System.out.println("  In.C2长度: " + encDataIn.getL());
+            System.out.println("  Out.C2长度: " + encDataOut.getL());
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("[跳过] 设备不支持 SDF_ExchangeDigitEnvelopeBaseOnECC\n");
+                return;
+            } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
+                System.out.println("[跳过] KEK 或内部密钥不存在\n");
+                return;
+            } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
+                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                return;
+            }
+            System.err.println("测试失败: " + e.getMessage());
+            System.err.println("错误代码: " + e.getErrorCodeHex());
+            throw e;
+        } finally {
+            // 清理资源
+            if (keyHandle != 0) {
+                try {
+                    sdf.SDF_DestroyKey(sessionHandle, keyHandle);
+                    System.out.println("已销毁临时会话密钥");
+                } catch (SDFException e) {
+                    System.err.println("销毁密钥失败: " + e.getMessage());
+                }
+            }
+            if (keyAccessRightObtained) {
+                try {
+                    sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
+                    System.out.println("已释放私钥访问权限");
+                } catch (SDFException e) {
+                    System.err.println("释放私钥访问权限失败: " + e.getMessage());
+                }
+            }
+            System.out.println("测试完成\n");
+        }
+    }
+
     /**
      * 字节数组转十六进制字符串
      */

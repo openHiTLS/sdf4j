@@ -135,6 +135,8 @@ static bool load_all_functions(void *handle) {
                  "SDF_ImportKey", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_DestroyKey,
                  "SDF_DestroyKey", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExchangeDigitEnvelopeBaseOnECC,
+                 "SDF_ExchangeDigitEnvelopeBaseOnECC", false);
 
     /* ========================================
      * 可选非对称算法函数
@@ -313,10 +315,6 @@ void sdf_unload_library(void) {
     memset(&g_sdf_functions, 0, sizeof(g_sdf_functions));
 
     SDF_JNI_LOG("sdf_unload_library: Library unloaded successfully");
-}
-
-bool sdf_is_loaded(void) {
-    return (g_sdf_handle != NULL);
 }
 
 const char* sdf_get_load_error(void) {

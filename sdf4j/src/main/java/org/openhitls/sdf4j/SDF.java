@@ -54,6 +54,74 @@ public class SDF {
         NativeLibraryLoader.loadLibrary();
     }
 
+    private Long gDevHandle = null;
+    private DeviceResource gDevResource = null;
+    private java.util.Map<Long, SessionResource> gSessResource = new java.util.HashMap<>();
+
+    /**
+     * devive类
+     */
+    private class DeviceResource {
+        private java.util.Set<Long> sessions = new java.util.HashSet<>();
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                SDF_CloseDevice(gDevHandle);
+            } finally {
+                super.finalize();
+            }
+        }
+
+        void addSession(long sessionHandle) {
+            sessions.add(sessionHandle);
+        }
+
+        void removeSession(long sessionHandle) {
+            sessions.remove(sessionHandle);
+        }
+    }
+
+    /**
+     * Session 资源管理
+     */
+    private class SessionResource {
+        private final long sessionHandle;
+        private final java.util.Set<Long> keys = new java.util.HashSet<>(); // 该 session 的所有 keyHandle
+
+        SessionResource(long sessionHandle) {
+            this.sessionHandle = sessionHandle;
+            gDevResource.addSession(sessionHandle);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                // 先关闭该 session 的所有 keyHandle
+                for (Long keyHandle : keys) {
+                        SDF_DestroyKey_Native(sessionHandle, keyHandle);
+                }
+
+                // 检查 session 是否还在 device resource 中，如果不在，说明已经被手动关闭了，不需要再次关闭
+                boolean wasInSet = gDevResource.sessions.remove(sessionHandle);
+                if (wasInSet) {
+                    // 只有在集合中时才关闭
+                    SDF_CloseSessionNative(sessionHandle);
+                }
+            } finally {
+                super.finalize();
+            }
+        }
+
+        void addKey(long keyHandle) {
+            keys.add(keyHandle);
+        }
+
+        boolean removeKey(long keyHandle) {
+            return keys.remove(keyHandle);
+        }
+    }
+
     // ========================================================================
     // 6.2 设备管理类函数 (Device Management Functions)
     // ========================================================================
@@ -65,7 +133,27 @@ public class SDF {
      * @return 设备句柄 / Device handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_OpenDevice() throws SDFException;
+    public long SDF_OpenDevice() throws SDFException {
+        // 如果已初始化，直接返回
+        if (gDevHandle != null) {
+            return gDevHandle;
+        }
+        long handle;
+        try {
+            handle = SDF_OpenDeviceNative();
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 初始化 device
+        gDevHandle = handle;
+        gDevResource = new DeviceResource();
+        return gDevHandle;
+    }
+
+    /**
+     * Native 方法：打开设备
+     */
+    private native long SDF_OpenDeviceNative() throws SDFException;
 
     /**
      * 打开设备（带配置文件）
@@ -87,7 +175,27 @@ public class SDF {
      * @param deviceHandle 设备句柄 / Device handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native void SDF_CloseDevice(long deviceHandle) throws SDFException;
+    public void SDF_CloseDevice(long deviceHandle) throws SDFException {
+        // 验证 handle 是否匹配
+        if (gDevHandle == null || deviceHandle != gDevHandle) {
+            return;
+        }
+        // 先关闭所有关联的 session（session 关闭时会自动清理其 keyHandle）
+        for (Long sessionHandle : new java.util.HashSet<>(gDevResource.sessions)) {
+            // 从 device resource 中移除, 避免 finalize 重复处理
+            gDevResource.removeSession(sessionHandle);
+            // 关闭 session（会自动清理密钥和从 gSessResource 移除）
+            SDF_CloseSession(sessionHandle);
+        }
+        SDF_CloseDeviceNative(deviceHandle);
+        gDevHandle = null;
+        gDevResource = null;
+    }
+
+    /**
+     * Native 方法：关闭设备
+     */
+    private native void SDF_CloseDeviceNative(long deviceHandle) throws SDFException;
 
     /**
      * 6.2.4 创建会话
@@ -97,7 +205,24 @@ public class SDF {
      * @return 会话句柄 / Session handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_OpenSession(long deviceHandle) throws SDFException;
+    public long SDF_OpenSession(long deviceHandle) throws SDFException {
+        // 创建新的 session
+        long handle;
+        try {
+            handle = SDF_OpenSessionNative(deviceHandle);
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 创建 SessionResource 并注册到 gDevResource 和 gSessResource
+        SessionResource sessionResource = new SessionResource(handle);
+        gSessResource.put(handle, sessionResource);
+        return handle;
+    }
+
+    /**
+     * Native 方法：创建会话
+     */
+    private native long SDF_OpenSessionNative(long deviceHandle) throws SDFException;
 
     /**
      * 6.2.5 关闭会话
@@ -106,7 +231,32 @@ public class SDF {
      * @param sessionHandle 会话句柄 / Session handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native void SDF_CloseSession(long sessionHandle) throws SDFException;
+    public void SDF_CloseSession(long sessionHandle) throws SDFException {
+        // 获取对应的 SessionResource
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            // 先关闭该 session 的所有 keyHandle
+            for (Long keyHandle : new java.util.HashSet<>(sessionResource.keys)) {
+                // 从 session resource 中移除, 避免 finalize 重复处理
+                sessionResource.removeKey(keyHandle);
+                // 关闭 keyHandle
+                SDF_DestroyKey_Native(sessionHandle, keyHandle);
+            }
+            // 从 sessionResources 中移除
+            gSessResource.remove(sessionHandle);
+        }
+        // 从 device resource 中移除
+        if (gDevResource != null) {
+            gDevResource.removeSession(sessionHandle);
+        }
+        // 关闭 session
+        SDF_CloseSessionNative(sessionHandle);
+    }
+
+    /**
+     * Native 方法：关闭会话
+     */
+    private native void SDF_CloseSessionNative(long sessionHandle) throws SDFException;
 
     /**
      * 6.2.6 获取设备信息
@@ -231,7 +381,22 @@ public class SDF {
      * @return 密钥加密结果（包含加密密钥和密钥句柄）/ Key encryption result
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native KeyEncryptionResult SDF_GenerateKeyWithIPK_RSA(
+    public KeyEncryptionResult SDF_GenerateKeyWithIPK_RSA(
+            long sessionHandle, int keyIndex, int keyBits) throws SDFException {
+        KeyEncryptionResult result;
+        try {
+            result = SDF_GenerateKeyWithIPK_RSA_Native(sessionHandle, keyIndex, keyBits);
+        } catch (SDFException e) {
+            throw e;
+        }
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getKeyHandle());
+        }
+        return result;
+    }
+
+    private native KeyEncryptionResult SDF_GenerateKeyWithIPK_RSA_Native(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException;
 
     /**
@@ -244,7 +409,23 @@ public class SDF {
      * @return 密钥加密结果（包含加密密钥和密钥句柄）/ Key encryption result
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native KeyEncryptionResult SDF_GenerateKeyWithEPK_RSA(
+    public KeyEncryptionResult SDF_GenerateKeyWithEPK_RSA(
+            long sessionHandle, int keyBits, RSAPublicKey publicKey) throws SDFException {
+        KeyEncryptionResult result;
+        try {
+            result = SDF_GenerateKeyWithEPK_RSA_Native(sessionHandle, keyBits, publicKey);
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 如果 keyHandle 存在，注册到对应的 SessionResource
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getKeyHandle());
+        }
+        return result;
+    }
+
+    private native KeyEncryptionResult SDF_GenerateKeyWithEPK_RSA_Native(
             long sessionHandle, int keyBits, RSAPublicKey publicKey) throws SDFException;
 
     /**
@@ -270,7 +451,23 @@ public class SDF {
      * @return ECC密钥密文和密钥句柄 / ECC cipher and key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native KeyEncryptionResult SDF_GenerateKeyWithIPK_ECC(
+    public KeyEncryptionResult SDF_GenerateKeyWithIPK_ECC(
+            long sessionHandle, int keyIndex, int keyBits) throws SDFException {
+        KeyEncryptionResult result;
+        try {
+            result = SDF_GenerateKeyWithIPK_ECC_Native(sessionHandle, keyIndex, keyBits);
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 如果 keyHandle 存在，注册到对应的 SessionResource
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getKeyHandle());
+        }
+        return result;
+    }
+
+    private native KeyEncryptionResult SDF_GenerateKeyWithIPK_ECC_Native(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException;
 
     /**
@@ -284,7 +481,23 @@ public class SDF {
      * @return ECC密钥密文和密钥句柄 / ECC cipher and key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native KeyEncryptionResult SDF_GenerateKeyWithEPK_ECC(
+    public KeyEncryptionResult SDF_GenerateKeyWithEPK_ECC(
+            long sessionHandle, int keyBits, int algID, ECCPublicKey publicKey) throws SDFException {
+        KeyEncryptionResult result;
+        try {
+            result = SDF_GenerateKeyWithEPK_ECC_Native(sessionHandle, keyBits, algID, publicKey);
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 如果 keyHandle 存在，注册到对应的 SessionResource
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getKeyHandle());
+        }
+        return result;
+    }
+
+    private native KeyEncryptionResult SDF_GenerateKeyWithEPK_ECC_Native(
             long sessionHandle, int keyBits, int algID, ECCPublicKey publicKey) throws SDFException;
 
     /**
@@ -368,7 +581,23 @@ public class SDF {
      * @return 密钥加密结果（包含加密密钥和密钥句柄）/ Key encryption result
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native KeyEncryptionResult SDF_GenerateKeyWithKEK(
+    public KeyEncryptionResult SDF_GenerateKeyWithKEK(
+            long sessionHandle, int keyBits, int algID, int kekIndex) throws SDFException {
+        KeyEncryptionResult result;
+        try {
+            result = SDF_GenerateKeyWithKEK_Native(sessionHandle, keyBits, algID, kekIndex);
+        } catch (SDFException e) {
+            throw e;
+        }
+        // 如果 keyHandle 存在，注册到对应的 SessionResource
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getKeyHandle());
+        }
+        return result;
+    }
+
+    private native KeyEncryptionResult SDF_GenerateKeyWithKEK_Native(
             long sessionHandle, int keyBits, int algID, int kekIndex) throws SDFException;
 
     /**
@@ -408,7 +637,39 @@ public class SDF {
      * @param keyHandle     密钥句柄 / Key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native void SDF_DestroyKey(long sessionHandle, long keyHandle) throws SDFException;
+    public void SDF_DestroyKey(long sessionHandle, long keyHandle) throws SDFException {
+        // 从对应的 SessionResource 中移除
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.removeKey(keyHandle);
+        }
+        // 调用 native 方法销毁密钥
+        try {
+            SDF_DestroyKey_Native(sessionHandle, keyHandle);
+        } catch (SDFException e) {
+            throw e;
+        }
+    }
+
+    /**
+     * Native 方法：销毁会话密钥
+     */
+    private native void SDF_DestroyKey_Native(long sessionHandle, long keyHandle) throws SDFException;
+
+    /**
+     * 6.4.10 内部私钥ECC解密
+     * Internal Decrypt ECC
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部加密私钥索引号 / Internal encryption private key index
+     * @param algID         算法标识 / Algorithm ID
+     * @param publicKey        ECC公钥 / ECC public key
+     * @param encDataIn        ECC密文 / ECC cipher
+     * @return ECC密文 / ECC cipher
+     * @throws SDFException 如果操作失败或转换失败 / if operation fails or conversion fails
+     */
+    public native ECCCipher SDF_ExchangeDigitEnvelopeBaseOnECC(
+            long sessionHandle, int keyIndex, int algID, ECCPublicKey publicKey, ECCCipher encDataIn) throws SDFException;
 
     // ========================================================================
     // 6.4 非对称算法运算类函数 (Asymmetric Algorithm Functions)

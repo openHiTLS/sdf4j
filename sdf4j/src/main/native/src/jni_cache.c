@@ -279,31 +279,3 @@ void jni_cache_cleanup(JNIEnv *env) {
 bool jni_cache_is_initialized(void) {
     return g_jni_cache.initialized;
 }
-
-/* JNI_OnLoad - Called when the native library is loaded */
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
-    (void)reserved;
-    JNIEnv *env;
-
-    if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
-        return JNI_ERR;
-    }
-
-    if (jni_cache_init(env) != JNI_TRUE) {
-        return JNI_ERR;
-    }
-
-    return JNI_VERSION_1_6;
-}
-
-/* JNI_OnUnload - Called when the native library is unloaded */
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
-    (void)reserved;
-    JNIEnv *env;
-
-    if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
-        return;
-    }
-
-    jni_cache_cleanup(env);
-}

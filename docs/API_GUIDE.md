@@ -620,6 +620,34 @@ System.out.println("密文长度: " + cipher.getC().length);
 System.out.println("MAC: " + bytesToHex(cipher.getM()));
 ```
 
+### ECC 数字信封转换（SDF_ExchangeDigitEnvelopeBaseOnECC）
+
+用于将一个数字信封（`ECCCipher`）从“基于某内部密钥加密得到的包裹形式”转换为“基于指定外部 ECC 公钥（`ECCPublicKey`）加密得到的包裹形式”。
+
+```java
+// 1) 准备待封装的会话密钥（示例：随机生成 16 字节）
+byte[] sessionKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
+
+// 2) 先用设备内部 ECC 加密公钥对会话密钥加密，得到输入数字信封 encDataIn
+//    注意：此处 keyIndex 需要是设备支持的内部加密密钥索引
+ECCCipher encDataIn = sdf.SDF_InternalEncrypt_ECC(sessionHandle, 1, sessionKey);
+
+// 3) 准备“目标”外部 ECC 公钥（示例：生成一个临时 SM2 加密密钥对）
+Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_3, 256);
+ECCPublicKey externalPub = (ECCPublicKey) keyPair[0];
+
+// 4) 调用数字信封转换接口
+ECCCipher encDataOut = sdf.SDF_ExchangeDigitEnvelopeBaseOnECC(
+    sessionHandle,
+    1,                      // keyIndex：内部 KEK/加密相关密钥索引（与设备实现相关）
+    AlgorithmID.SGD_SM2_3,   // algID：通常为 SM2 加密算法标识
+    externalPub,             // publicKey：目标外部公钥
+    encDataIn                // encDataIn：输入数字信封
+);
+
+System.out.println("转换完成，Out.C2长度: " + encDataOut.getL());
+```
+
 ---
 
 ## 杂凑运算
@@ -1135,6 +1163,7 @@ public static byte[] hexToBytes(String hex) {
 | `SDF_ExternalEncrypt_ECC(sessionHandle, algID, publicKey, data)` | 外部公钥ECC加密 |
 | `SDF_InternalEncrypt_ECC(sessionHandle, keyIndex, data)` | 内部公钥ECC加密 |
 | `SDF_InternalDecrypt_ECC(sessionHandle, keyIndex, eccKeyType, cipher)` | 内部私钥ECC解密 |
+| `SDF_ExchangeDigitEnvelopeBaseOnECC(sessionHandle, keyIndex, algID, publicKey, encDataIn)` | ECC 数字信封转换 |
 
 ### 对称算法运算类函数（6.5）
 

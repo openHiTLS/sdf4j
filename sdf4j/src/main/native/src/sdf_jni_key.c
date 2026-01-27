@@ -16,20 +16,13 @@
  * 密钥管理函数 JNI 实现
  * ======================================================================== */
 
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExportSignPublicKey_1RSA
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_RSA(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_ExportSignPublicKey_RSA");
     SDF_JNI_LOG("SDF_ExportSignPublicKey_RSA: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ExportSignPublicKey_RSA", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExportSignPublicKey_RSA == NULL) {
         SDF_LOG_ERROR("SDF_ExportSignPublicKey_RSA", "Function not supported");
@@ -44,32 +37,20 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportSignPublicKey_1RSA
                                                            keyIndex, &publicKey);
 
     SDF_LOG_EXIT("SDF_ExportSignPublicKey_RSA", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_ExportSignPublicKey_RSA: key_bits=%d", publicKey.bits);
-    }
-
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
         return NULL;
     }
-
+    SDF_JNI_LOG("SDF_ExportSignPublicKey_RSA: key_bits=%d", publicKey.bits);
     return native_to_java_RSAPublicKey(env, &publicKey);
 }
 
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1RSA
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_RSA(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_ExportEncPublicKey_RSA");
     SDF_JNI_LOG("SDF_ExportEncPublicKey_RSA: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ExportEncPublicKey_RSA", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExportEncPublicKey_RSA == NULL) {
         SDF_LOG_ERROR("SDF_ExportEncPublicKey_RSA", "Function not supported");
@@ -77,39 +58,27 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1RSA
         return NULL;
     }
 
-    RSArefPublicKey publicKey;
-    memset(&publicKey, 0, sizeof(publicKey));
-
+    RSArefPublicKey publicKey = {0};
     LONG ret = g_sdf_functions.SDF_ExportEncPublicKey_RSA((HANDLE)sessionHandle,
                                                           keyIndex, &publicKey);
 
     SDF_LOG_EXIT("SDF_ExportEncPublicKey_RSA", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_ExportEncPublicKey_RSA: key_bits=%d", publicKey.bits);
-    }
-
+    
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
         return NULL;
     }
-
+    SDF_JNI_LOG("SDF_ExportEncPublicKey_RSA: key_bits=%d", publicKey.bits);
     return native_to_java_RSAPublicKey(env, &publicKey);
 }
 
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExportSignPublicKey_1ECC
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_ECC(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_ExportSignPublicKey_ECC");
     SDF_JNI_LOG("SDF_ExportSignPublicKey_ECC: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ExportSignPublicKey_ECC", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExportSignPublicKey_ECC == NULL) {
         SDF_LOG_ERROR("SDF_ExportSignPublicKey_ECC", "Function not supported");
@@ -123,35 +92,24 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportSignPublicKey_1ECC
     LONG ret = g_sdf_functions.SDF_ExportSignPublicKey_ECC((HANDLE)sessionHandle,
                                                            keyIndex, &publicKey);
 
-    SDF_LOG_EXIT("SDF_ExportSignPublicKey_ECC", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_ExportSignPublicKey_ECC: key_bits=%d", publicKey.bits);
-        SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC x", publicKey.x, 32);
-        SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC y", publicKey.y, 32);
-    }
-
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
+    SDF_LOG_EXIT("SDF_ExportSignPublicKey_ECC", ret);
+    SDF_JNI_LOG("SDF_ExportSignPublicKey_ECC: key_bits=%d", publicKey.bits);
+    SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC x", publicKey.x, 32);
+    SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC y", publicKey.y, 32);
     return native_to_java_ECCPublicKey(env, &publicKey);
 }
 
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1ECC
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_ECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_ExportEncPublicKey_ECC");
     SDF_JNI_LOG("SDF_ExportEncPublicKey_ECC: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ExportEncPublicKey_ECC", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExportEncPublicKey_ECC == NULL) {
         SDF_LOG_ERROR("SDF_ExportEncPublicKey_ECC", "Function not supported");
@@ -166,11 +124,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1ECC
                                                           keyIndex, &publicKey);
 
     SDF_LOG_EXIT("SDF_ExportEncPublicKey_ECC", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_ExportEncPublicKey_ECC: key_bits=%d", publicKey.bits);
-        SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC x", publicKey.x, 32);
-        SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC y", publicKey.y, 32);
-    }
+    SDF_JNI_LOG("SDF_ExportEncPublicKey_ECC: key_bits=%d", publicKey.bits);
+    SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC x", publicKey.x, 32);
+    SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC y", publicKey.y, 32);
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
@@ -180,19 +136,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExportEncPublicKey_1ECC
     return native_to_java_ECCPublicKey(env, &publicKey);
 }
 
-JNIEXPORT jlong JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ImportKey
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray key) {
+JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray encryptedKey) {
     UNUSED(obj);
-
-    SDF_LOG_ENTER("SDF_ImportKey");
-    SDF_JNI_LOG("SDF_ImportKey: hSession=0x%lX", (unsigned long)sessionHandle);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ImportKey", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return 0;
-    }
 
     if (g_sdf_functions.SDF_ImportKey == NULL) {
         SDF_LOG_ERROR("SDF_ImportKey", "Function not supported");
@@ -200,52 +145,45 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ImportKey
         return 0;
     }
 
-    if (key == NULL) {
-        SDF_LOG_ERROR("SDF_ImportKey", "Key is NULL");
+    if (encryptedKey == NULL) {
+        SDF_LOG_ERROR("SDF_ImportKey", "encryptedKey is NULL");
         throw_sdf_exception(env, SDR_INARGERR);
         return 0;
     }
 
-    jsize keyLength = (*env)->GetArrayLength(env, key);
-    jbyte *keyData = (*env)->GetByteArrayElements(env, key, NULL);
-    if (keyData == NULL) {
-        SDF_LOG_ERROR("SDF_ImportKey", "Failed to get key data");
-        throw_sdf_exception(env, SDR_INARGERR);
+    jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
+    if (key_len <= 0) {
+        throw_sdf_exception(env, 0x0100001D); /* SDR_INARGERR */
         return 0;
     }
 
-    SDF_JNI_LOG("SDF_ImportKey: keyLength=%d", (int)keyLength);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, encryptedKey, NULL);
+    if (key_buf == NULL) {
+        throw_sdf_exception(env, 0x0100001C); /* SDR_NOBUFFER */
+        return 0;
+    }
 
-    HANDLE keyHandle = NULL;
-    LONG ret = g_sdf_functions.SDF_ImportKey((HANDLE)sessionHandle,
-                                              (BYTE *)keyData,
-                                              (ULONG)keyLength,
-                                              &keyHandle);
+    HANDLE key_handle = 0;
+    LONG ret = g_sdf_functions.SDF_ImportKey(
+        (HANDLE)sessionHandle,
+        (BYTE*)key_buf,
+        (ULONG)key_len,
+        &key_handle
+    );
 
-    (*env)->ReleaseByteArrayElements(env, key, keyData, JNI_ABORT);
-
+    (*env)->ReleasePrimitiveArrayCritical(env, encryptedKey, key_buf, JNI_ABORT);
     SDF_LOG_EXIT("SDF_ImportKey", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_ImportKey: keyHandle=0x%lX", (unsigned long)keyHandle);
-    }
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
         return 0;
     }
-
-    return (jlong)keyHandle;
+    SDF_JNI_LOG("SDF_ImportKey: key_handle=0x%lX", (unsigned long)key_handle);
+    return (jlong)key_handle;
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1DestroyKey
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle) {
+JNIEXPORT void JNICALL JNI_SDF_DestroyKey(JNIEnv *env, jobject obj, jlong sessionHandle, jlong keyHandle) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_DestroyKey == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);

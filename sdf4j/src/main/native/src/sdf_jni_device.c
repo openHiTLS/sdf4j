@@ -16,18 +16,10 @@
  * 设备管理函数 JNI 实现
  * ======================================================================== */
 
-JNIEXPORT jlong JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1OpenDevice
-  (JNIEnv *env, jobject obj) {
+JNIEXPORT jlong JNICALL JNI_SDF_OpenDevice(JNIEnv *env, jobject obj) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_OpenDevice");
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_OpenDevice", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return 0;
-    }
 
     HANDLE hDevice;
     LONG ret = g_sdf_functions.SDF_OpenDevice(&hDevice);
@@ -43,18 +35,10 @@ Java_org_openhitls_sdf4j_SDF_SDF_1OpenDevice
     return (jlong)hDevice;
 }
 
-JNIEXPORT jlong JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1OpenDeviceWithConf
-  (JNIEnv *env, jobject obj, jstring configFile) {
+JNIEXPORT jlong JNICALL JNI_SDF_OpenDeviceWithConf(JNIEnv *env, jobject obj, jstring configFile) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_OpenDeviceWithConf");
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return 0;
-    }
 
     if (g_sdf_functions.SDF_OpenDeviceWithConf == NULL) {
         SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "Function not supported");
@@ -83,32 +67,20 @@ Java_org_openhitls_sdf4j_SDF_SDF_1OpenDeviceWithConf
         (*env)->ReleaseStringUTFChars(env, configFile, configPath);
     }
 
-    SDF_LOG_EXIT("SDF_OpenDeviceWithConf", ret);
-    if (ret == SDR_OK) {
-        SDF_JNI_LOG("SDF_OpenDeviceWithConf: hDevice=0x%lX", (unsigned long)hDevice);
-    }
-
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
         return 0;
     }
-
+    SDF_LOG_EXIT("SDF_OpenDeviceWithConf", ret);
+    SDF_JNI_LOG("SDF_OpenDeviceWithConf: hDevice=0x%lX", (unsigned long)hDevice);
     return (jlong)hDevice;
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1CloseDevice
-  (JNIEnv *env, jobject obj, jlong deviceHandle) {
+JNIEXPORT void JNICALL JNI_SDF_CloseDevice(JNIEnv *env, jobject obj, jlong deviceHandle) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_CloseDevice");
     SDF_JNI_LOG("SDF_CloseDevice: hDevice=0x%lX", (unsigned long)deviceHandle);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_CloseDevice", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_CloseDevice", );
 
@@ -121,19 +93,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CloseDevice
     }
 }
 
-JNIEXPORT jlong JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1OpenSession
-  (JNIEnv *env, jobject obj, jlong deviceHandle) {
+JNIEXPORT jlong JNICALL JNI_SDF_OpenSession(JNIEnv *env, jobject obj, jlong deviceHandle) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_OpenSession");
     SDF_JNI_LOG("SDF_OpenSession: hDevice=0x%lX", (unsigned long)deviceHandle);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_OpenSession", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return 0;
-    }
 
     VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_OpenSession", 0);
 
@@ -151,19 +115,11 @@ Java_org_openhitls_sdf4j_SDF_SDF_1OpenSession
     return (jlong)hSession;
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1CloseSession
-  (JNIEnv *env, jobject obj, jlong sessionHandle) {
+JNIEXPORT void JNICALL JNI_SDF_CloseSession(JNIEnv *env, jobject obj, jlong sessionHandle) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_CloseSession");
     SDF_JNI_LOG("SDF_CloseSession: hSession=0x%lX", (unsigned long)sessionHandle);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_CloseSession", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_CloseSession", );
 
@@ -176,15 +132,8 @@ Java_org_openhitls_sdf4j_SDF_SDF_1CloseSession
     }
 }
 
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GetDeviceInfo
-  (JNIEnv *env, jobject obj, jlong sessionHandle) {
+JNIEXPORT jobject JNICALL JNI_SDF_GetDeviceInfo(JNIEnv *env, jobject obj, jlong sessionHandle) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetDeviceInfo", NULL);
 
@@ -206,20 +155,12 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetDeviceInfo
     return native_to_java_DeviceInfo(env, &deviceInfo);
 }
 
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GenerateRandom
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint length) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jlong sessionHandle, jint length) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_GenerateRandom");
     SDF_JNI_LOG("SDF_GenerateRandom: hSession=0x%lX, length=%d",
                 (unsigned long)sessionHandle, (int)length);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_GenerateRandom", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GenerateRandom", NULL);
 
@@ -235,45 +176,38 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateRandom
         return NULL;
     }
 
-    BYTE *random = (BYTE*)malloc(length);
-    if (random == NULL) {
-        SDF_LOG_ERROR("SDF_GenerateRandom", "Memory allocation failed");
-        throw_sdf_exception_with_message(env, 0x0100001C, "Out of memory");  /* SDR_NOBUFFER */
+    jbyteArray result = (*env)->NewByteArray(env, length);
+    if (result == NULL) {
+        SDF_LOG_ERROR("SDF_GenerateRandom", "NewByteArray failed");
+        throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
 
-    LONG ret = g_sdf_functions.SDF_GenerateRandom((HANDLE)sessionHandle, length, random);
-
-    SDF_LOG_EXIT("SDF_GenerateRandom", ret);
-    if (ret == SDR_OK) {
-        SDF_LOG_HEX("SDF_GenerateRandom output", random, length);
+    jbyte *random = (*env)->GetPrimitiveArrayCritical(env, result, NULL);
+    if (random == NULL) {
+        SDF_LOG_ERROR("SDF_GenerateRandom", "GetPrimitiveArrayCritical failed");
+        throw_sdf_exception(env, 0x0100001C);
+        return NULL;
     }
 
+    LONG ret = g_sdf_functions.SDF_GenerateRandom((HANDLE)sessionHandle, length, (BYTE*)random);
+    (*env)->ReleasePrimitiveArrayCritical(env, result, random, 0);
+
     if (ret != SDR_OK) {
-        free(random);
         throw_sdf_exception(env, ret);
         return NULL;
     }
-
-    jbyteArray result = native_to_java_byte_array(env, random, length);
-    free(random);
+    SDF_LOG_EXIT("SDF_GenerateRandom", ret);
     return result;
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jstring password) {
+JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex, jstring password) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_GetPrivateKeyAccessRight");
     SDF_JNI_LOG("SDF_GetPrivateKeyAccessRight: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetPrivateKeyAccessRight", );
 
@@ -291,11 +225,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
     }
 
     ULONG pwd_len = pwd ? strlen(pwd) : 0;
-    SDF_JNI_LOG("SDF_GetPrivateKeyAccessRight: pwd='%s', pwd_len=%lu",
-                pwd ? pwd : "(null)", (unsigned long)pwd_len);
 
     LONG ret = g_sdf_functions.SDF_GetPrivateKeyAccessRight((HANDLE)sessionHandle,
-                                                             keyIndex, (LPSTR)pwd, pwd_len);
+        keyIndex, (LPSTR)pwd, pwd_len);
 
     SDF_LOG_EXIT("SDF_GetPrivateKeyAccessRight", ret);
 
@@ -310,15 +242,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetPrivateKeyAccessRight
     }
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ReleasePrivateKeyAccessRight
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT void JNICALL JNI_SDF_ReleasePrivateKeyAccessRight(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleasePrivateKeyAccessRight", );
 
@@ -334,20 +260,13 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ReleasePrivateKeyAccessRight
     }
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GetKEKAccessRight
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jstring password) {
+JNIEXPORT void JNICALL JNI_SDF_GetKEKAccessRight(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex, jstring password) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_GetKEKAccessRight");
     SDF_JNI_LOG("SDF_GetKEKAccessRight: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetKEKAccessRight", );
 
@@ -365,9 +284,6 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetKEKAccessRight
     }
 
     ULONG pwd_len = pwd ? strlen(pwd) : 0;
-    SDF_JNI_LOG("SDF_GetKEKAccessRight: pwd='%s', pwd_len=%lu",
-                pwd ? pwd : "(null)", (unsigned long)pwd_len);
-
     LONG ret = g_sdf_functions.SDF_GetKEKAccessRight((HANDLE)sessionHandle,
                                                       keyIndex, (LPSTR)pwd, pwd_len);
 
@@ -384,20 +300,13 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GetKEKAccessRight
     }
 }
 
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ReleaseKEKAccessRight
-  (JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
+JNIEXPORT void JNICALL JNI_SDF_ReleaseKEKAccessRight(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex) {
     UNUSED(obj);
 
     SDF_LOG_ENTER("SDF_ReleaseKEKAccessRight");
     SDF_JNI_LOG("SDF_ReleaseKEKAccessRight: hSession=0x%lX, keyIndex=%d",
                 (unsigned long)sessionHandle, (int)keyIndex);
-
-    if (!sdf_is_loaded()) {
-        SDF_LOG_ERROR("SDF_ReleaseKEKAccessRight", "SDF library not loaded");
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleaseKEKAccessRight", );
 

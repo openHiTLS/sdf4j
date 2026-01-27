@@ -94,6 +94,10 @@ typedef LONG (*SDF_ImportKey_FN)(HANDLE hSessionHandle, BYTE *pucKey,
                                  ULONG uiKeyLength, HANDLE *phKeyHandle);
 typedef LONG (*SDF_DestroyKey_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle);
 
+typedef LONG (*SDF_ExchangeDigitEnvelopeBaseOnECC_FN)(HANDLE hSessionHandle, ULONG uiKEKIndex,
+                                        ULONG uiAlgID, ECCrefPublicKey *pucPublicKey, ECCCipher *pucEncDataIn,
+                                        ECCCipher *pucEncDataOut);
+
 /* 非对称算法函数 */
 typedef LONG (*SDF_ExternalPublicKeyOperation_RSA_FN)(HANDLE hSessionHandle,
                                                       RSArefPublicKey *pucPublicKey,
@@ -291,6 +295,7 @@ typedef struct {
     SDF_ImportKeyWithKEK_FN                 SDF_ImportKeyWithKEK;
     SDF_ImportKey_FN                        SDF_ImportKey;
     SDF_DestroyKey_FN                       SDF_DestroyKey;
+    SDF_ExchangeDigitEnvelopeBaseOnECC_FN   SDF_ExchangeDigitEnvelopeBaseOnECC;
 
     /* 非对称算法 */
     SDF_ExternalPublicKeyOperation_RSA_FN   SDF_ExternalPublicKeyOperation_RSA;
@@ -369,13 +374,6 @@ bool sdf_load_library(const char *library_path);
  * 卸载SDF库
  */
 void sdf_unload_library(void);
-
-/**
- * 检查库是否已加载
- *
- * @return 已加载返回true，否则返回false
- */
-bool sdf_is_loaded(void);
 
 /**
  * 获取加载错误信息
