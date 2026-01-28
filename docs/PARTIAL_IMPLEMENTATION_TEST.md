@@ -42,6 +42,7 @@
 - `SDF_ExternalPublicKeyOperation_RSA` / `SDF_InternalPublicKeyOperation_RSA` / `SDF_InternalPrivateKeyOperation_RSA`
 - `SDF_InternalSign_ECC` / `SDF_InternalVerify_ECC` / `SDF_ExternalVerify_ECC`
 - `SDF_ExternalEncrypt_ECC` / `SDF_InternalEncrypt_ECC` / `SDF_InternalDecrypt_ECC`
+- `SDF_ExchangeDigitEnvelopeBaseOnECC`
 
 **对称算法类（6.5）**
 - 单包加解密：`SDF_Encrypt` / `SDF_Decrypt` / `SDF_CalculateMAC`
@@ -192,6 +193,14 @@ public class SDFCapabilityDetector {
         // KEK功能
         capabilities.put("GenerateKeyWithKEK", checkFunction(() ->
             sdf.SDF_GenerateKeyWithKEK(sessionHandle, 128, AlgorithmID.SGD_SM4_ECB, 1)));
+
+        // ECC数字信封转换功能
+        capabilities.put("ExchangeDigitEnvelopeBaseOnECC", checkFunction(() -> {
+            // 为探测创建虚拟入参
+            ECCPublicKey dummyPubKey = new ECCPublicKey();
+            ECCCipher dummyCipher = new ECCCipher();
+            sdf.SDF_ExchangeDigitEnvelopeBaseOnECC(sessionHandle, 1, AlgorithmID.SGD_SM2_3, dummyPubKey, dummyCipher);
+        }));
 
         return capabilities;
     }

@@ -36,31 +36,13 @@ include_directories(
 )
 
 # 源文件
-set(SOURCES
-    src/jni_cache.c
-    src/dynamic_loader.c
-    src/type_conversion.c
-    src/sdf_log.c
-    src/sdf_jni_log.c
-    src/sdf_jni_loader.c
-    src/sdf_jni_device.c
-    src/sdf_jni_key.c
-    src/sdf_jni_keygen.c
-    src/sdf_jni_asymmetric.c
-    src/sdf_jni_symmetric.c
-    src/sdf_jni_file.c
-    src/sdf_jni_util.c
+file(GLOB SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
 # 头文件
-set(HEADERS
-    include/jni_cache.h
-    include/dynamic_loader.h
-    include/type_conversion.h
-    include/sdf_log.h
-    include/sdf_jni_common.h
-    include/org_openhitls_sdf4j_SDF.h
-    include/org_openhitls_sdf4j_internal_NativeLibraryLoader.h
+file(GLOB HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
 )
 
 # 创建共享库

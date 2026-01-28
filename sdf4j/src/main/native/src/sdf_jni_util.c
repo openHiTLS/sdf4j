@@ -21,15 +21,9 @@
  * 6.8.2 产生RSA非对称密钥对并输出
  * Pattern: Returns Object[] {RSAPublicKey, RSAPrivateKey}
  */
-JNIEXPORT jobjectArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1RSA
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyBits) {
+JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_RSA(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyBits) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_GenerateKeyPair_RSA == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -66,9 +60,10 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1RSA
         return NULL;
     }
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
-    (*env)->SetObjectArrayElement(env, result, 0, java_pub);
-    (*env)->SetObjectArrayElement(env, result, 1, java_priv);
-
+    if (result != NULL) {
+        (*env)->SetObjectArrayElement(env, result, 0, java_pub);
+        (*env)->SetObjectArrayElement(env, result, 1, java_priv);
+    }
     return result;
 }
 
@@ -76,15 +71,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1RSA
  * 6.8.3 产生ECC非对称密钥对并输出
  * Pattern: Returns Object[] {ECCPublicKey, ECCPrivateKey}
  */
-JNIEXPORT jobjectArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1ECC
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jint keyBits) {
+JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jint keyBits) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_GenerateKeyPair_ECC == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -132,15 +121,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1GenerateKeyPair_1ECC
  * 6.8.4 外部私钥RSA运算
  * Pattern: Returns byte[] output data
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalPrivateKeyOperation_1RSA
-(JNIEnv *env, jobject obj, jlong sessionHandle, jobject privateKey, jbyteArray dataInput) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jobject privateKey, jbyteArray dataInput) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExternalPrivateKeyOperation_RSA == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -198,49 +181,44 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalPrivateKeyOperation_1RSA
  * 6.8.5 外部私钥ECC签名
  * Pattern: Returns ECCSignature
  */
-JNIEXPORT jobject JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalSign_1ECC
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject privateKey, jbyteArray data) {
+JNIEXPORT jobject JNICALL JNI_SDF_ExternalSign_ECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jobject privateKey, jbyteArray data) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExternalSign_ECC == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
         return NULL;
     }
-
+    if (privateKey == NULL) {
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return NULL;
+    }
     /* Convert private key */
-    ECCrefPrivateKey priv_key;
+    ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
         return NULL;
     }
 
     /* Convert data */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    BYTE *data_buf = (BYTE*)malloc(data_len);
+    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-    (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
-    ECCSignature signature;
-    memset(&signature, 0, sizeof(ECCSignature));
+    ECCSignature signature = {0};
 
     LONG ret = g_sdf_functions.SDF_ExternalSign_ECC(
         (HANDLE)sessionHandle,
         (ULONG)algID,
         &priv_key,
-        data_buf,
+        (BYTE*)data_buf,
         (ULONG)data_len,
         &signature
     );
 
-    free(data_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
@@ -254,23 +232,20 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalSign_1ECC
  * 6.8.6 外部私钥ECC解密
  * Pattern: Returns byte[] plaintext
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jobject privateKey, jobject cipher) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jobject privateKey, jobject cipher) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExternalDecrypt_ECC == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
         return NULL;
     }
-
+    if (cipher == NULL || privateKey == NULL) {
+        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        return NULL;
+    }
     /* Convert private key */
-    ECCrefPrivateKey priv_key;
+    ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
         SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCPrivateKey fail.");
 	return NULL;
@@ -320,15 +295,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalDecrypt_1ECC
  * 6.8.9 外部密钥单包对称加密
  * Pattern: Returns byte[] encrypted data
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncrypt
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jbyteArray key, jbyteArray iv, jbyteArray data) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jbyteArray key, jbyteArray iv, jbyteArray data) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExternalKeyEncrypt == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -337,45 +306,46 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncrypt
 
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-    (*env)->GetByteArrayRegion(env, key, 0, key_len, (jbyte*)key_buf);
 
     /* Convert IV (may be NULL) */
-    BYTE *iv_buf = NULL;
+    jbyte *iv_buf = NULL;
     ULONG iv_len = 0;
     if (iv != NULL) {
         iv_len = (*env)->GetArrayLength(env, iv);
-        iv_buf = (BYTE*)malloc(iv_len);
+        iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
-            free(key_buf);
+            (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
             throw_sdf_exception(env, 0x0100001C);
             return NULL;
         }
-        (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
     }
 
     /* Convert data */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    BYTE *data_buf = (BYTE*)malloc(data_len);
+    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
-        free(key_buf);
-        if (iv_buf) free(iv_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+        if (iv_buf != NULL) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-    (*env)->GetByteArrayRegion(env, data, 0, data_len, (jbyte*)data_buf);
 
     /* Allocate encrypted buffer (may need padding) */
     ULONG enc_len = data_len + 32;
     BYTE *enc_buf = (BYTE*)malloc(enc_len);
     if (enc_buf == NULL) {
-        free(key_buf);
-        if (iv_buf) free(iv_buf);
-        free(data_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+        if (iv_buf != NULL) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
+        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
@@ -383,19 +353,21 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncrypt
     LONG ret = g_sdf_functions.SDF_ExternalKeyEncrypt(
         (HANDLE)sessionHandle,
         (ULONG)algID,
-        key_buf,
+        (BYTE*)key_buf,
         (ULONG)key_len,
-        iv_buf,
+        (BYTE*)iv_buf,
         iv_len,
-        data_buf,
+        (BYTE*)data_buf,
         (ULONG)data_len,
         enc_buf,
         &enc_len
     );
 
-    free(key_buf);
-    if (iv_buf) free(iv_buf);
-    free(data_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+    if (iv_buf != NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+    }
+    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         free(enc_buf);
@@ -413,15 +385,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncrypt
  * 6.8.10 外部密钥单包对称解密
  * Pattern: Returns byte[] decrypted data
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecrypt
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jbyteArray key, jbyteArray iv, jbyteArray encData) {
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jbyteArray key, jbyteArray iv, jbyteArray encData) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return NULL;
-    }
 
     if (g_sdf_functions.SDF_ExternalKeyDecrypt == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -430,45 +396,46 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecrypt
 
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-    (*env)->GetByteArrayRegion(env, key, 0, key_len, (jbyte*)key_buf);
 
     /* Convert IV (may be NULL) */
     BYTE *iv_buf = NULL;
     ULONG iv_len = 0;
     if (iv != NULL) {
         iv_len = (*env)->GetArrayLength(env, iv);
-        iv_buf = (BYTE*)malloc(iv_len);
+        iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
-            free(key_buf);
+            (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
             throw_sdf_exception(env, 0x0100001C);
             return NULL;
         }
-        (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
     }
 
     /* Convert encrypted data */
     jsize enc_len = (*env)->GetArrayLength(env, encData);
-    BYTE *enc_buf = (BYTE*)malloc(enc_len);
+    jbyte *enc_buf = (*env)->GetPrimitiveArrayCritical(env, encData, NULL);
     if (enc_buf == NULL) {
-        free(key_buf);
-        if (iv_buf) free(iv_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+        if (iv_buf) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
-    (*env)->GetByteArrayRegion(env, encData, 0, enc_len, (jbyte*)enc_buf);
 
     /* Allocate plaintext buffer */
     ULONG plaintext_len = enc_len;
     BYTE *plaintext_buf = (BYTE*)malloc(plaintext_len);
     if (plaintext_buf == NULL) {
-        free(key_buf);
-        if (iv_buf) free(iv_buf);
-        free(enc_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+        if (iv_buf) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
+        (*env)->ReleasePrimitiveArrayCritical(env, encData, enc_buf, JNI_ABORT);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
@@ -476,19 +443,21 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecrypt
     LONG ret = g_sdf_functions.SDF_ExternalKeyDecrypt(
         (HANDLE)sessionHandle,
         (ULONG)algID,
-        key_buf,
+        (BYTE *)key_buf,
         (ULONG)key_len,
-        iv_buf,
+        (BYTE *)iv_buf,
         iv_len,
-        enc_buf,
+        (BYTE *)enc_buf,
         (ULONG)enc_len,
         plaintext_buf,
         &plaintext_len
     );
 
-    free(key_buf);
-    if (iv_buf) free(iv_buf);
-    free(enc_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+    if (iv_buf) {
+        (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+    }
+    (*env)->ReleasePrimitiveArrayCritical(env, encData, enc_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         free(plaintext_buf);
@@ -506,15 +475,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecrypt
  * 6.8.11 外部密钥多包对称加密初始化
  * Pattern: Void function
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncryptInit
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jbyteArray key, jbyteArray iv) {
+JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jbyteArray key, jbyteArray iv) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_ExternalKeyEncryptInit == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -523,38 +486,38 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncryptInit
 
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
-    (*env)->GetByteArrayRegion(env, key, 0, key_len, (jbyte*)key_buf);
 
     /* Convert IV (may be NULL) */
-    BYTE *iv_buf = NULL;
+    jbyte *iv_buf = NULL;
     ULONG iv_len = 0;
     if (iv != NULL) {
         iv_len = (*env)->GetArrayLength(env, iv);
-        iv_buf = (BYTE*)malloc(iv_len);
+        iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
-            free(key_buf);
+            (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
             throw_sdf_exception(env, 0x0100001C);
             return;
         }
-        (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
     }
 
     LONG ret = g_sdf_functions.SDF_ExternalKeyEncryptInit(
         (HANDLE)sessionHandle,
         (ULONG)algID,
-        key_buf,
+        (BYTE*)key_buf,
         (ULONG)key_len,
-        iv_buf,
+        (BYTE*)iv_buf,
         iv_len
     );
 
-    free(key_buf);
-    if (iv_buf) free(iv_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+    if (iv_buf != NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+    }
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
@@ -565,15 +528,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyEncryptInit
  * 6.8.12 外部密钥多包对称解密初始化
  * Pattern: Void function
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecryptInit
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jbyteArray key, jbyteArray iv) {
+JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jbyteArray key, jbyteArray iv) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_ExternalKeyDecryptInit == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -582,38 +539,38 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecryptInit
 
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
-    (*env)->GetByteArrayRegion(env, key, 0, key_len, (jbyte*)key_buf);
 
     /* Convert IV (may be NULL) */
-    BYTE *iv_buf = NULL;
+    jbyte *iv_buf = NULL;
     ULONG iv_len = 0;
     if (iv != NULL) {
         iv_len = (*env)->GetArrayLength(env, iv);
-        iv_buf = (BYTE*)malloc(iv_len);
+        iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
-            free(key_buf);
+            (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
             throw_sdf_exception(env, 0x0100001C);
             return;
         }
-        (*env)->GetByteArrayRegion(env, iv, 0, iv_len, (jbyte*)iv_buf);
     }
 
     LONG ret = g_sdf_functions.SDF_ExternalKeyDecryptInit(
         (HANDLE)sessionHandle,
         (ULONG)algID,
-        key_buf,
+        (BYTE*)key_buf,
         (ULONG)key_len,
-        iv_buf,
+        (BYTE*)iv_buf,
         iv_len
     );
 
-    free(key_buf);
-    if (iv_buf) free(iv_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
+    if (iv_buf != NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+    }
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
@@ -624,15 +581,9 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyDecryptInit
  * 6.8.13 带外部密钥的杂凑运算初始化
  * Pattern: Void function
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyHMACInit
-(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID, jbyteArray key) {
+JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlong sessionHandle, jint algID,
+    jbyteArray key) {
     UNUSED(obj);
-
-    if (!sdf_is_loaded()) {
-        throw_sdf_exception_with_message(env, 0x01000003, "SDF library not loaded");
-        return;
-    }
 
     if (g_sdf_functions.SDF_ExternalKeyHMACInit == NULL) {
         throw_sdf_exception(env, SDR_NOTSUPPORT);
@@ -641,21 +592,20 @@ Java_org_openhitls_sdf4j_SDF_SDF_1ExternalKeyHMACInit
 
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
         throw_sdf_exception(env, 0x0100001C);
         return;
     }
-    (*env)->GetByteArrayRegion(env, key, 0, key_len, (jbyte*)key_buf);
 
     LONG ret = g_sdf_functions.SDF_ExternalKeyHMACInit(
         (HANDLE)sessionHandle,
         (ULONG)algID,
-        key_buf,
+        (BYTE*)key_buf,
         (ULONG)key_len
     );
 
-    free(key_buf);
+    (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         throw_sdf_exception(env, ret);
