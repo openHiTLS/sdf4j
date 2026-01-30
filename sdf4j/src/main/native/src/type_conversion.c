@@ -445,6 +445,21 @@ jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
     return obj;
 }
 
+jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
+                                     ULONG key_length, HANDLE key_handle) {
+    /* Convert ECCCipher to Java object */
+    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, ecc_cipher, key_length);
+    if (ecc_cipher_obj == NULL) {
+        return NULL;
+    }
+
+    /* Create ECCKeyEncryptionResult object */
+    jobject obj = (*env)->NewObject(env, g_jni_cache.eccKeyEncryptionResult.cls,
+                                    g_jni_cache.eccKeyEncryptionResult.ctor,
+                                    ecc_cipher_obj, (jlong)key_handle);
+    return obj;
+}
+
 jobject native_to_java_RSAPrivateKey(JNIEnv *env, const RSArefPrivateKey *native_key) {
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.rsaPrivateKey.cls,

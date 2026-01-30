@@ -182,6 +182,15 @@ static jint init_key_encryption_result_cache(JNIEnv *env) {
     return JNI_TRUE;
 }
 
+/* Initialize ECCKeyEncryptionResult cache */
+static jint init_ecc_key_encryption_result_cache(JNIEnv *env) {
+    CACHE_CLASS(env, g_jni_cache.eccKeyEncryptionResult.cls,
+                "org/openhitls/sdf4j/types/ECCKeyEncryptionResult");
+    CACHE_METHOD(env, g_jni_cache.eccKeyEncryptionResult.ctor,
+                 g_jni_cache.eccKeyEncryptionResult.cls, "<init>", "(Lorg/openhitls/sdf4j/types/ECCCipher;J)V");
+    return JNI_TRUE;
+}
+
 /* Initialize common class cache */
 static jint init_common_class_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.common.objectClass, "java/lang/Object");
@@ -246,6 +255,11 @@ jint jni_cache_init(JNIEnv *env) {
     }
 
     if (init_key_encryption_result_cache(env) != JNI_TRUE) {
+        jni_cache_cleanup(env);
+        return JNI_FALSE;
+    }
+
+    if (init_ecc_key_encryption_result_cache(env) != JNI_TRUE) {
         jni_cache_cleanup(env);
         return JNI_FALSE;
     }

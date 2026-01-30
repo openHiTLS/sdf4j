@@ -291,7 +291,7 @@ long rsaKeyHandle = sdf.SDF_ImportKeyWithISK_RSA(
 
 ```java
 // 使用内部ECC公钥生成会话密钥
-KeyEncryptionResult eccResult = sdf.SDF_GenerateKeyWithIPK_ECC(
+ECCKeyEncryptionResult eccResult = sdf.SDF_GenerateKeyWithIPK_ECC(
     sessionHandle,
     1,      // 公钥索引
     128     // 密钥长度（位）

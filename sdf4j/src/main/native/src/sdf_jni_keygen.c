@@ -179,8 +179,13 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_ECC(JNIEnv *env, jobject ob
     }
 
     /* 分配ECCCipher结构 */
-    ECCCipher ecc_cipher;
-    memset(&ecc_cipher, 0, sizeof(ECCCipher));
+    ULONG key_len = (keyBits + 7) / 8;
+    ECCCipher *ecc_cipher = (ECCCipher*)calloc(1, sizeof(ECCCipher) + key_len);
+    if (ecc_cipher == NULL) {
+        throw_sdf_exception(env, SDR_NOBUFFER);
+        return NULL;
+    }
+    ecc_cipher->L = key_len;
 
     HANDLE key_handle = 0;
 
@@ -188,38 +193,25 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_ECC(JNIEnv *env, jobject ob
         (HANDLE)sessionHandle,
         (ULONG)keyIndex,
         (ULONG)keyBits,
-        &ecc_cipher,
+        ecc_cipher,
         &key_handle
     );
 
     if (ret != SDR_OK) {
+        free(ecc_cipher);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
-
-    /* 创建KeyEncryptionResult，其中encryptedKey是ECCCipher的序列化 */
-    /* 序列化ECCCipher: x(64) + y(64) + M(32) + C(cipher_len) */
-    /* 注意：ECCref_MAX_LEN = 64，x和y都是64字节数组 */
-    ULONG cipher_data_len = ECCref_MAX_LEN + ECCref_MAX_LEN + 32 + ecc_cipher.L;
-    BYTE *cipher_data = (BYTE*)malloc(cipher_data_len);
-    if (cipher_data == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
-        return NULL;
-    }
-
-    memcpy(cipher_data, ecc_cipher.x, ECCref_MAX_LEN);
-    memcpy(cipher_data + ECCref_MAX_LEN, ecc_cipher.y, ECCref_MAX_LEN);
-    memcpy(cipher_data + ECCref_MAX_LEN * 2, ecc_cipher.M, 32);
-    memcpy(cipher_data + ECCref_MAX_LEN * 2 + 32, &ecc_cipher.C, ecc_cipher.L);
-
-    jobject result = create_key_encryption_result(env, cipher_data, cipher_data_len, key_handle);
-    free(cipher_data);
+    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
     if (result == NULL) {
+        free(ecc_cipher);
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
+    free(ecc_cipher);
+
     return result;
 }
 
@@ -243,8 +235,13 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
     }
 
     /* 分配ECCCipher结构 */
-    ECCCipher ecc_cipher;
-    memset(&ecc_cipher, 0, sizeof(ECCCipher));
+    ULONG key_len = (keyBits + 7) / 8;
+    ECCCipher *ecc_cipher = (ECCCipher*)calloc(1, sizeof(ECCCipher) + key_len);
+    if (ecc_cipher == NULL) {
+        throw_sdf_exception(env, SDR_NOBUFFER);
+        return NULL;
+    }
+    ecc_cipher->L = key_len;
 
     HANDLE key_handle = 0;
 
@@ -253,37 +250,25 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
         (ULONG)keyBits,
         (ULONG)algID,
         &ecc_pub_key,
-        &ecc_cipher,
+        ecc_cipher,
         &key_handle
     );
 
     if (ret != SDR_OK) {
+        free(ecc_cipher);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
-    /* 序列化ECCCipher: x(64) + y(64) + M(32) + C(cipher_len) */
-    /* 注意：ECCref_MAX_LEN = 64，x和y都是64字节数组 */
-    ULONG cipher_data_len = ECCref_MAX_LEN + ECCref_MAX_LEN + 32 + ecc_cipher.L;
-    BYTE *cipher_data = (BYTE*)malloc(cipher_data_len);
-    if (cipher_data == NULL) {
-        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        throw_sdf_exception(env, 0x0100001C);
-        return NULL;
-    }
-
-    memcpy(cipher_data, ecc_cipher.x, ECCref_MAX_LEN);
-    memcpy(cipher_data + ECCref_MAX_LEN, ecc_cipher.y, ECCref_MAX_LEN);
-    memcpy(cipher_data + ECCref_MAX_LEN * 2, ecc_cipher.M, 32);
-    memcpy(cipher_data + ECCref_MAX_LEN * 2 + 32, &ecc_cipher.C, ecc_cipher.L);
-
-    jobject result = create_key_encryption_result(env, cipher_data, cipher_data_len, key_handle);
-    free(cipher_data);
+    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
     if (result == NULL) {
+        free(ecc_cipher);
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
+    free(ecc_cipher);
+
     return result;
 }
 
