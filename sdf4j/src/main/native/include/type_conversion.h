@@ -136,4 +136,17 @@ jbyteArray native_to_java_byte_array(JNIEnv *env, const BYTE *native_data, ULONG
 jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
                                      ULONG key_length, HANDLE key_handle);
 
+/**
+ * 创建ECCKeyEncryptionResult对象
+ * Create ECCKeyEncryptionResult object
+ *
+ * @param env JNI环境
+ * @param ecc_encrypted_key 加密的ECCCipher数据
+ * @param key_length 密钥长度
+ * @param key_handle 密钥句柄
+ * @return ECCKeyEncryptionResult对象
+ */
+jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
+                                     ULONG key_length, HANDLE key_handle);
+
 #endif /* SDF4J_TYPE_CONVERSION_H */

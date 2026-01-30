@@ -451,9 +451,9 @@ public class SDF {
      * @return ECC密钥密文和密钥句柄 / ECC cipher and key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public KeyEncryptionResult SDF_GenerateKeyWithIPK_ECC(
+    public ECCKeyEncryptionResult SDF_GenerateKeyWithIPK_ECC(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException {
-        KeyEncryptionResult result;
+        ECCKeyEncryptionResult result;
         try {
             result = SDF_GenerateKeyWithIPK_ECC_Native(sessionHandle, keyIndex, keyBits);
         } catch (SDFException e) {
@@ -467,7 +467,7 @@ public class SDF {
         return result;
     }
 
-    private native KeyEncryptionResult SDF_GenerateKeyWithIPK_ECC_Native(
+    private native ECCKeyEncryptionResult SDF_GenerateKeyWithIPK_ECC_Native(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException;
 
     /**
@@ -481,9 +481,9 @@ public class SDF {
      * @return ECC密钥密文和密钥句柄 / ECC cipher and key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public KeyEncryptionResult SDF_GenerateKeyWithEPK_ECC(
+    public ECCKeyEncryptionResult SDF_GenerateKeyWithEPK_ECC(
             long sessionHandle, int keyBits, int algID, ECCPublicKey publicKey) throws SDFException {
-        KeyEncryptionResult result;
+        ECCKeyEncryptionResult result;
         try {
             result = SDF_GenerateKeyWithEPK_ECC_Native(sessionHandle, keyBits, algID, publicKey);
         } catch (SDFException e) {
@@ -497,7 +497,7 @@ public class SDF {
         return result;
     }
 
-    private native KeyEncryptionResult SDF_GenerateKeyWithEPK_ECC_Native(
+    private native ECCKeyEncryptionResult SDF_GenerateKeyWithEPK_ECC_Native(
             long sessionHandle, int keyBits, int algID, ECCPublicKey publicKey) throws SDFException;
 
     /**

@@ -13,50 +13,38 @@
 package org.openhitls.sdf4j.types;
 
 
-/**
- * 密钥加密结果
- * Key Encryption Result
- *
- * <p>包含加密后的密钥数据和密钥句柄
- * <p>Contains encrypted key data and key handle
- *
- * <p>用于密钥生成和导入操作的返回结果
- * <p>Used as return value for key generation and import operations
- *
- * @author OpenHitls Team
- * @since 1.0.0
- */
-public class KeyEncryptionResult {
-    private byte[] encryptedKey;
+public class ECCKeyEncryptionResult {
+    private ECCCipher eccCipher;
     private long keyHandle;
 
     /**
      * 构造函数
      * Constructor
      */
-    public KeyEncryptionResult() {
+    public ECCKeyEncryptionResult() {
     }
 
+    
     /**
      * 构造函数
      * Constructor
      *
-     * @param encryptedKey 加密的密钥数据 / Encrypted key data
+     * @param eccCipher ECC加密的密钥数据 / ECC encrypted key data
      * @param keyHandle 密钥句柄 / Key handle
      */
-    public KeyEncryptionResult(byte[] encryptedKey, long keyHandle) {
-        this.encryptedKey = encryptedKey;
+    public ECCKeyEncryptionResult(ECCCipher eccCipher, long keyHandle) {
+        this.eccCipher = eccCipher;
         this.keyHandle = keyHandle;
     }
 
     /**
-     * 获取加密的密钥数据
+     * 获取ECC加密的密钥数据
      * Get encrypted key data
      *
-     * @return 加密的密钥数据 / Encrypted key data
+     * @return ECC加密的密钥数据 / ECC encrypted key data
      */
-    public byte[] getEncryptedKey() {
-        return encryptedKey;
+    public ECCCipher getEccCipher() {
+        return eccCipher;
     }
 
     /**

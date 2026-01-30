@@ -112,6 +112,12 @@ typedef struct {
     jmethodID ctor;                 /* <init>([BJ)V */
 } KeyEncryptionResultCache;
 
+/* ECCKeyEncryptionResult cache */
+typedef struct {
+    jclass cls;                     /* org/openhitls/sdf4j/types/ECCKeyEncryptionResult */
+    jmethodID ctor;                 /* <init>([BJ)V */
+} ECCKeyEncryptionResultCache;
+
 /* Common Java classes cache */
 typedef struct {
     jclass objectClass;             /* java/lang/Object */
@@ -130,6 +136,7 @@ typedef struct {
     ECCSignatureCache eccSignature;
     ECCCipherCache eccCipher;
     KeyEncryptionResultCache keyEncryptionResult;
+    ECCKeyEncryptionResultCache eccKeyEncryptionResult;
     CommonClassCache common;
 } JNICache;
 
