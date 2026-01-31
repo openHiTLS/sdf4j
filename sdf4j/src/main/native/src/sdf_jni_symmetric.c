@@ -479,7 +479,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
             THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
             return NULL;
         }
-    } else {
     }
 
     /* 分配MAC缓冲区 */

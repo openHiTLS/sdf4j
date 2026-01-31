@@ -15,10 +15,12 @@ package org.openhitls.sdf4j.jce.keygen;
 import javax.crypto.KeyGeneratorSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.*;
-import java.security.spec.AlgorithmParameterSpec;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidParameterException;
+import java.security.SecureRandom;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
+import java.security.spec.AlgorithmParameterSpec;
 
 /**
  * SM4 KeyGenerator implementation
@@ -26,9 +28,14 @@ import org.openhitls.sdf4j.jce.native_.SDFJceNative;
 public final class SM4KeyGenerator extends KeyGeneratorSpi {
 
     private static final int KEY_SIZE = 128; // 128 bits = 16 bytes
+    private final long sessionHandle;
     private SecureRandom random;
 
     public SM4KeyGenerator() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
     }
 
     @Override
@@ -51,7 +58,18 @@ public final class SM4KeyGenerator extends KeyGeneratorSpi {
 
     @Override
     protected SecretKey engineGenerateKey() {
-        byte[] keyBytes = SDFJceNative.generateSm4Key();
+        byte[] keyBytes = SDFJceNative.generateSm4Key(sessionHandle);
         return new SecretKeySpec(keyBytes, "SM4");
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }

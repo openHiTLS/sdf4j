@@ -14,18 +14,21 @@ package org.openhitls.sdf4j.jce;
 
 import java.security.Provider;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
-
 /**
  * SDF JCE Provider
  * <p>
  * Provides Chinese cryptographic algorithms (SM2, SM3, SM4) through
  * the standard Java Cryptography Extension (JCE) interface.
  * <p>
+ * SDF library is automatically initialized via the {@code SDF_LIBRARY_PATH}
+ * environment variable when the native library is loaded.
+ * <p>
  * Usage:
  * <pre>
- * // Initialize the provider
- * SDFProvider provider = new SDFProvider("/path/to/libsdf.so", 16);
+ * // Set environment variable before running:
+ * // export SDF_LIBRARY_PATH=/path/to/libsdf.so
+ *
+ * SDFProvider provider = new SDFProvider();
  * Security.addProvider(provider);
  *
  * // Use JCE APIs
@@ -42,69 +45,56 @@ public final class SDFProvider extends Provider {
     public static final double VERSION = 1.0;
     public static final String INFO = "SDF4J JCE Provider (GM/T 0018-2023)";
 
-    private static final int DEFAULT_POOL_SIZE = 16;
-
     /**
-     * Create provider without initializing SDF library.
-     * Call {@link #initialize(String, int)} before use.
+     * Create provider and register algorithms.
+     * SDF library is automatically initialized via SDF_LIBRARY_PATH environment variable.
      */
     public SDFProvider() {
         super(PROVIDER_NAME, VERSION, INFO);
         registerAlgorithms();
+        // Trigger native library loading, which auto-initializes SDF via SDF_LIBRARY_PATH
+        ensureNativeLoaded();
     }
 
     /**
-     * Create and initialize provider with SDF library
+     * Create provider with SDF library path (backward compatibility).
+     * <p>
+     * Note: The libraryPath parameter is ignored. SDF library is now initialized
+     * automatically via the SDF_LIBRARY_PATH environment variable.
      *
-     * @param libraryPath Path to SDF library
-     * @param poolSize    Session pool size
-     */
-    public SDFProvider(String libraryPath, int poolSize) {
-        super(PROVIDER_NAME, VERSION, INFO);
-        registerAlgorithms();
-        initialize(libraryPath, poolSize);
-    }
-
-    /**
-     * Create and initialize provider with default pool size
-     *
-     * @param libraryPath Path to SDF library
+     * @param libraryPath ignored, use SDF_LIBRARY_PATH environment variable instead
      */
     public SDFProvider(String libraryPath) {
-        this(libraryPath, DEFAULT_POOL_SIZE);
+        this();
     }
 
     /**
-     * Initialize the SDF library
-     *
-     * @param libraryPath Path to SDF library
-     * @param poolSize    Session pool size
+     * Ensure native library is loaded, triggering JNI_OnLoad initialization.
      */
-    public void initialize(String libraryPath, int poolSize) {
-        SDFJceNative.init(libraryPath, poolSize);
+    private void ensureNativeLoaded() {
+        // Accessing SDFJceNative triggers its static initializer (NativeLoader.load()),
+        // which loads the native library and calls JNI_OnLoad
+        NativeLoader.load();
     }
 
     /**
-     * Shutdown the provider and release resources
+     * Shutdown the provider and release resources.
+     * Resources are automatically released when JVM unloads the native library
+     * via JNI_OnUnload.
      */
     public void shutdown() {
-        SDFJceNative.shutdown();
+        NativeLoader.unload();
     }
 
     /**
-     * Check if provider is initialized
+     * Check if SDF is initialized (SDF_LIBRARY_PATH was set and library loaded successfully)
      */
     public boolean isInitialized() {
-        return SDFJceNative.isInitialized();
-    }
-
-    /**
-     * Get session pool statistics
-     *
-     * @return [total, available]
-     */
-    public int[] getPoolStats() {
-        return SDFJceNative.getPoolStats();
+        try {
+            return NativeLoader.isLoaded();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void registerAlgorithms() {
@@ -118,7 +108,9 @@ public final class SDFProvider extends Provider {
         put("Cipher.SM4/ECB/PKCS5Padding", "org.openhitls.sdf4j.jce.cipher.SM4Cipher$ECB_PKCS5");
         put("Cipher.SM4/CBC/NoPadding", "org.openhitls.sdf4j.jce.cipher.SM4Cipher$CBC");
         put("Cipher.SM4/CBC/PKCS5Padding", "org.openhitls.sdf4j.jce.cipher.SM4Cipher$CBC_PKCS5");
-        put("Cipher.SM4/CTR/NoPadding", "org.openhitls.sdf4j.jce.cipher.SM4Cipher$CTR");
+        put("Cipher.SM4/GCM/NoPadding", "org.openhitls.sdf4j.jce.cipher.SM4Cipher$GCM");
+        put("Alg.Alias.Cipher.SM4/ECB/PKCS7Padding", "SM4/ECB/PKCS5Padding");
+        put("Alg.Alias.Cipher.SM4/CBC/PKCS7Padding", "SM4/CBC/PKCS5Padding");
         put("Alg.Alias.Cipher.1.2.156.10197.1.104", "SM4");
 
         // Cipher - SM2 Asymmetric

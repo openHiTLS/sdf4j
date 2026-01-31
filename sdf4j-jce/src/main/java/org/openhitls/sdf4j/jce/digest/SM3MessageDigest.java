@@ -14,7 +14,7 @@ package org.openhitls.sdf4j.jce.digest;
 
 import java.security.MessageDigestSpi;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 
 /**
  * SM3 MessageDigest implementation
@@ -23,10 +23,15 @@ public final class SM3MessageDigest extends MessageDigestSpi {
 
     private static final int DIGEST_LENGTH = 32;
 
+    private final long sessionHandle;
     private long ctx = 0;
     private boolean initialized = false;
 
     public SM3MessageDigest() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
     }
 
     @Override
@@ -36,11 +41,7 @@ public final class SM3MessageDigest extends MessageDigestSpi {
 
     @Override
     protected void engineReset() {
-        if (ctx != 0) {
-            SDFJceNative.sm3Free(ctx);
-            ctx = 0;
-        }
-        initialized = false;
+        cleanupContext();
     }
 
     @Override
@@ -50,8 +51,14 @@ public final class SM3MessageDigest extends MessageDigestSpi {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
+        if (input == null) {
+            throw new IllegalArgumentException("input is null");
+        }
+        if (offset < 0 || len < 0 || offset + len > input.length) {
+            throw new IllegalArgumentException("Invalid offset/len");
+        }
         if (!initialized) {
-            ctx = SDFJceNative.sm3Init();
+            ctx = SDFJceNative.sm3Init(sessionHandle);
             initialized = true;
         }
         if (len > 0) {
@@ -63,9 +70,10 @@ public final class SM3MessageDigest extends MessageDigestSpi {
     protected byte[] engineDigest() {
         if (!initialized) {
             // Empty input
-            return SDFJceNative.sm3Digest(new byte[0]);
+            return SDFJceNative.sm3Digest(sessionHandle, new byte[0]);
         }
         byte[] result = SDFJceNative.sm3Final(ctx);
+        SDFJceNative.sm3Free(ctx);
         ctx = 0;
         initialized = false;
         return result;
@@ -74,10 +82,36 @@ public final class SM3MessageDigest extends MessageDigestSpi {
     @Override
     protected int engineDigest(byte[] buf, int offset, int len) {
         byte[] digest = engineDigest();
-        if (len < digest.length) {
-            throw new IllegalArgumentException("Buffer too small");
+        if (offset < 0 || len < 0 || offset + digest.length > buf.length) {
+            throw new IllegalArgumentException("Buffer too small or invalid offset");
         }
         System.arraycopy(digest, 0, buf, offset, digest.length);
         return digest.length;
+    }
+
+    /**
+     * Cleanup native context safely
+     */
+    private void cleanupContext() {
+        if (ctx != 0) {
+            SDFJceNative.sm3Free(ctx);
+            ctx = 0;
+            initialized = false;
+        }
+    }
+
+    /**
+     * Cleanup when object is garbage collected
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            cleanupContext();
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }

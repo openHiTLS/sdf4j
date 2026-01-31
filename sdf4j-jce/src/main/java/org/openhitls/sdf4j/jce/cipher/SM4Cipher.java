@@ -13,43 +13,72 @@
 package org.openhitls.sdf4j.jce.cipher;
 
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayOutputStream;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
+import java.util.Arrays;
 
 /**
- * SM4 Cipher implementation
+ * SM4 Cipher implementation with true streaming support.
+ *
+ * <p>For ECB/CBC modes, uses SDF multi-packet APIs
+ * (EncryptInit/Update/Final) for true streaming.
+ *
+ * <p>For GCM/CCM (AEAD) modes, buffers data then uses single-packet
+ * SDF_AuthEnc/SDF_AuthDec APIs. GCM tag is appended to ciphertext
+ * per JCE convention (doFinal returns ciphertext || tag).
  */
 public class SM4Cipher extends CipherSpi {
 
     protected static final int MODE_ECB = 0;
     protected static final int MODE_CBC = 1;
-    protected static final int MODE_CTR = 2;
-    protected static final int MODE_GCM = 3;
+    protected static final int MODE_GCM = 2;
+    protected static final int MODE_CCM = 3;
 
     protected static final int BLOCK_SIZE = 16;
     protected static final int KEY_SIZE = 16;
+    protected static final int DEFAULT_GCM_TAG_BITS = 128;
 
     protected static final int PADDING_NONE = 0;
     protected static final int PADDING_PKCS5 = 1;
 
+    protected final long sessionHandle;
     protected int cipherMode = MODE_CBC;
     protected int paddingMode = PADDING_NONE;
     protected int opmode;
     protected byte[] key;
     protected byte[] iv;
     protected long ctx = 0;
+
+    // GCM specific fields
+    protected int gcmTagLenBits = DEFAULT_GCM_TAG_BITS;
+    protected ByteArrayOutputStream aadBuffer;
+
+    // Buffer for incomplete blocks (streaming) or all data (GCM)
     protected ByteArrayOutputStream buffer;
 
     public SM4Cipher() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
         this.cipherMode = MODE_CBC;
     }
 
     protected SM4Cipher(int mode) {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
         this.cipherMode = mode;
+    }
+
+    private boolean isAeadMode() {
+        return cipherMode == MODE_GCM || cipherMode == MODE_CCM;
     }
 
     @Override
@@ -58,11 +87,10 @@ public class SM4Cipher extends CipherSpi {
             this.cipherMode = MODE_ECB;
         } else if ("CBC".equalsIgnoreCase(mode)) {
             this.cipherMode = MODE_CBC;
-        } else if ("CTR".equalsIgnoreCase(mode)) {
-            this.cipherMode = MODE_CTR;
         } else if ("GCM".equalsIgnoreCase(mode)) {
-            // GCM mode is not yet fully implemented in native layer
-            throw new NoSuchAlgorithmException("GCM mode not yet supported");
+            this.cipherMode = MODE_GCM;
+        } else if ("CCM".equalsIgnoreCase(mode)) {
+            this.cipherMode = MODE_CCM;
         } else {
             throw new NoSuchAlgorithmException("Unsupported mode: " + mode);
         }
@@ -73,6 +101,9 @@ public class SM4Cipher extends CipherSpi {
         if ("NoPadding".equalsIgnoreCase(padding)) {
             this.paddingMode = PADDING_NONE;
         } else if ("PKCS5Padding".equalsIgnoreCase(padding) || "PKCS7Padding".equalsIgnoreCase(padding)) {
+            if (isAeadMode()) {
+                throw new NoSuchPaddingException("AEAD modes do not support padding");
+            }
             this.paddingMode = PADDING_PKCS5;
         } else {
             throw new NoSuchPaddingException("Unsupported padding: " + padding);
@@ -86,16 +117,22 @@ public class SM4Cipher extends CipherSpi {
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
+        int totalLen = inputLen + (buffer != null ? buffer.size() : 0);
+        if (isAeadMode()) {
+            int tagBytes = gcmTagLenBits / 8;
+            if (opmode == Cipher.ENCRYPT_MODE) {
+                return totalLen + tagBytes;
+            } else {
+                return Math.max(0, totalLen - tagBytes);
+            }
+        }
         if (opmode == Cipher.ENCRYPT_MODE) {
             if (paddingMode == PADDING_PKCS5) {
-                // With padding, output is always aligned to block size plus one block
-                return ((inputLen / BLOCK_SIZE) + 1) * BLOCK_SIZE;
+                return ((totalLen / BLOCK_SIZE) + 1) * BLOCK_SIZE;
             }
-            // CTR/GCM modes don't change size; ECB/CBC with NoPadding return same size
-            return inputLen;
+            return totalLen;
         } else {
-            // Decryption: output size is at most input size (padding removed)
-            return inputLen;
+            return totalLen;
         }
     }
 
@@ -121,6 +158,9 @@ public class SM4Cipher extends CipherSpi {
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
+        // Clean up any existing sensitive data before re-initializing
+        cleanup();
+
         this.opmode = opmode;
         this.key = key.getEncoded();
 
@@ -128,21 +168,50 @@ public class SM4Cipher extends CipherSpi {
             throw new InvalidKeyException("Key must be 16 bytes");
         }
 
+        // Parse parameters
         if (params != null) {
-            if (params instanceof IvParameterSpec) {
+            if (params instanceof GCMParameterSpec) {
+                if (!isAeadMode()) {
+                    throw new InvalidAlgorithmParameterException("GCMParameterSpec only valid for GCM/CCM modes");
+                }
+                GCMParameterSpec gcmSpec = (GCMParameterSpec) params;
+                this.iv = gcmSpec.getIV();
+                this.gcmTagLenBits = gcmSpec.getTLen();
+            } else if (params instanceof IvParameterSpec) {
                 this.iv = ((IvParameterSpec) params).getIV();
             } else {
                 throw new InvalidAlgorithmParameterException("Unsupported parameter type");
             }
         } else if (cipherMode != MODE_ECB) {
-            // Generate random IV for non-ECB modes
+            if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
+                throw new InvalidAlgorithmParameterException("IV required for decryption");
+            }
             this.iv = new byte[BLOCK_SIZE];
             SecureRandom rng = (random != null) ? random : new SecureRandom();
             rng.nextBytes(this.iv);
         }
 
         buffer = new ByteArrayOutputStream();
-        ctx = 0;
+        aadBuffer = new ByteArrayOutputStream();
+
+        // For non-AEAD modes, initialize streaming context immediately
+        if (!isAeadMode()) {
+            initStreamingContext();
+        }
+    }
+
+    /**
+     * Initialize the native streaming context (EncryptInit/DecryptInit).
+     */
+    private void initStreamingContext() {
+        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            ctx = SDFJceNative.sm4EncryptInit(sessionHandle, cipherMode, key, iv);
+        } else {
+            ctx = SDFJceNative.sm4DecryptInit(sessionHandle, cipherMode, key, iv);
+        }
+        if (ctx == 0) {
+            throw new IllegalStateException("Failed to initialize SM4 streaming context");
+        }
     }
 
     @Override
@@ -151,26 +220,115 @@ public class SM4Cipher extends CipherSpi {
         AlgorithmParameterSpec spec = null;
         if (params != null) {
             try {
-                spec = params.getParameterSpec(IvParameterSpec.class);
+                // Try GCMParameterSpec first for AEAD modes
+                if (isAeadMode()) {
+                    spec = params.getParameterSpec(GCMParameterSpec.class);
+                } else {
+                    spec = params.getParameterSpec(IvParameterSpec.class);
+                }
             } catch (Exception e) {
-                throw new InvalidAlgorithmParameterException("Could not get IvParameterSpec from AlgorithmParameters");
+                throw new InvalidAlgorithmParameterException("Could not get parameter spec from AlgorithmParameters");
             }
         }
         engineInit(opmode, key, spec, random);
     }
 
     @Override
-    protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
-        if (input != null && inputLen > 0) {
-            buffer.write(input, inputOffset, inputLen);
+    protected void engineUpdateAAD(byte[] src, int offset, int len) {
+        if (!isAeadMode()) {
+            throw new IllegalStateException("AAD only supported in AEAD modes (GCM/CCM)");
         }
-        return new byte[0];
+        if (src != null && len > 0) {
+            aadBuffer.write(src, offset, len);
+        }
     }
 
     @Override
-    protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
-        engineUpdate(input, inputOffset, inputLen);
-        return 0;
+    protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
+        if (input == null || inputLen <= 0) {
+            return new byte[0];
+        }
+        if (inputOffset < 0 || inputLen < 0 || inputOffset + inputLen > input.length) {
+            throw new IllegalArgumentException("Invalid inputOffset/inputLen");
+        }
+
+        if (isAeadMode()) {
+            buffer.write(input, inputOffset, inputLen);
+            return new byte[0];
+        }
+
+        if (ctx == 0) {
+            throw new IllegalStateException("Cipher not initialized");
+        }
+
+        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            return encryptUpdate(input, inputOffset, inputLen);
+        } else {
+            return decryptUpdate(input, inputOffset, inputLen);
+        }
+    }
+
+    /**
+     * Streaming encrypt update.
+     * For PKCS5 padding: buffer incomplete blocks, send only complete blocks.
+     * For NoPadding: send all data directly.
+     */
+    private byte[] encryptUpdate(byte[] input, int inputOffset, int inputLen) {
+        if (paddingMode == PADDING_PKCS5) {
+            // Buffer the data, only send complete blocks to native
+            buffer.write(input, inputOffset, inputLen);
+            byte[] buffered = buffer.toByteArray();
+            int completeLen = (buffered.length / BLOCK_SIZE) * BLOCK_SIZE;
+            if (completeLen == 0) {
+                return new byte[0];
+            }
+            // Keep the remainder in buffer
+            buffer.reset();
+            if (buffered.length > completeLen) {
+                buffer.write(buffered, completeLen, buffered.length - completeLen);
+            }
+            return SDFJceNative.sm4EncryptUpdate(ctx, buffered, 0, completeLen);
+        } else {
+            // NoPadding: send directly
+            return SDFJceNative.sm4EncryptUpdate(ctx, input, inputOffset, inputLen);
+        }
+    }
+
+    /**
+     * Streaming decrypt update.
+     * For PKCS5 padding: buffer data, send complete blocks but hold back the last block
+     * (last block may contain padding, must wait for doFinal to strip).
+     * For NoPadding: send all data directly.
+     */
+    private byte[] decryptUpdate(byte[] input, int inputOffset, int inputLen) {
+        if (paddingMode == PADDING_PKCS5) {
+            buffer.write(input, inputOffset, inputLen);
+            byte[] buffered = buffer.toByteArray();
+            // Hold back at least one block for doFinal to strip padding
+            int sendLen = ((buffered.length - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE;
+            if (sendLen <= 0) {
+                return new byte[0];
+            }
+            buffer.reset();
+            buffer.write(buffered, sendLen, buffered.length - sendLen);
+            return SDFJceNative.sm4DecryptUpdate(ctx, buffered, 0, sendLen);
+        } else {
+            return SDFJceNative.sm4DecryptUpdate(ctx, input, inputOffset, inputLen);
+        }
+    }
+
+    @Override
+    protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
+            throws ShortBufferException {
+        byte[] result = engineUpdate(input, inputOffset, inputLen);
+        if (result == null || result.length == 0) {
+            return 0;
+        }
+        if (output.length - outputOffset < result.length) {
+            throw new ShortBufferException("Output buffer too small");
+        }
+        System.arraycopy(result, 0, output, outputOffset, result.length);
+        return result.length;
     }
 
     @Override
@@ -180,30 +338,111 @@ public class SM4Cipher extends CipherSpi {
             buffer.write(input, inputOffset, inputLen);
         }
 
-        byte[] data = buffer.toByteArray();
-        buffer.reset();
-
-        if (opmode == Cipher.ENCRYPT_MODE) {
-            // Apply padding for encryption
-            if (paddingMode == PADDING_PKCS5) {
-                data = addPkcs5Padding(data);
-            } else if (cipherMode != MODE_CTR && cipherMode != MODE_GCM) {
-                // ECB and CBC require block-aligned data when no padding
-                if (data.length % BLOCK_SIZE != 0) {
-                    throw new IllegalBlockSizeException(
-                        "Data length must be multiple of " + BLOCK_SIZE + " bytes with NoPadding");
-                }
-            }
-            return SDFJceNative.sm4Encrypt(cipherMode, key, iv, data, null);
+        if (isAeadMode()) {
+            return doFinalAead();
         } else {
-            // Decrypt first
-            byte[] decrypted = SDFJceNative.sm4Decrypt(cipherMode, key, iv, data, null, null);
+            return doFinalStreaming();
+        }
+    }
 
-            // Remove padding for decryption
-            if (paddingMode == PADDING_PKCS5) {
-                return removePkcs5Padding(decrypted);
+    /**
+     * GCM/CCM final: one-shot processing with buffered data.
+     */
+    private byte[] doFinalAead() throws IllegalBlockSizeException, BadPaddingException {
+        byte[] data = buffer.toByteArray();
+        byte[] aad = aadBuffer.toByteArray();
+        buffer.reset();
+        aadBuffer.reset();
+
+        int tagBytes = gcmTagLenBits / 8;
+
+        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            if (data.length == 0) {
+                throw new IllegalBlockSizeException("SM4 GCM/CCM does not support empty plaintext");
             }
-            return decrypted;
+            // sm4AuthEnc returns ciphertext || tag directly
+            byte[] result = SDFJceNative.sm4AuthEnc(sessionHandle, cipherMode, key, iv,
+                    aad.length > 0 ? aad : null, data);
+            if (result == null) {
+                throw new IllegalBlockSizeException("AuthEnc returned null");
+            }
+            return result;
+        } else {
+            // Decrypt: input is ciphertext || tag
+            if (data.length < tagBytes) {
+                throw new BadPaddingException("Input too short for GCM tag");
+            }
+            byte[] ciphertext = new byte[data.length - tagBytes];
+            byte[] tag = new byte[tagBytes];
+            System.arraycopy(data, 0, ciphertext, 0, ciphertext.length);
+            System.arraycopy(data, ciphertext.length, tag, 0, tagBytes);
+
+            byte[] plaintext = SDFJceNative.sm4AuthDec(sessionHandle, cipherMode, key, iv,
+                    aad.length > 0 ? aad : null, tag, ciphertext);
+            if (plaintext == null) {
+                throw new AEADBadTagException("GCM authentication failed");
+            }
+            return plaintext;
+        }
+    }
+
+    /**
+     * ECB/CBC streaming final.
+     */
+    private byte[] doFinalStreaming() throws IllegalBlockSizeException, BadPaddingException {
+        if (ctx == 0) {
+            throw new IllegalStateException("Cipher not initialized");
+        }
+
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+
+        try {
+            byte[] remaining = buffer.toByteArray();
+            buffer.reset();
+
+            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+                if (paddingMode == PADDING_PKCS5) {
+                    remaining = addPkcs5Padding(remaining);
+                } else if (remaining.length > 0 && remaining.length % BLOCK_SIZE != 0) {
+                    throw new IllegalBlockSizeException(
+                            "Data length must be multiple of " + BLOCK_SIZE + " bytes with NoPadding");
+                }
+
+                if (remaining.length > 0) {
+                    byte[] encrypted = SDFJceNative.sm4EncryptUpdate(ctx, remaining, 0, remaining.length);
+                    if (encrypted != null && encrypted.length > 0) {
+                        result.write(encrypted, 0, encrypted.length);
+                    }
+                }
+
+                byte[] finalOutput = SDFJceNative.sm4EncryptFinal(ctx);
+                if (finalOutput != null && finalOutput.length > 0) {
+                    result.write(finalOutput, 0, finalOutput.length);
+                }
+                return result.toByteArray();
+
+            } else {
+                if (remaining.length > 0) {
+                    byte[] decrypted = SDFJceNative.sm4DecryptUpdate(ctx, remaining, 0, remaining.length);
+                    if (decrypted != null && decrypted.length > 0) {
+                        result.write(decrypted, 0, decrypted.length);
+                    }
+                }
+
+                byte[] finalOutput = SDFJceNative.sm4DecryptFinal(ctx);
+                if (finalOutput != null && finalOutput.length > 0) {
+                    result.write(finalOutput, 0, finalOutput.length);
+                }
+
+                byte[] output = result.toByteArray();
+                if (paddingMode == PADDING_PKCS5) {
+                    return removePkcs5Padding(output);
+                }
+                return output;
+            }
+        } finally {
+            SDFJceNative.sm4Free(ctx);
+            ctx = 0;
         }
     }
 
@@ -259,6 +498,42 @@ public class SM4Cipher extends CipherSpi {
         return result.length;
     }
 
+    /**
+     * Clean up sensitive data (key, IV, context)
+     */
+    protected void cleanup() {
+        if (key != null) {
+            Arrays.fill(key, (byte) 0);
+            key = null;
+        }
+        if (iv != null) {
+            Arrays.fill(iv, (byte) 0);
+            iv = null;
+        }
+        if (ctx != 0) {
+            SDFJceNative.sm4Free(ctx);
+            ctx = 0;
+        }
+        if (buffer != null) {
+            buffer.reset();
+        }
+        if (aadBuffer != null) {
+            aadBuffer.reset();
+        }
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            cleanup();
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
+    }
+
     // Inner classes for specific modes
     public static class ECB extends SM4Cipher {
         public ECB() {
@@ -286,17 +561,9 @@ public class SM4Cipher extends CipherSpi {
         }
     }
 
-    public static class CTR extends SM4Cipher {
-        public CTR() {
-            super(MODE_CTR);
+    public static class GCM extends SM4Cipher {
+        public GCM() {
+            super(MODE_GCM);
         }
     }
-
-    // Note: GCM mode is not yet fully implemented in native layer
-    // Uncomment when AEAD support is added
-    // public static class GCM extends SM4Cipher {
-    //     public GCM() {
-    //         super(MODE_GCM);
-    //     }
-    // }
 }

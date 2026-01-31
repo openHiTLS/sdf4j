@@ -89,11 +89,4 @@ public class SDFProviderTest {
             Security.removeProvider("SDF");
         }
     }
-
-    @Test
-    public void testNotInitialized() {
-        SDFProvider provider = new SDFProvider();
-        assertFalse("Provider should not be initialized without init()",
-                provider.isInitialized());
-    }
 }

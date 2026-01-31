@@ -64,8 +64,8 @@ build_sdf4j_with_simulator()
     mvn clean package \
         -Dsdf.library.name=$SDFX_LIB_NAME \
         -Dsdf.library.path=$SDFX_BUILD_DIR || exit 1
-    mvn javadoc:javadoc -pl sdf4j || exit 1
     echo "SDF4J built successfully."
+    mvn javadoc:javadoc -pl sdf4j || exit 1
 }
 
 echo "Current script directory: ${SCRIPT_DIR}"

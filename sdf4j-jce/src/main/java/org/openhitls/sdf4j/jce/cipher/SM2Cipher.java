@@ -19,19 +19,33 @@ import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.key.SM2PrivateKey;
 import org.openhitls.sdf4j.jce.key.SM2PublicKey;
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 
 /**
  * SM2 Cipher implementation for asymmetric encryption/decryption
+ *
+ * Native layer outputs ciphertext in GM/T format (0x04 || C1 || C3 || C2)
+ * following GM/T 0009-2012 standard.
+ *
+ * Ciphertext format: 0x04 || C1_X(32) || C1_Y(32) || C3(32) || C2(var)
+ * - 0x04: Uncompressed point marker
+ * - C1: Elliptic curve point (X + Y, 64 bytes)
+ * - C3: SM3 hash (32 bytes)
+ * - C2: Encrypted data (variable length)
  */
 public final class SM2Cipher extends CipherSpi {
 
+    private final long sessionHandle;
     private SM2PublicKey publicKey;
     private SM2PrivateKey privateKey;
     private int opmode;
     private ByteArrayOutputStream buffer;
 
     public SM2Cipher() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
         this.buffer = new ByteArrayOutputStream();
     }
 
@@ -44,7 +58,7 @@ public final class SM2Cipher extends CipherSpi {
 
     @Override
     protected void engineSetPadding(String padding) throws NoSuchPaddingException {
-        if (!"NoPadding".equalsIgnoreCase(padding) && !"PKCS1Padding".equalsIgnoreCase(padding)) {
+        if (!"NoPadding".equalsIgnoreCase(padding)) {
             throw new NoSuchPaddingException("SM2 only supports NoPadding");
         }
     }
@@ -57,11 +71,11 @@ public final class SM2Cipher extends CipherSpi {
     @Override
     protected int engineGetOutputSize(int inputLen) {
         if (opmode == Cipher.ENCRYPT_MODE) {
-            // SM2 ciphertext: C1_X(32) + C1_Y(32) + C3(32) + C2(plaintext length) = 96 + plaintext
-            return inputLen + 96;
+            // SM2 ciphertext: 0x04(1) + C1_X(32) + C1_Y(32) + C2(plaintext) + C3(32) = 97 + plaintext
+            return inputLen + 97;
         } else {
-            // Plaintext is ciphertext - 96 bytes overhead
-            return Math.max(0, inputLen - 96);
+            // Plaintext is ciphertext - 97 bytes overhead (1 + 32 + 32 + 32)
+            return Math.max(0, inputLen - 97);
         }
     }
 
@@ -137,12 +151,14 @@ public final class SM2Cipher extends CipherSpi {
             if (publicKey == null) {
                 throw new IllegalStateException("Public key not set");
             }
-            return SDFJceNative.sm2Encrypt(publicKey.getX(), publicKey.getY(), data);
+            // Native layer outputs GM/T format: 0x04 || C1 || C3 || C2
+            return SDFJceNative.sm2Encrypt(sessionHandle, publicKey.getX(), publicKey.getY(), data);
         } else {
             if (privateKey == null) {
                 throw new IllegalStateException("Private key not set");
             }
-            return SDFJceNative.sm2Decrypt(privateKey.getKeyBytes(), data);
+            // Native layer expects GM/T format: 0x04 || C1 || C3 || C2
+            return SDFJceNative.sm2Decrypt(sessionHandle, privateKey.getKeyBytes(), data);
         }
     }
 
@@ -182,6 +198,17 @@ public final class SM2Cipher extends CipherSpi {
             }
         } catch (IllegalBlockSizeException | BadPaddingException e) {
             throw new InvalidKeyException("Unwrap failed", e);
+        }
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
         }
     }
 }

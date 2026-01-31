@@ -14,7 +14,7 @@ package org.openhitls.sdf4j.jce.random;
 
 import java.security.SecureRandomSpi;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 
 /**
  * SecureRandom implementation using SDF hardware random number generator
@@ -22,8 +22,13 @@ import org.openhitls.sdf4j.jce.native_.SDFJceNative;
 public final class SDFSecureRandom extends SecureRandomSpi {
 
     private static final long serialVersionUID = 1L;
+    private final long sessionHandle;
 
     public SDFSecureRandom() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
     }
 
     @Override
@@ -36,7 +41,7 @@ public final class SDFSecureRandom extends SecureRandomSpi {
         if (bytes == null || bytes.length == 0) {
             return;
         }
-        byte[] random = SDFJceNative.generateRandom(bytes.length);
+        byte[] random = SDFJceNative.generateRandom(sessionHandle, bytes.length);
         System.arraycopy(random, 0, bytes, 0, bytes.length);
     }
 
@@ -45,6 +50,17 @@ public final class SDFSecureRandom extends SecureRandomSpi {
         if (numBytes <= 0) {
             return new byte[0];
         }
-        return SDFJceNative.generateRandom(numBytes);
+        return SDFJceNative.generateRandom(sessionHandle, numBytes);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }

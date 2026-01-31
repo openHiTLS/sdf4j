@@ -14,28 +14,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include "jce_common.h"
-#include "session_pool.h"
 #include "dynamic_loader.h"
-#include "sdf_log.h"
-
-/* SM3上下文 */
-typedef struct {
-    HANDLE session;
-    int initialized;
-} SM3Context;
 
 /*
  * Class:     org_openhitls_sdf4j_jce_native_SDFJceNative
  * Method:    sm3Digest
  * Signature: ([B)[B
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Digest(
-    JNIEnv *env, jclass cls, jbyteArray data)
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm3Digest(JNIEnv *env, jclass cls, jlong sessionHandle, jbyteArray data)
 {
     (void)cls;
-
-    CHECK_INITIALIZED_RET(env, NULL);
+    CHECK_INIT_RET(env, NULL);
     CHECK_FUNCTION_RET(SDF_HashInit, env, "SDF_HashInit", NULL);
     CHECK_FUNCTION_RET(SDF_HashUpdate, env, "SDF_HashUpdate", NULL);
     CHECK_FUNCTION_RET(SDF_HashFinal, env, "SDF_HashFinal", NULL);
@@ -52,41 +41,35 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Digest(
         return NULL;
     }
 
-    /* 获取会话 */
-    HANDLE session = session_pool_acquire();
-    if (session == NULL) {
-        (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
-        throw_jce_exception(env, SDR_OPENSESSION, "Failed to acquire session");
-        return NULL;
-    }
-
     BYTE hash[SM3_DIGEST_LENGTH];
     ULONG hashLen = SM3_DIGEST_LENGTH;
-    LONG ret;
-
-    /* Init -> Update -> Final */
-    ret = g_sdf_functions.SDF_HashInit(session, SGD_SM3, NULL, NULL, 0);
-    if (ret == SDR_OK && dataLen > 0) {
-        ret = g_sdf_functions.SDF_HashUpdate(session, (BYTE *)dataBytes, (ULONG)dataLen);
-    }
-    if (ret == SDR_OK) {
-        ret = g_sdf_functions.SDF_HashFinal(session, hash, &hashLen);
-    }
-
-    /* 释放资源 */
-    session_pool_release(session);
-    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
-
+    jbyteArray result = NULL;
+    LONG ret = g_sdf_functions.SDF_HashInit((HANDLE)sessionHandle, SGD_SM3, NULL, NULL, 0);
     if (ret != SDR_OK) {
-        throw_jce_exception(env, (int)ret, "SM3 digest failed");
-        return NULL;
+        throw_jce_exception(env, (int)ret, "SM3 digest init failed");
+        goto ERR;
     }
 
-    /* 创建返回数组 */
-    jbyteArray result = (*env)->NewByteArray(env, (jsize)hashLen);
-    if (result != NULL) {
-        (*env)->SetByteArrayRegion(env, result, 0, (jsize)hashLen, (jbyte *)hash);
+    ret = g_sdf_functions.SDF_HashUpdate((HANDLE)sessionHandle, (BYTE *)dataBytes, (ULONG)dataLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM3 digest update failed");
+        goto ERR;
     }
+
+    ret = g_sdf_functions.SDF_HashFinal((HANDLE)sessionHandle, hash, &hashLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM3 digest final failed");
+        goto ERR;
+    }
+
+    result = (*env)->NewByteArray(env, (jsize)hashLen);
+    if (result == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
+        goto ERR;
+    }
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize)hashLen, (jbyte *)hash);
+ERR:
+    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
     return result;
 }
 
@@ -95,13 +78,10 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Digest(
  * Method:    sm3Init
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Init(
-    JNIEnv *env, jclass cls)
+JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm3Init(JNIEnv *env, jclass cls, jlong sessionHandle)
 {
     (void)cls;
-
-    CHECK_INITIALIZED_RET(env, 0);
+    CHECK_INIT_RET(env, 0);
     CHECK_FUNCTION_RET(SDF_HashInit, env, "SDF_HashInit", 0);
 
     SM3Context *ctx = (SM3Context *)malloc(sizeof(SM3Context));
@@ -111,16 +91,9 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Init(
     }
     memset(ctx, 0, sizeof(SM3Context));
 
-    ctx->session = session_pool_acquire();
-    if (ctx->session == NULL) {
-        free(ctx);
-        throw_jce_exception(env, SDR_OPENSESSION, "Failed to acquire session");
-        return 0;
-    }
-
-    LONG ret = g_sdf_functions.SDF_HashInit(ctx->session, SGD_SM3, NULL, NULL, 0);
+    ctx->session_handle = (HANDLE)sessionHandle;
+    LONG ret = g_sdf_functions.SDF_HashInit(ctx->session_handle, SGD_SM3, NULL, NULL, 0);
     if (ret != SDR_OK) {
-        session_pool_release(ctx->session);
         free(ctx);
         throw_jce_exception(env, (int)ret, "SM3 init failed");
         return 0;
@@ -135,13 +108,12 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Init(
  * Method:    sm3Update
  * Signature: (J[BII)V
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Update(
-    JNIEnv *env, jclass cls, jlong ctxHandle, jbyteArray data, jint offset, jint len)
+JNIEXPORT void JNICALL JNI_SDFJceNative_sm3Update(JNIEnv *env, jclass cls, jlong ctxHandle, jbyteArray data,
+    jint offset, jint len)
 {
     (void)cls;
 
-    CHECK_INITIALIZED(env);
+    CHECK_INIT(env);
     CHECK_FUNCTION(SDF_HashUpdate, env, "SDF_HashUpdate");
 
     SM3Context *ctx = (SM3Context *)(uintptr_t)ctxHandle;
@@ -150,17 +122,13 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Update(
         return;
     }
 
-    if (data == NULL || len <= 0) {
-        return; /* 空更新 */
-    }
-
     jbyte *dataBytes = (*env)->GetByteArrayElements(env, data, NULL);
     if (dataBytes == NULL) {
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get byte array");
         return;
     }
 
-    LONG ret = g_sdf_functions.SDF_HashUpdate(ctx->session,
+    LONG ret = g_sdf_functions.SDF_HashUpdate(ctx->session_handle,
                                                (BYTE *)(dataBytes + offset),
                                                (ULONG)len);
 
@@ -176,13 +144,10 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Update(
  * Method:    sm3Final
  * Signature: (J)[B
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Final(
-    JNIEnv *env, jclass cls, jlong ctxHandle)
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm3Final(JNIEnv *env, jclass cls, jlong ctxHandle)
 {
     (void)cls;
-
-    CHECK_INITIALIZED_RET(env, NULL);
+    CHECK_INIT_RET(env, NULL);
     CHECK_FUNCTION_RET(SDF_HashFinal, env, "SDF_HashFinal", NULL);
 
     SM3Context *ctx = (SM3Context *)(uintptr_t)ctxHandle;
@@ -194,22 +159,20 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Final(
     BYTE hash[SM3_DIGEST_LENGTH];
     ULONG hashLen = SM3_DIGEST_LENGTH;
 
-    LONG ret = g_sdf_functions.SDF_HashFinal(ctx->session, hash, &hashLen);
-
-    /* 释放资源 */
-    session_pool_release(ctx->session);
-    ctx->initialized = 0;
-    free(ctx);
+    LONG ret = g_sdf_functions.SDF_HashFinal(ctx->session_handle, hash, &hashLen);
 
     if (ret != SDR_OK) {
         throw_jce_exception(env, (int)ret, "SM3 final failed");
         return NULL;
     }
 
+    ctx->initialized = 0;
     jbyteArray result = (*env)->NewByteArray(env, (jsize)hashLen);
-    if (result != NULL) {
-        (*env)->SetByteArrayRegion(env, result, 0, (jsize)hashLen, (jbyte *)hash);
+    if (result == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
+        return NULL;
     }
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize)hashLen, (jbyte *)hash);
     return result;
 }
 
@@ -218,9 +181,7 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Final(
  * Method:    sm3Free
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Free(
-    JNIEnv *env, jclass cls, jlong ctxHandle)
+JNIEXPORT void JNICALL JNI_SDFJceNative_sm3Free(JNIEnv *env, jclass cls, jlong ctxHandle)
 {
     (void)env;
     (void)cls;
@@ -230,8 +191,5 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_sm3Free(
         return;
     }
 
-    if (ctx->initialized && ctx->session != NULL) {
-        session_pool_release(ctx->session);
-    }
     free(ctx);
 }

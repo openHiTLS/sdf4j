@@ -40,31 +40,20 @@ include_directories(
 # 注意：不包含jni_cache.c和type_conversion.c，因为它们引用sdf4j core的Java类
 set(COMMON_SOURCES
     ${SDF4J_NATIVE_DIR}/src/dynamic_loader.c
-    ${SDF4J_NATIVE_DIR}/src/sdf_log.c
 )
 
-# JCE特有源文件
-set(JCE_SOURCES
-    src/sdf_jce_init.c
-    src/session_pool.c
-    src/auth_manager.c
-    src/sdf_jce_sm3.c
-    src/sdf_jce_sm4.c
-    src/sdf_jce_sm2.c
-    src/sdf_jce_mac.c
-    src/sdf_jce_random.c
-    src/sdf_jce_keygen.c
+# JCE源文件
+file(GLOB JCE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
-# 头文件
-set(HEADERS
-    include/session_pool.h
-    include/auth_manager.h
-    include/jce_common.h
+# JCE头文件
+file(GLOB JCE_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
 )
 
 # 创建共享库
-add_library(sdf4j-jce SHARED ${COMMON_SOURCES} ${JCE_SOURCES} ${HEADERS})
+add_library(sdf4j-jce SHARED ${COMMON_SOURCES} ${JCE_SOURCES} ${JCE_HEADERS})
 
 # 链接库
 target_link_libraries(sdf4j-jce PRIVATE dl pthread)

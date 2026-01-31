@@ -65,7 +65,7 @@ public class SM2ParameterSpec implements AlgorithmParameterSpec {
         if (publicKey == null) {
             throw new IllegalArgumentException("Public key cannot be null");
         }
-        this.userId = userId.clone();
+        this.userId = userId;
         this.publicKey = publicKey;
     }
 
@@ -75,7 +75,7 @@ public class SM2ParameterSpec implements AlgorithmParameterSpec {
      * @return a copy of the user ID bytes
      */
     public byte[] getUserId() {
-        return userId.clone();
+        return userId;
     }
 
     /**

@@ -30,8 +30,8 @@ public class SM2PublicKey implements PublicKey {
         if (x == null || x.length != 32 || y == null || y.length != 32) {
             throw new IllegalArgumentException("X and Y must be 32 bytes each");
         }
-        this.x = x.clone();
-        this.y = y.clone();
+        this.x = x;
+        this.y = y;
     }
 
     /**
@@ -41,8 +41,10 @@ public class SM2PublicKey implements PublicKey {
         if (combined == null || combined.length != 64) {
             throw new IllegalArgumentException("Combined key must be 64 bytes");
         }
-        this.x = Arrays.copyOfRange(combined, 0, 32);
-        this.y = Arrays.copyOfRange(combined, 32, 64);
+        this.x = new byte[32];
+        this.y = new byte[32];
+        System.arraycopy(combined, 0, this.x, 0, 32);
+        System.arraycopy(combined, 32, this.y, 0, 32);
     }
 
     @Override
@@ -64,11 +66,11 @@ public class SM2PublicKey implements PublicKey {
     }
 
     public byte[] getX() {
-        return x.clone();
+        return x;
     }
 
     public byte[] getY() {
-        return y.clone();
+        return y;
     }
 
     @Override

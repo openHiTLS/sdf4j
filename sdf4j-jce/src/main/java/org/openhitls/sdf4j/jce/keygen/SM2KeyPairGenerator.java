@@ -11,22 +11,30 @@
  */
 
 package org.openhitls.sdf4j.jce.keygen;
-
-import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidParameterException;
+import java.security.KeyPair;
+import java.security.KeyPairGeneratorSpi;
+import java.security.SecureRandom;
 
 import org.openhitls.sdf4j.jce.key.SM2PrivateKey;
 import org.openhitls.sdf4j.jce.key.SM2PublicKey;
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 
 /**
  * SM2 KeyPairGenerator implementation
  */
 public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
 
+    private final long sessionHandle;
     private SecureRandom random;
 
     public SM2KeyPairGenerator() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
     }
 
     @Override
@@ -45,7 +53,7 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
     @Override
     public KeyPair generateKeyPair() {
         // Returns byte[96]: privateKey(32) || publicKeyX(32) || publicKeyY(32)
-        byte[] keyData = SDFJceNative.sm2GenerateKeyPair();
+        byte[] keyData = SDFJceNative.sm2GenerateKeyPair(sessionHandle);
 
         byte[] privateKeyBytes = new byte[32];
         byte[] publicKeyX = new byte[32];
@@ -59,5 +67,16 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
         SM2PublicKey publicKey = new SM2PublicKey(publicKeyX, publicKeyY);
 
         return new KeyPair(publicKey, privateKey);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }

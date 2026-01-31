@@ -12,7 +12,7 @@
 
 package org.openhitls.sdf4j.jce.util;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 
 /**
  * SM2 utility class for Z value calculation according to GM/T 0009-2012.
@@ -57,12 +57,13 @@ public final class SM2Util {
      *
      * Z = SM3(ENTLA || IDA || a || b || xG || yG || xA || yA)
      *
+     * @param sessionHandle Session handle from {@link org.openhitls.sdf4j.jce.SDFJceNative#openSession()}
      * @param userId   user identifier (IDA)
      * @param publicX  public key x-coordinate (xA, 32 bytes)
      * @param publicY  public key y-coordinate (yA, 32 bytes)
      * @return 32-byte Z value
      */
-    public static byte[] calculateZ(byte[] userId, byte[] publicX, byte[] publicY) {
+    public static byte[] calculateZ(long sessionHandle, byte[] userId, byte[] publicX, byte[] publicY) {
         if (userId == null || userId.length == 0) {
             throw new IllegalArgumentException("User ID cannot be null or empty");
         }
@@ -118,17 +119,18 @@ public final class SM2Util {
         System.arraycopy(publicY, 0, data, offset, 32);
 
         // Z = SM3(data)
-        return SDFJceNative.sm3Digest(data);
+        return SDFJceNative.sm3Digest(sessionHandle, data);
     }
 
     /**
      * Calculate the message hash e = SM3(Z || M) for SM2 signature
      *
+     * @param sessionHandle Session handle from {@link org.openhitls.sdf4j.jce.SDFJceNative#openSession()}
      * @param z       the Z value (32 bytes)
      * @param message the message to sign
      * @return 32-byte hash value e
      */
-    public static byte[] calculateE(byte[] z, byte[] message) {
+    public static byte[] calculateE(long sessionHandle, byte[] z, byte[] message) {
         if (z == null || z.length != 32) {
             throw new IllegalArgumentException("Z value must be 32 bytes");
         }
@@ -140,16 +142,18 @@ public final class SM2Util {
         System.arraycopy(z, 0, data, 0, z.length);
         System.arraycopy(message, 0, data, z.length, message.length);
 
-        return SDFJceNative.sm3Digest(data);
+        return SDFJceNative.sm3Digest(sessionHandle, data);
     }
 
     /**
      * Convert hex string to byte array
      */
     private static byte[] hexToBytes(String hex) {
-        int len = hex.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
+        if (hex == null || hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Invalid hex string");
+        }
+        byte[] data = new byte[hex.length() / 2];
+        for (int i = 0; i < hex.length(); i += 2) {
             data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
                                  + Character.digit(hex.charAt(i + 1), 16));
         }

@@ -19,7 +19,8 @@ import java.io.ByteArrayOutputStream;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
+import java.util.Arrays;
 
 /**
  * SM4-MAC (CBC-MAC) implementation
@@ -30,11 +31,16 @@ public final class SM4Mac extends MacSpi {
     private static final int KEY_LENGTH = 16;
     private static final int IV_LENGTH = 16;
 
+    private final long sessionHandle;
     private byte[] key;
     private byte[] iv;
     private ByteArrayOutputStream buffer;
 
     public SM4Mac() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
         this.buffer = new ByteArrayOutputStream();
         this.iv = new byte[IV_LENGTH]; // Default zero IV
     }
@@ -47,6 +53,9 @@ public final class SM4Mac extends MacSpi {
     @Override
     protected void engineInit(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
+        // Clean up existing key before re-initializing
+        cleanupKey();
+
         if (!(key instanceof SecretKey)) {
             throw new InvalidKeyException("Key must be a SecretKey");
         }
@@ -62,7 +71,7 @@ public final class SM4Mac extends MacSpi {
                 if (paramIv.length != IV_LENGTH) {
                     throw new InvalidAlgorithmParameterException("IV must be 16 bytes");
                 }
-                this.iv = paramIv.clone();
+                this.iv = paramIv;
             } else {
                 throw new InvalidAlgorithmParameterException("Unsupported parameter type");
             }
@@ -87,11 +96,37 @@ public final class SM4Mac extends MacSpi {
     protected byte[] engineDoFinal() {
         byte[] data = buffer.toByteArray();
         buffer.reset();
-        return SDFJceNative.sm4Mac(key, iv, data);
+        return SDFJceNative.sm4Mac(sessionHandle, key, iv, data);
     }
 
     @Override
     protected void engineReset() {
         buffer.reset();
+    }
+
+    /**
+     * Clean up sensitive key material
+     */
+    private void cleanupKey() {
+        if (key != null) {
+            Arrays.fill(key, (byte) 0);
+            key = null;
+        }
+        if (iv != null && iv.length == IV_LENGTH) {
+            // Only clear IV if we own it (not externally provided via params)
+            // For simplicity, we clear it here as it's typically not sensitive
+        }
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            cleanupKey();
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }

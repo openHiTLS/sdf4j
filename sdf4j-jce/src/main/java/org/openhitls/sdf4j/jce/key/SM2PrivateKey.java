@@ -30,7 +30,7 @@ public class SM2PrivateKey implements PrivateKey {
         if (keyBytes == null || keyBytes.length != 32) {
             throw new IllegalArgumentException("Key must be 32 bytes");
         }
-        this.keyBytes = keyBytes.clone();
+        this.keyBytes = keyBytes;
     }
 
     @Override
@@ -73,8 +73,4 @@ public class SM2PrivateKey implements PrivateKey {
         return Arrays.hashCode(keyBytes);
     }
 
-    @Override
-    public String toString() {
-        return "SM2PrivateKey [key=****]";
-    }
 }

@@ -101,16 +101,6 @@ public class SM2KeyTest {
         assertArrayEquals(expected, destroyed);
     }
 
-    @Test
-    public void testPrivateKeyToString() {
-        SM2PrivateKey key = new SM2PrivateKey(TEST_PRIVATE_KEY);
-        String str = key.toString();
-
-        // Should not contain actual key material
-        assertFalse(str.contains("01"));
-        assertTrue(str.contains("SM2PrivateKey"));
-    }
-
     // ==================== SM2PublicKey Tests ====================
 
     @Test

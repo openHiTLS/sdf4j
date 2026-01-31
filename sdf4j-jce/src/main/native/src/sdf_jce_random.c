@@ -13,48 +13,32 @@
 #include <jni.h>
 #include <stdlib.h>
 #include "jce_common.h"
-#include "session_pool.h"
 #include "dynamic_loader.h"
-#include "sdf_log.h"
-
-#define MAX_RANDOM_LENGTH (1024 * 1024)  /* 1MB */
 
 /*
  * Class:     org_openhitls_sdf4j_jce_native_SDFJceNative
  * Method:    generateRandom
  * Signature: (I)[B
  */
-JNIEXPORT jbyteArray JNICALL
-Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_generateRandom(
-    JNIEnv *env, jclass cls, jint length)
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_generateRandom(JNIEnv *env, jclass cls, jlong sessionHandle, jint length)
 {
     (void)cls;
-
-    CHECK_INITIALIZED_RET(env, NULL);
+    CHECK_INIT_RET(env, NULL);
     CHECK_FUNCTION_RET(SDF_GenerateRandom, env, "SDF_GenerateRandom", NULL);
 
-    if (length <= 0 || length > MAX_RANDOM_LENGTH) {
+    if (length <= 0) {
         throw_exception(env, "java/lang/IllegalArgumentException",
-                       "Length must be between 1 and 1048576");
-        return NULL;
-    }
-
-    HANDLE session = session_pool_acquire();
-    if (session == NULL) {
-        throw_jce_exception(env, SDR_OPENSESSION, "Failed to acquire session");
+                       "Length must be greater than 0");
         return NULL;
     }
 
     BYTE *random = (BYTE *)malloc((size_t)length);
     if (random == NULL) {
-        session_pool_release(session);
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate buffer");
         return NULL;
     }
 
-    LONG ret = g_sdf_functions.SDF_GenerateRandom(session, (ULONG)length, random);
-
-    session_pool_release(session);
+    LONG ret = g_sdf_functions.SDF_GenerateRandom((HANDLE)sessionHandle, (ULONG)length, random);
 
     if (ret != SDR_OK) {
         free(random);
@@ -63,9 +47,13 @@ Java_org_openhitls_sdf4j_jce_native_1_SDFJceNative_generateRandom(
     }
 
     jbyteArray result = (*env)->NewByteArray(env, length);
-    if (result != NULL) {
-        (*env)->SetByteArrayRegion(env, result, 0, length, (jbyte *)random);
+    if (result == NULL) {
+        free(random);
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
+        return NULL;
     }
+    /* length > 0 is guaranteed by earlier check */
+    (*env)->SetByteArrayRegion(env, result, 0, length, (jbyte *)random);
 
     free(random);
     return result;

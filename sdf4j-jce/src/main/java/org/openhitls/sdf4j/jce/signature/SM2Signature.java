@@ -18,9 +18,10 @@ import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.key.SM2PrivateKey;
 import org.openhitls.sdf4j.jce.key.SM2PublicKey;
-import org.openhitls.sdf4j.jce.native_.SDFJceNative;
+import org.openhitls.sdf4j.jce.SDFJceNative;
 import org.openhitls.sdf4j.jce.spec.SM2ParameterSpec;
 import org.openhitls.sdf4j.jce.util.SM2Util;
+import org.openhitls.sdf4j.jce.util.DERCodec;
 
 /**
  * SM2 Signature implementation (SM3withSM2)
@@ -39,6 +40,7 @@ import org.openhitls.sdf4j.jce.util.SM2Util;
  */
 public final class SM2Signature extends SignatureSpi {
 
+    private final long sessionHandle;
     private SM2PrivateKey privateKey;
     private SM2PublicKey publicKey;
     private ByteArrayOutputStream data;
@@ -46,6 +48,10 @@ public final class SM2Signature extends SignatureSpi {
     private byte[] userId = SM2ParameterSpec.DEFAULT_USER_ID;
 
     public SM2Signature() {
+        this.sessionHandle = SDFJceNative.openSession();
+        if (sessionHandle == 0) {
+            throw new IllegalStateException("Failed to open SDF session");
+        }
         this.data = new ByteArrayOutputStream();
     }
 
@@ -103,13 +109,16 @@ public final class SM2Signature extends SignatureSpi {
         data.reset();
 
         // Calculate Z value according to GM/T 0009-2012
-        byte[] z = SM2Util.calculateZ(userId, publicKey.getX(), publicKey.getY());
+        byte[] z = SM2Util.calculateZ(sessionHandle, userId, publicKey.getX(), publicKey.getY());
 
         // Calculate e = SM3(Z || M)
-        byte[] e = SM2Util.calculateE(z, dataBytes);
+        byte[] e = SM2Util.calculateE(sessionHandle, z, dataBytes);
 
-        // Sign the hash e
-        return SDFJceNative.sm2Sign(privateKey.getKeyBytes(), e);
+        // Sign the hash e (returns r||s format, 64 bytes)
+        byte[] rawSignature = SDFJceNative.sm2Sign(sessionHandle, privateKey.getKeyBytes(), e);
+
+        // Convert to DER format for compatibility with Bouncy Castle and other providers
+        return DERCodec.rawToDer(rawSignature);
     }
 
     @Override
@@ -122,13 +131,16 @@ public final class SM2Signature extends SignatureSpi {
         data.reset();
 
         // Calculate Z value according to GM/T 0009-2012
-        byte[] z = SM2Util.calculateZ(userId, publicKey.getX(), publicKey.getY());
+        byte[] z = SM2Util.calculateZ(sessionHandle, userId, publicKey.getX(), publicKey.getY());
 
         // Calculate e = SM3(Z || M)
-        byte[] e = SM2Util.calculateE(z, dataBytes);
+        byte[] e = SM2Util.calculateE(sessionHandle, z, dataBytes);
 
-        // Verify the signature
-        return SDFJceNative.sm2Verify(publicKey.getX(), publicKey.getY(), e, sigBytes);
+        // Convert signature to raw format (r||s, 64 bytes) from DER format
+        byte[] rawSignature = DERCodec.derToRaw(sigBytes);
+
+        // Verify the signature (expects r||s format, 64 bytes)
+        return SDFJceNative.sm2Verify(sessionHandle, publicKey.getX(), publicKey.getY(), e, rawSignature);
     }
 
     @Override
@@ -157,5 +169,16 @@ public final class SM2Signature extends SignatureSpi {
     @Deprecated
     protected Object engineGetParameter(String param) throws InvalidParameterException {
         throw new InvalidParameterException("Not supported");
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (sessionHandle != 0) {
+                SDFJceNative.closeSession(sessionHandle);
+            }
+        } finally {
+            super.finalize();
+        }
     }
 }
