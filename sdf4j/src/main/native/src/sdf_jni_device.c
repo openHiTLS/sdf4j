@@ -185,6 +185,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
 
     jbyte *random = (*env)->GetPrimitiveArrayCritical(env, result, NULL);
     if (random == NULL) {
+        (*env)->DeleteLocalRef(env, result);
         SDF_LOG_ERROR("SDF_GenerateRandom", "GetPrimitiveArrayCritical failed");
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
@@ -194,6 +195,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
     (*env)->ReleasePrimitiveArrayCritical(env, result, random, 0);
 
     if (ret != SDR_OK) {
+        (*env)->DeleteLocalRef(env, result);
         throw_sdf_exception(env, ret);
         return NULL;
     }

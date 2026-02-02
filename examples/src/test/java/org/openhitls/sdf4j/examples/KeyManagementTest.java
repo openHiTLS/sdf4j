@@ -180,7 +180,7 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] ECC 签名公钥导出功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部签名密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部签名密钥不存在，密钥索引: " + keyIndex);
             } else {
                 throw e;
             }
@@ -219,7 +219,7 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] ECC 加密公钥导出功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部加密密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部加密密钥不存在，密钥索引: " + keyIndex);
             } else {
                 throw e;
             }
@@ -234,7 +234,7 @@ public class KeyManagementTest {
      * 测试 6.3.9 SDF_GenerateKeyWithIPK_ECC - 生成会话密钥并用内部 ECC 公钥加密输出
      */
     @Test
-    public void testGenerateKeyWithIPK_ECC() throws SDFException {
+    public void testGenerateKeyWithIPK_ECC() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.9 SDF_GenerateKeyWithIPK_ECC - 生成会话密钥并用内部 ECC 公钥加密输出");
         System.out.println("----------------------------------------");
 
@@ -252,7 +252,7 @@ public class KeyManagementTest {
                 System.out.println("成功获取私钥访问权限");
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                    System.out.println("获取私钥权限不需要或不支持，继续测试...");
+                    System.out.println("获取私钥权限不支持，继续测试...");
                 } else {
                     throw e;
                 }
@@ -274,15 +274,41 @@ public class KeyManagementTest {
             System.out.println("  加密密钥长度: " + encryptedKey.length + " bytes");
             System.out.println("  加密密钥(ECC Cipher): " + bytesToHex(encryptedKey).substring(0, Math.min(64, encryptedKey.length * 2)) + "...");
 
-            System.out.println("[通过] 内部 ECC 公钥生成会话密钥成功\n");
+            // 验证生成的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证生成的会话密钥可用性:");
+            byte[] testData = "0123456789ABCDEF".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            try {
+                byte[] encryptedData = sdf.SDF_Encrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+                assertNotNull("加密数据不应为空", encryptedData);
+                System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+                byte[] decryptedData = sdf.SDF_Decrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+                assertNotNull("解密数据不应为空", decryptedData);
+                System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+                assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+                System.out.println("  会话密钥可用性验证通过");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("  加密功能未实现，跳过可用性验证");
+                } else {
+                    throw e;
+                }
+            }
+
+            System.out.println("[通过] 内部 ECC 公钥生成会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 内部 ECC 公钥生成会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部加密密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部加密密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误，可能密钥长度不支持\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误，可能密钥长度不支持");
             } else {
                 throw e;
             }
@@ -310,7 +336,7 @@ public class KeyManagementTest {
      * 测试 6.3.10 SDF_GenerateKeyWithEPK_ECC - 生成会话密钥并用外部 ECC 公钥加密输出
      */
     @Test
-    public void testGenerateKeyWithEPK_ECC() throws SDFException {
+    public void testGenerateKeyWithEPK_ECC() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.10 SDF_GenerateKeyWithEPK_ECC - 生成会话密钥并用外部 ECC 公钥加密输出");
         System.out.println("----------------------------------------");
 
@@ -341,13 +367,39 @@ public class KeyManagementTest {
             System.out.println("  密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
             System.out.println("  加密密钥长度: " + encryptedKey.length + " bytes");
 
-            System.out.println("[通过] 外部 ECC 公钥生成会话密钥成功\n");
+            // 验证生成的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证生成的会话密钥可用性:");
+            byte[] testData = "FEDCBA9876543210".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            try {
+                byte[] encryptedData = sdf.SDF_Encrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+                assertNotNull("加密数据不应为空", encryptedData);
+                System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+                byte[] decryptedData = sdf.SDF_Decrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+                assertNotNull("解密数据不应为空", decryptedData);
+                System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+                assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+                System.out.println("  会话密钥可用性验证通过");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("  加密功能未实现，跳过可用性验证");
+                } else {
+                    throw e;
+                }
+            }
+
+            System.out.println("[通过] 外部 ECC 公钥生成会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 外部 ECC 公钥生成会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -362,12 +414,11 @@ public class KeyManagementTest {
             }
         }
     }
-
     /**
      * 测试 6.3.11 SDF_ImportKeyWithISK_ECC - 导入会话密钥并用内部 ECC 私钥解密
      */
     @Test
-    public void testImportKeyWithISK_ECC() throws SDFException {
+    public void testImportKeyWithISK_ECC() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.11 SDF_ImportKeyWithISK_ECC - 导入会话密钥并用内部 ECC 私钥解密");
         System.out.println("----------------------------------------");
 
@@ -415,15 +466,41 @@ public class KeyManagementTest {
             System.out.println("会话密钥导入成功:");
             System.out.println("  导入密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
 
-            System.out.println("[通过] 内部 ECC 私钥导入会话密钥成功\n");
+            // 验证导入的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证导入的会话密钥可用性:");
+            byte[] testData = "FEDCBA9876543210".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            try {
+                byte[] encryptedData = sdf.SDF_Encrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+                assertNotNull("加密数据不应为空", encryptedData);
+                System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+                byte[] decryptedData = sdf.SDF_Decrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+                assertNotNull("解密数据不应为空", decryptedData);
+                System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+                assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+                System.out.println("  导入的会话密钥可用性验证通过");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("  加密功能未实现，跳过可用性验证");
+                } else {
+                    throw e;
+                }
+            }
+
+            System.out.println("[通过] 内部 ECC 私钥导入会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 内部 ECC 私钥导入会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -485,6 +562,7 @@ public class KeyManagementTest {
 
             // 生成临时密钥对作为发起方临时公钥
             Object[] tmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("临时密钥对不应为空", tmpKeyPair);
             ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) tmpKeyPair[0];
             System.out.println("生成发起方临时公钥成功");
 
@@ -508,8 +586,9 @@ public class KeyManagementTest {
                 System.out.println("[跳过] 生成密钥协商参数功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
                 System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw e;
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                fail("参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -529,7 +608,7 @@ public class KeyManagementTest {
      * 测试 6.3.13 SDF_GenerateKeyWithECC - 计算会话密钥
      */
     @Test
-    public void testGenerateKeyWithECC() throws SDFException {
+    public void testGenerateKeyWithECC() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.13 SDF_GenerateKeyWithECC - 计算会话密钥");
         System.out.println("----------------------------------------");
 
@@ -557,6 +636,7 @@ public class KeyManagementTest {
             // 步骤1: 发起方生成协商数据
             ECCPublicKey sponsorPublicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
             Object[] sponsorTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("发起方临时密钥对不应为空", sponsorTmpKeyPair);
             ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) sponsorTmpKeyPair[0];
             byte[] sponsorID = "1234567812345678".getBytes();
 
@@ -569,8 +649,10 @@ public class KeyManagementTest {
             // 步骤2: 响应方生成密钥对（模拟响应方）
             System.out.println("\n步骤2: 响应方生成密钥对（模拟）");
             Object[] responseKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("响应方密钥对不应为空", responseKeyPair);
             ECCPublicKey responsePublicKey = (ECCPublicKey) responseKeyPair[0];
             Object[] responseTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("响应方临时密钥对不应为空", responseTmpKeyPair);
             ECCPublicKey responseTmpPublicKey = (ECCPublicKey) responseTmpKeyPair[0];
             byte[] responseID = "8765432187654321".getBytes();
             System.out.println("响应方密钥对生成成功");
@@ -586,15 +668,41 @@ public class KeyManagementTest {
             System.out.println("会话密钥计算成功:");
             System.out.println("  密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
 
-            System.out.println("[通过] 计算会话密钥成功\n");
+            // 验证协商的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证协商的会话密钥可用性:");
+            byte[] testData = "ATestECDHSession".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            try {
+                byte[] encryptedData = sdf.SDF_Encrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+                assertNotNull("加密数据不应为空", encryptedData);
+                System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+                byte[] decryptedData = sdf.SDF_Decrypt(
+                        sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+                assertNotNull("解密数据不应为空", decryptedData);
+                System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+                assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+                System.out.println("  会话密钥可用性验证通过");
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("  加密功能未实现，跳过可用性验证");
+                } else {
+                    throw e;
+                }
+            }
+
+            System.out.println("[通过] 计算会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 计算会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -648,14 +756,17 @@ public class KeyManagementTest {
             // 准备发起方数据
             ECCPublicKey sponsorPublicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
             Object[] sponsorTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("发起方临时密钥对不应为空", sponsorTmpKeyPair);
             ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) sponsorTmpKeyPair[0];
             byte[] sponsorID = "1234567812345678".getBytes();
             System.out.println("发起方数据准备完成");
 
             // 准备响应方数据
             Object[] responseKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("响应方密钥对不应为空", responseKeyPair);
             ECCPublicKey responsePublicKey = (ECCPublicKey) responseKeyPair[0];
             Object[] responseTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("响应方临时密钥对不应为空", responseTmpKeyPair);
             ECCPublicKey responseTmpPublicKey = (ECCPublicKey) responseTmpKeyPair[0];
             byte[] responseID = "8765432187654321".getBytes();
             System.out.println("响应方数据准备完成");
@@ -678,9 +789,9 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 产生协商数据并计算会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -711,7 +822,7 @@ public class KeyManagementTest {
      * 测试 6.3.15 SDF_GenerateKeyWithKEK - 生成会话密钥并用密钥加密密钥加密输出
      */
     @Test
-    public void testGenerateKeyWithKEK() throws SDFException {
+    public void testGenerateKeyWithKEK() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.15 SDF_GenerateKeyWithKEK - 生成会话密钥并用 KEK 加密输出");
         System.out.println("----------------------------------------");
 
@@ -753,15 +864,33 @@ public class KeyManagementTest {
             System.out.println("  加密密钥长度: " + encryptedKey.length + " bytes");
             System.out.println("  加密密钥: " + bytesToHex(encryptedKey));
 
-            System.out.println("[通过] KEK 生成会话密钥成功\n");
+            // 验证生成的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证生成的会话密钥可用性:");
+            byte[] testData = "FACECAFEBEEFBEEF".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            byte[] encryptedData = sdf.SDF_Encrypt(
+                    sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+            assertNotNull("加密数据不应为空", encryptedData);
+            System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+            byte[] decryptedData = sdf.SDF_Decrypt(
+                    sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+            assertNotNull("解密数据不应为空", decryptedData);
+            System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+            assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+            System.out.println("  会话密钥可用性验证通过");
+
+            System.out.println("[通过] KEK 生成会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] KEK 生成会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] KEK 密钥不存在，密钥索引: " + kekIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "KEK 密钥不存在，密钥索引: " + kekIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -789,7 +918,7 @@ public class KeyManagementTest {
      * 测试 6.3.16 SDF_ImportKeyWithKEK - 导入会话密钥并用密钥加密密钥解密
      */
     @Test
-    public void testImportKeyWithKEK() throws SDFException {
+    public void testImportKeyWithKEK() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 6.3.16 SDF_ImportKeyWithKEK - 导入会话密钥并用 KEK 解密");
         System.out.println("----------------------------------------");
 
@@ -830,15 +959,33 @@ public class KeyManagementTest {
             System.out.println("会话密钥导入成功:");
             System.out.println("  导入密钥句柄: 0x" + Long.toHexString(keyHandle2).toUpperCase());
 
-            System.out.println("[通过] KEK 导入会话密钥成功\n");
+            // 验证导入的会话密钥是否可用 - 进行加密测试
+            System.out.println("\n验证导入的会话密钥可用性:");
+            byte[] testData = "CAFEBABECAFEBABE".getBytes("UTF-8");  // 16 bytes
+            System.out.println("  测试数据: " + new String(testData, "UTF-8"));
+
+            byte[] encryptedData = sdf.SDF_Encrypt(
+                    sessionHandle, keyHandle2, AlgorithmID.SGD_SM4_ECB, null, testData);
+            assertNotNull("加密数据不应为空", encryptedData);
+            System.out.println("  加密成功，长度: " + encryptedData.length + " bytes");
+
+            byte[] decryptedData = sdf.SDF_Decrypt(
+                    sessionHandle, keyHandle2, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+            assertNotNull("解密数据不应为空", decryptedData);
+            System.out.println("  解密成功: " + new String(decryptedData, "UTF-8"));
+
+            assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+            System.out.println("  导入密钥可用性验证通过");
+
+            System.out.println("[通过] KEK 导入会话密钥成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] KEK 导入会话密钥功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] KEK 密钥不存在，密钥索引: " + kekIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "KEK 密钥不存在，密钥索引: " + kekIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -937,7 +1084,7 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] SDF_ImportKey 功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -1010,9 +1157,9 @@ public class KeyManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 内部密钥不存在\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部密钥不存在");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             } else {
                 throw e;
             }
@@ -1028,13 +1175,13 @@ public class KeyManagementTest {
     }
 
     @Test
-    public void testExchangeDigitEnvelopeBaseOnECC() throws SDFException {
+    public void testExchangeDigitEnvelopeBaseOnECC() throws SDFException, java.io.UnsupportedEncodingException {
         System.out.println("测试 SDF_ExchangeDigitEnvelopeBaseOnECC - ECC 数字信封转换");
         System.out.println("----------------------------------------");
-    
+
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
-    
+
         boolean keyAccessRightObtained = false;
         long keyHandle = 0;
 
@@ -1051,18 +1198,21 @@ public class KeyManagementTest {
                 }
             }
 
-            byte[] sessionKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("生成待封装的随机密钥: " + bytesToHex(sessionKey));
+            // 保存原始会话密钥用于验证
+            byte[] originalSessionKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
+            System.out.println("生成待封装的随机密钥: " + bytesToHex(originalSessionKey));
 
             // 使用内部加密公钥加密该会话密钥，直接生成 ECCCipher 对象
-            ECCCipher encDataIn = sdf.SDF_InternalEncrypt_ECC(sessionHandle, keyIndex, sessionKey);
+            ECCCipher encDataIn = sdf.SDF_InternalEncrypt_ECC(sessionHandle, keyIndex, originalSessionKey);
             assertNotNull("使用内部公钥加密生成的 ECCCipher 不应为空", encDataIn);
             System.out.println("使用内部公钥加密成功，C2 长度: " + encDataIn.getL());
 
             // 准备外部 ECC 公钥（目标公钥）
             System.out.println("生成外部 ECC 密钥对...");
             Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_3, ECC_KEY_BITS);
+            assertNotNull("外部密钥对不应为空", keyPair);
             ECCPublicKey externalPub = (ECCPublicKey) keyPair[0];
+            ECCPrivateKey externalPriv = (ECCPrivateKey) keyPair[1];
             System.out.println("外部公钥生成成功，X: " + bytesToHex(externalPub.getX()).substring(0, 16) + "...");
 
             // 调用数字信封转换接口
@@ -1076,16 +1226,46 @@ public class KeyManagementTest {
             System.out.println("数字信封转换成功:");
             System.out.println("  In.C2长度: " + encDataIn.getL());
             System.out.println("  Out.C2长度: " + encDataOut.getL());
+
+            // 验证：使用转换后的数字信封解密，应能得到原始会话密钥
+            System.out.println("\n验证数字信封转换正确性:");
+            byte[] decryptedSessionKey = sdf.SDF_ExternalDecrypt_ECC(
+                    sessionHandle, AlgorithmID.SGD_SM2_3, externalPriv, encDataOut);
+            assertArrayEquals(originalSessionKey, decryptedSessionKey);
+            System.out.println("  解密后的会话密钥: " + bytesToHex(decryptedSessionKey));
+
+            assertArrayEquals("解密后的会话密钥应与原始密钥相同", originalSessionKey, decryptedSessionKey);
+            System.out.println("  数字信封转换验证通过");
+
+            // 进一步验证：使用解密后的会话密钥进行加解密测试
+            System.out.println("\n验证解密后的会话密钥可用性:");
+            byte[] testData = "1234567890ABCDEF".getBytes("UTF-8");  // 16 bytes
+
+            // 导入会话密钥
+            keyHandle = sdf.SDF_ImportKey(sessionHandle, decryptedSessionKey);
+            assertTrue("导入的密钥句柄应大于 0", keyHandle > 0);
+            System.out.println("  会话密钥导入成功，句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
+
+            byte[] encryptedData = sdf.SDF_Encrypt(
+                    sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, testData);
+            assertNotNull("加密数据不应为空", encryptedData);
+
+            byte[] decryptedData = sdf.SDF_Decrypt(
+                    sessionHandle, keyHandle, AlgorithmID.SGD_SM4_ECB, null, encryptedData);
+            assertNotNull("解密数据不应为空", decryptedData);
+
+            assertArrayEquals("解密数据应与原始数据相同", testData, decryptedData);
+            System.out.println("  使用转换后的会话密钥加解密验证通过");
+
+            System.out.println("[通过] ECC 数字信封转换成功（已验证正确性）\n");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 设备不支持 SDF_ExchangeDigitEnvelopeBaseOnECC\n");
                 return;
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] KEK 或内部密钥不存在\n");
-                return;
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "KEK 或内部密钥不存在");
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 参数错误: " + e.getErrorCodeHex() + "\n");
-                return;
+                throw new SDFException(ErrorCode.SDR_INARGERR, "参数错误: " + e.getErrorCodeHex());
             }
             System.err.println("测试失败: " + e.getMessage());
             System.err.println("错误代码: " + e.getErrorCodeHex());
