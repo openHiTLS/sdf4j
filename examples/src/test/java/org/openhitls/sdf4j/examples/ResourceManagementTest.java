@@ -205,10 +205,7 @@ public class ResourceManagementTest {
             System.out.println("使用密钥加密成功");
 
         } catch (SDFException e) {
-            // 如果是因为密钥不存在等原因跳过测试
-            if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST ||
-                e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT ||
-                e.getErrorCode() == ErrorCode.SDR_INARGERR) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] " + e.getMessage() + "\n");
                 return;
             }

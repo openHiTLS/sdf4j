@@ -13,6 +13,7 @@
 package org.openhitls.sdf4j.examples;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -302,14 +303,13 @@ public class DeviceManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 获取私钥使用权限功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 指定密钥索引不存在\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "指定密钥索引不存在");
             } else if (e.getErrorCode() == ErrorCode.SDR_PRKRERR) {
-                System.out.println("[跳过] 私钥使用权限获取失败（密码错误或其他原因）\n");
+                throw new SDFException(ErrorCode.SDR_PRKRERR, "私钥使用权限获取失败（密码错误或其他原因）");
             } else if (e.getErrorCode() == ErrorCode.SDR_PARDENY) {
-                System.out.println("[跳过] 无私钥使用权限\n");
+                throw new SDFException(ErrorCode.SDR_PARDENY, "无私钥使用权限");
             } else {
-                System.out.println("[跳过] 错误码: 0x" + Integer.toHexString(e.getErrorCode()) +
-                                   " - " + e.getMessage() + "\n");
+                throw e;
             }
         }
     }
@@ -341,14 +341,13 @@ public class DeviceManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 释放私钥使用权限功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 指定密钥索引不存在\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "指定密钥索引不存在");
             } else if (e.getErrorCode() == ErrorCode.SDR_PRKRERR) {
-                System.out.println("[跳过] 私钥使用权限获取失败（密码错误或其他原因）\n");
+                throw new SDFException(ErrorCode.SDR_PRKRERR, "私钥使用权限获取失败（密码错误或其他原因）");
             } else if (e.getErrorCode() == ErrorCode.SDR_PARDENY) {
-                System.out.println("[跳过] 无私钥使用权限\n");
+                throw new SDFException(ErrorCode.SDR_PARDENY, "无私钥使用权限");
             } else {
-                System.out.println("[跳过] 错误码: 0x" + Integer.toHexString(e.getErrorCode()) +
-                                   " - " + e.getMessage() + "\n");
+                throw e;
             }
         }
     }
@@ -557,10 +556,7 @@ public class DeviceManagementTest {
         String configFile = "examples/src/test/resources/sdf.conf";
 
         java.io.File file = new java.io.File(configFile);
-        if (!file.exists()) {
-            System.out.println("[跳过] 配置文件不存在: " + file.getAbsolutePath() + "\n");
-            return;
-        }
+        Assume.assumeTrue("配置文件不存在: " + file.getAbsolutePath(), file.exists());
 
         System.out.println("配置文件路径: " + configFile);
 
@@ -587,8 +583,7 @@ public class DeviceManagementTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] SDF_OpenDeviceWithConf 功能未实现\n");
             } else {
-                System.out.println("[跳过] SDF_OpenDeviceWithConf 调用失败: 0x" +
-                                   Integer.toHexString(e.getErrorCode()) + " - " + e.getMessage() + "\n");
+                throw new SDFException(e.getErrorCode(), "SDF_OpenDeviceWithConf 调用失败: " + e.getMessage());
             }
         }
     }

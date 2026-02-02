@@ -247,8 +247,7 @@ public class HashOperationTest {
                 System.out.println("已导出 SM2 签名公钥, 密钥索引: " + keyIndex);
                 System.out.println("密钥长度: " + publicKey.getBits() + " bits");
             } catch (SDFException e) {
-                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT ||
-                    e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 无法导出 SM2 公钥: " + e.getMessage() + "\n");
                     return;
                 }
@@ -608,7 +607,7 @@ public class HashOperationTest {
                 System.out.println("成功获取私钥访问权限");
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                    System.out.println("获取私钥权限不需要或不支持，继续测试...");
+                    System.out.println("获取私钥权限不支持，继续测试...");
                 } else {
                     throw e;
                 }
@@ -617,6 +616,7 @@ public class HashOperationTest {
             // 使用内部 ECC 密钥生成会话密钥（128 位用于 HMAC）
             System.out.println("使用内部 ECC 密钥生成会话密钥，密钥索引: " + keyIndex);
             KeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
+            assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
             System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
             System.out.println("加密密钥长度: " + keyResult.getEncryptedKey().length + " bytes");
@@ -655,9 +655,9 @@ public class HashOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 内部 ECC 密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 输入参数错误，可能密钥索引或密钥长度不支持\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
             } else {
                 throw e;
             }
@@ -714,6 +714,7 @@ public class HashOperationTest {
 
             // 使用内部 ECC 密钥生成会话密钥
             KeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
+            assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
             System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
 
@@ -755,9 +756,9 @@ public class HashOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 内部 ECC 密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 输入参数错误，可能密钥索引或密钥长度不支持\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
             } else {
                 throw e;
             }
@@ -847,9 +848,9 @@ public class HashOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] HMAC 功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] 内部 ECC 密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                System.out.println("[跳过] 输入参数错误，可能密钥索引或密钥长度不支持\n");
+                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
             } else {
                 throw e;
             }
