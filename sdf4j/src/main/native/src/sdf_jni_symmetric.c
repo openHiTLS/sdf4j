@@ -215,14 +215,26 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
         }
     }
 
-    /* 分配输出缓冲区（预留足够空间用于填充）*/
-    ULONG enc_data_len = data_len + 16;  /* 预留填充空间 */
-    BYTE *enc_data_buf = (BYTE*)malloc(enc_data_len);
+    /* 分配输出内存，入参保证为16的整数倍，接口不负责填充*/
+    ULONG enc_data_len = data_len;
+    jbyteArray result = (*env)->NewByteArray(env, data_len);
+    if (result == NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
+        if (iv_buf != NULL) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
+        throw_sdf_exception(env, 0x0100001C);
+        return NULL;
+    }
+
+    /* 获取输出数组指针 */
+    BYTE *enc_data_buf = (BYTE*)(*env)->GetPrimitiveArrayCritical(env, result, NULL);
     if (enc_data_buf == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
         if (iv_buf != NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
+        (*env)->DeleteLocalRef(env, result);
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
@@ -237,15 +249,15 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
     }
 
     if (ret != SDR_OK) {
-        free(enc_data_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, result, enc_data_buf, JNI_ABORT);
+        (*env)->DeleteLocalRef(env, result);
         throw_sdf_exception(env, ret);
         return NULL;
     }
+
+    (*env)->ReleasePrimitiveArrayCritical(env, result, enc_data_buf, 0);
     SDF_JNI_LOG("SDF_Encrypt: output_len=%lu", enc_data_len);
     SDF_LOG_HEX("SDF_Encrypt ciphertext", enc_data_buf, enc_data_len);
-
-    jbyteArray result = native_to_java_byte_array(env, enc_data_buf, enc_data_len);
-    free(enc_data_buf);
     return result;
 }
 
@@ -289,13 +301,28 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
 
     /* 分配输出缓冲区 */
     ULONG data_len = enc_data_len;
-    BYTE *data_buf = (BYTE*)malloc(data_len);
+
+    /* 直接创建 Java 数组 */
+    jbyteArray result = (*env)->NewByteArray(env, data_len);
+    if (result == NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, encData, enc_data_buf, JNI_ABORT);
+        if (iv_buf != NULL) {
+            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
+        }
+        SDF_LOG_ERROR("SDF_Decrypt", "Failed to create result array");
+        throw_sdf_exception(env, 0x0100001C);
+        return NULL;
+    }
+
+    /* 获取输出数组指针 */
+    BYTE *data_buf = (BYTE*)(*env)->GetPrimitiveArrayCritical(env, result, NULL);
     if (data_buf == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, encData, enc_data_buf, JNI_ABORT);
         if (iv_buf != NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
-        SDF_LOG_ERROR("SDF_Decrypt", "Memory allocation failed for output");
+        (*env)->DeleteLocalRef(env, result);
+        SDF_LOG_ERROR("SDF_Decrypt", "GetPrimitiveArrayCritical failed for result array");
         throw_sdf_exception(env, 0x0100001C);
         return NULL;
     }
@@ -310,15 +337,15 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
     }
 
     if (ret != SDR_OK) {
-        free(data_buf);
+        (*env)->ReleasePrimitiveArrayCritical(env, result, data_buf, JNI_ABORT);
+        (*env)->DeleteLocalRef(env, result);
         throw_sdf_exception(env, ret);
         return NULL;
     }
 
+    (*env)->ReleasePrimitiveArrayCritical(env, result, data_buf, 0);
     SDF_JNI_LOG("SDF_Decrypt: output_len=%lu", data_len);
     SDF_LOG_HEX("SDF_Decrypt plaintext", data_buf, data_len);
-    jbyteArray result = native_to_java_byte_array(env, data_buf, data_len);
-    free(data_buf);
     return result;
 }
 

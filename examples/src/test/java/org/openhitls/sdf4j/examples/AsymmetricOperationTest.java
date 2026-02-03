@@ -177,7 +177,30 @@ public class AsymmetricOperationTest {
             assertEquals("公钥位数应为" + ECC_KEY_BITS, ECC_KEY_BITS, publicKey.getBits());
             assertEquals("私钥位数应为" + ECC_KEY_BITS, ECC_KEY_BITS, privateKey.getBits());
 
-            System.out.println("[通过] ECC 密钥对生成成功\n");
+            // 验证生成的密钥对是否可用 - 进行签名和验签测试
+            System.out.println("\n验证密钥对可用性（签名+验签）:");
+            String message = "测试生成的密钥对";
+            byte[] data = message.getBytes(StandardCharsets.UTF_8);
+
+            // 计算哈希
+            sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
+            sdf.SDF_HashUpdate(sessionHandle, data);
+            byte[] hash = sdf.SDF_HashFinal(sessionHandle);
+            System.out.println("  消息: " + message);
+            System.out.println("  哈希: " + bytesToHex(hash));
+
+            // 使用生成的私钥签名
+            ECCSignature signature = sdf.SDF_ExternalSign_ECC(
+                    sessionHandle, AlgorithmID.SGD_SM2_1, privateKey, hash);
+            assertNotNull("签名不应为空", signature);
+            System.out.println("  签名 R: " + bytesToHex(signature.getR()));
+            System.out.println("  签名 S: " + bytesToHex(signature.getS()));
+
+            // 使用生成的公钥验签
+            sdf.SDF_ExternalVerify_ECC(
+                    sessionHandle, AlgorithmID.SGD_SM2_1, publicKey, hash, signature);
+            System.out.println("  验签成功");
+            System.out.println("[通过] ECC 密钥对生成成功（已验证可用性）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
@@ -285,12 +308,9 @@ public class AsymmetricOperationTest {
                 fail("篡改数据验签应该失败");
             } catch (SDFException e) {
                 // 验签失败说明数据被篡改
-                System.out.println("验签失败，错误码: " + e.getErrorCodeHex());
+                System.out.println("篡改数据验签失败，错误码: " + e.getErrorCodeHex());
                 System.out.println("检测结果: 数据已被篡改！验签失败证明数据与签名不匹配");
             }
-
-            System.out.println("[通过] ECC 外部密钥签名验签成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] ECC 外部密钥签名验签功能未实现\n");
@@ -421,8 +441,7 @@ public class AsymmetricOperationTest {
                 System.out.println("\n已导出 ECC 签名公钥");
                 System.out.println("密钥位数: " + publicKey.getBits() + " bits");
             } catch (SDFException e) {
-                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT ||
-                    e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 无法导出 ECC 内部公钥: " + e.getErrorCodeHex() + "\n");
                     return;
                 }
@@ -467,16 +486,14 @@ public class AsymmetricOperationTest {
                 sdf.SDF_InternalVerify_ECC(sessionHandle, keyIndex, tamperedHash, signature);
                 fail("篡改数据验签应该失败");
             } catch (SDFException e) {
-                System.out.println("篡改数据验签正确失败: " + e.getErrorCodeHex());
+                System.out.println("篡改数据验签失败: " + e.getErrorCodeHex());
             }
-
-            System.out.println("[通过] ECC 内部密钥签名验签成功\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] ECC 内部密钥签名验签功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
                 throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误 (Invalid input argument)");
             } else {
@@ -527,8 +544,7 @@ public class AsymmetricOperationTest {
                 publicKey = sdf.SDF_ExportSignPublicKey_ECC(sessionHandle, keyIndex);
                 System.out.println("\n已导出 ECC 签名公钥，密钥位数: " + publicKey.getBits() + " bits");
             } catch (SDFException e) {
-                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT ||
-                    e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 无法导出 ECC 内部公钥: " + e.getErrorCodeHex() + "\n");
                     return;
                 }
@@ -623,8 +639,7 @@ public class AsymmetricOperationTest {
                 System.out.println("公钥 X: " + bytesToHex(publicKey.getX()));
                 System.out.println("公钥 Y: " + bytesToHex(publicKey.getY()));
             } catch (SDFException e) {
-                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT ||
-                    e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 无法导出 ECC 内部加密公钥: " + e.getErrorCodeHex() + "\n");
                     return;
                 }
@@ -683,7 +698,7 @@ public class AsymmetricOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] ECC 内部密钥加密解密功能未实现\n");
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("[跳过] ECC 内部密钥不存在，密钥索引: " + keyIndex + "\n");
+                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "ECC 内部密钥不存在，密钥索引: " + keyIndex);
             } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
                 throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误 (Invalid input argument)");
             } else {
@@ -721,11 +736,13 @@ public class AsymmetricOperationTest {
             // 生成两个不同的 ECC 密钥对
             System.out.println("生成密钥对 A");
             Object[] keyPairA = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("密钥对A不应为空", keyPairA);
             ECCPublicKey publicKeyA = (ECCPublicKey) keyPairA[0];
             ECCPrivateKey privateKeyA = (ECCPrivateKey) keyPairA[1];
 
             System.out.println("生成密钥对 B");
             Object[] keyPairB = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("密钥对B不应为空", keyPairB);
             ECCPublicKey publicKeyB = (ECCPublicKey) keyPairB[0];
 
             // 使用密钥对 A 签名
@@ -768,7 +785,7 @@ public class AsymmetricOperationTest {
                 );
                 fail("使用错误公钥验签应该失败");
             } catch (SDFException e) {
-                System.out.println("使用错误公钥验签正确失败: " + e.getErrorCodeHex());
+                System.out.println("使用错误公钥验签失败: " + e.getErrorCodeHex());
             }
 
             System.out.println("[通过] 密钥对隔离性测试成功\n");
@@ -800,6 +817,7 @@ public class AsymmetricOperationTest {
             // 生成 ECC 密钥对
             System.out.println("生成 SM2 密钥对");
             Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("密钥对不应为空", keyPair);
             ECCPublicKey publicKey = (ECCPublicKey) keyPair[0];
             ECCPrivateKey privateKey = (ECCPrivateKey) keyPair[1];
 
@@ -872,6 +890,7 @@ public class AsymmetricOperationTest {
             // 生成 ECC 密钥对
             System.out.println("生成 SM2 密钥对");
             Object[] keyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
+            assertNotNull("密钥对不应为空", keyPair);
             ECCPublicKey publicKey = (ECCPublicKey) keyPair[0];
             ECCPrivateKey privateKey = (ECCPrivateKey) keyPair[1];
 

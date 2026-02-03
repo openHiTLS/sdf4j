@@ -79,7 +79,7 @@ public class FileOperationTest {
      * SDF_CreateFile(hSessionHandle, pucFileName, uiNameLen, uiFileSize)
      */
     @Test
-    public void testCreateFile() {
+    public void testCreateFile() throws SDFException {
         System.out.println("测试 6.7.2 SDF_CreateFile - 创建文件");
 
         String fileName = TEST_FILE_PREFIX + "create.dat";
@@ -107,7 +107,7 @@ public class FileOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("SDF_CreateFile 功能未实现");
             } else {
-                fail("SDF_CreateFile 测试失败: " + e.getMessage());
+                throw new SDFException(e.getErrorCode(), "SDF_CreateFile 测试失败: " + e.getMessage());
             }
         }
     }
@@ -117,7 +117,7 @@ public class FileOperationTest {
      * SDF_ReadFile(hSessionHandle, pucFileName, uiNameLen, uiOffset, puiFileLength, pucBuffer)
      */
     @Test
-    public void testReadFile() {
+    public void testReadFile() throws SDFException {
         System.out.println("测试 6.7.3 SDF_ReadFile - 读取文件");
 
         String fileName = TEST_FILE_PREFIX + "read.dat";
@@ -164,7 +164,7 @@ public class FileOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("SDF_ReadFile 功能未实现");
             } else {
-                fail("SDF_ReadFile 测试失败: " + e.getMessage());
+                throw new SDFException(e.getErrorCode(), "SDF_ReadFile 测试失败: " + e.getMessage());
             }
         }
     }
@@ -174,7 +174,7 @@ public class FileOperationTest {
      * SDF_WriteFile(hSessionHandle, pucFileName, uiNameLen, uiOffset, uiFileLength, pucBuffer)
      */
     @Test
-    public void testWriteFile() {
+    public void testWriteFile() throws SDFException {
         System.out.println("测试 6.7.4 SDF_WriteFile - 写文件");
 
         String fileName = TEST_FILE_PREFIX + "write.dat";
@@ -213,7 +213,7 @@ public class FileOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("SDF_WriteFile 功能未实现");
             } else {
-                fail("SDF_WriteFile 测试失败: " + e.getMessage());
+                throw new SDFException(e.getErrorCode(), "SDF_WriteFile 测试失败: " + e.getMessage());
             }
         }
     }
@@ -223,7 +223,7 @@ public class FileOperationTest {
      * SDF_DeleteFile(hSessionHandle, pucFileName, uiNameLen)
      */
     @Test
-    public void testDeleteFile() {
+    public void testDeleteFile() throws SDFException {
         System.out.println("测试 6.7.5 SDF_DeleteFile - 删除文件");
 
         String fileName = TEST_FILE_PREFIX + "delete.dat";
@@ -248,7 +248,137 @@ public class FileOperationTest {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("SDF_DeleteFile 功能未实现");
             } else {
-                fail("SDF_DeleteFile 测试失败: " + e.getMessage());
+                throw new SDFException(e.getErrorCode(), "SDF_DeleteFile 测试失败: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 完整文件操作流程测试
+     * 创建 -> 写入 -> 读取验证 -> 删除
+     */
+    @Test
+    public void testCompleteFileOperation() throws SDFException {
+        System.out.println("测试完整文件操作流程");
+
+        String fileName = TEST_FILE_PREFIX + "complete.dat";
+        int fileSize = 512;
+
+        try {
+            // 步骤1: 创建文件
+            System.out.println("  步骤1: 创建文件");
+            System.out.println("  文件名: " + fileName + ", 大小: " + fileSize + " 字节");
+            sdf.SDF_CreateFile(sessionHandle, fileName, fileSize);
+            System.out.println("  文件创建成功");
+
+            // 步骤2: 写入数据
+            System.out.println("\n  步骤2: 写入数据");
+            String originalText = "This is a test data for file operations. 包含中文测试数据.";
+            byte[] writeData = originalText.getBytes(StandardCharsets.UTF_8);
+            System.out.println("  写入数据: " + originalText);
+            System.out.println("  写入数据(hex): " + bytesToHex(writeData));
+            System.out.println("  写入长度: " + writeData.length + " 字节");
+            sdf.SDF_WriteFile(sessionHandle, fileName, 0, writeData);
+            System.out.println("  写入成功");
+
+            // 步骤3: 读取数据验证
+            System.out.println("\n  步骤3: 读取数据验证");
+            byte[] readData = sdf.SDF_ReadFile(sessionHandle, fileName, 0, writeData.length);
+            System.out.println("  读取长度: " + readData.length + " 字节");
+            System.out.println("  读取数据(hex): " + bytesToHex(readData));
+
+            // 验证写入和读取数据一致
+            assertArrayEquals("读取数据应与写入数据一致", writeData, readData);
+            String readText = new String(readData, StandardCharsets.UTF_8);
+            System.out.println("  读取数据(text): " + readText);
+            assertEquals("读取文本应与写入文本一致", originalText, readText);
+            System.out.println("  数据一致性验证通过");
+
+            // 步骤4: 删除文件
+            System.out.println("\n  步骤4: 删除文件");
+            sdf.SDF_DeleteFile(sessionHandle, fileName);
+            System.out.println("  文件删除成功");
+
+            // 步骤5: 验证文件已删除（再次读取应失败）
+            System.out.println("\n  步骤5: 验证文件已删除");
+            try {
+                sdf.SDF_ReadFile(sessionHandle, fileName, 0, 16);
+                System.out.println("  警告: 删除后仍能读取文件，可能设备不支持");
+            } catch (SDFException e) {
+                System.out.println("  确认文件已删除（读取失败，错误码: 0x" + Integer.toHexString(e.getErrorCode()) + ")");
+            }
+
+            System.out.println("完整文件操作流程测试通过");
+
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("文件操作功能未实现");
+            } else {
+                // 清理：尝试删除测试文件
+                try {
+                    sdf.SDF_DeleteFile(sessionHandle, fileName);
+                } catch (Exception ignored) {
+                }
+                throw new SDFException(e.getErrorCode(), "完整文件操作测试失败: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 多次写入读取测试
+     * 测试分块写入和读取
+     */
+    @Test
+    public void testMultipleReadWrite() throws SDFException {
+        System.out.println("测试多次写入读取");
+
+        String fileName = TEST_FILE_PREFIX + "multiple.dat";
+        int fileSize = 512;
+
+        try {
+            // 创建文件
+            sdf.SDF_CreateFile(sessionHandle, fileName, fileSize);
+            System.out.println("  文件创建成功");
+
+            // 分三次写入不同位置的数据
+            String[] testData = {
+                "First block of data. 第一块数据。",
+                "Second block! 第二块！",
+                "Third block 123. 第三块123。"
+            };
+
+            int offset = 0;
+            for (int i = 0; i < testData.length; i++) {
+                byte[] data = testData[i].getBytes(StandardCharsets.UTF_8);
+                System.out.println("  写入块 " + (i + 1) + ": " + testData[i]);
+                sdf.SDF_WriteFile(sessionHandle, fileName, offset, data);
+                offset += data.length;
+            }
+
+            // 读取完整数据验证
+            byte[] readData = sdf.SDF_ReadFile(sessionHandle, fileName, 0, offset);
+            String readText = new String(readData, StandardCharsets.UTF_8);
+            System.out.println("  读取完整数据: " + readText);
+
+            // 验证
+            String expectedText = testData[0] + testData[1] + testData[2];
+            assertEquals("读取数据应与写入数据一致", expectedText, readText);
+            System.out.println("  数据一致性验证通过");
+
+            // 清理
+            sdf.SDF_DeleteFile(sessionHandle, fileName);
+            System.out.println("多次写入读取测试通过");
+
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("文件操作功能未实现");
+            } else {
+                // 清理
+                try {
+                    sdf.SDF_DeleteFile(sessionHandle, fileName);
+                } catch (Exception ignored) {
+                }
+                throw new SDFException(e.getErrorCode(), "多次写入读取测试失败: " + e.getMessage());
             }
         }
     }
