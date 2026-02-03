@@ -20,7 +20,7 @@ import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
 import org.openhitls.sdf4j.constants.ErrorCode;
 import org.openhitls.sdf4j.types.ECCPublicKey;
-import org.openhitls.sdf4j.types.KeyEncryptionResult;
+import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -615,11 +615,11 @@ public class HashOperationTest {
 
             // 使用内部 ECC 密钥生成会话密钥（128 位用于 HMAC）
             System.out.println("使用内部 ECC 密钥生成会话密钥，密钥索引: " + keyIndex);
-            KeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
+            ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
             System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
-            System.out.println("加密密钥长度: " + keyResult.getEncryptedKey().length + " bytes");
+            System.out.println("ECC加密密钥C2长度: " + keyResult.getEccCipher().getL() + " bytes");
 
             // 待认证的消息
             String message = "这是使用内部密钥进行 HMAC 认证的消息 / Internal key HMAC message";
@@ -713,7 +713,7 @@ public class HashOperationTest {
             }
 
             // 使用内部 ECC 密钥生成会话密钥
-            KeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
+            ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
             System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
@@ -814,7 +814,7 @@ public class HashOperationTest {
             }
 
             // 生成内部会话密钥
-            KeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
+            ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             keyHandle = keyResult.getKeyHandle();
             System.out.println("内部会话密钥生成成功，密钥句柄: " + keyHandle);
 

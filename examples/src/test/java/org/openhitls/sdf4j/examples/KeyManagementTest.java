@@ -260,19 +260,22 @@ public class KeyManagementTest {
 
             System.out.println("\n生成会话密钥，密钥索引: " + keyIndex + ", 密钥长度: " + SESSION_KEY_BITS_128 + " bits");
 
-            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, SESSION_KEY_BITS_128);
+            ECCKeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, SESSION_KEY_BITS_128);
             assertNotNull("密钥生成结果不应为空", result);
 
             keyHandle = result.getKeyHandle();
-            byte[] encryptedKey = result.getEncryptedKey();
+            ECCCipher eccCipher = result.getEccCipher();
 
-            assertNotNull("加密密钥不应为空", encryptedKey);
+            assertNotNull("ECC加密密钥不应为空", eccCipher);
             assertTrue("密钥句柄应大于 0", keyHandle > 0);
+            assertTrue("ECC加密密钥C2长度为16 bytes", eccCipher.getL() == SESSION_KEY_BITS_128 / 8);
 
             System.out.println("\n会话密钥生成成功:");
             System.out.println("  密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
-            System.out.println("  加密密钥长度: " + encryptedKey.length + " bytes");
-            System.out.println("  加密密钥(ECC Cipher): " + bytesToHex(encryptedKey).substring(0, Math.min(64, encryptedKey.length * 2)) + "...");
+            System.out.println("  ECCCipher X: " + bytesToHex(eccCipher.getX()));
+            System.out.println("  ECCCipher Y: " + bytesToHex(eccCipher.getY()));
+            System.out.println("  ECCCipher M: " + bytesToHex(eccCipher.getM()));
+            System.out.println("  ECCCipher C: " + bytesToHex(eccCipher.getC()));
 
             // 验证生成的会话密钥是否可用 - 进行加密测试
             System.out.println("\n验证生成的会话密钥可用性:");
@@ -353,19 +356,24 @@ public class KeyManagementTest {
 
             // 使用外部公钥生成会话密钥
             System.out.println("\n步骤2: 使用外部 ECC 公钥生成会话密钥");
-            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithEPK_ECC(
+            ECCKeyEncryptionResult result = sdf.SDF_GenerateKeyWithEPK_ECC(
                     sessionHandle, SESSION_KEY_BITS_128, AlgorithmID.SGD_SM2_3, publicKey);
             assertNotNull("密钥生成结果不应为空", result);
 
             keyHandle = result.getKeyHandle();
-            byte[] encryptedKey = result.getEncryptedKey();
+            ECCCipher eccCipher = result.getEccCipher();
 
-            assertNotNull("加密密钥不应为空", encryptedKey);
+            assertNotNull("加密密钥不应为空", eccCipher);
             assertTrue("密钥句柄应大于 0", keyHandle > 0);
 
             System.out.println("\n会话密钥生成成功:");
             System.out.println("  密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
-            System.out.println("  加密密钥长度: " + encryptedKey.length + " bytes");
+            assertTrue("ECC加密密钥C2长度为16 bytes", eccCipher.getL() == SESSION_KEY_BITS_128 / 8);
+
+            System.out.println("  ECCCipher X: " + bytesToHex(eccCipher.getX()));
+            System.out.println("  ECCCipher Y: " + bytesToHex(eccCipher.getY()));
+            System.out.println("  ECCCipher M: " + bytesToHex(eccCipher.getM()));
+            System.out.println("  ECCCipher C: " + bytesToHex(eccCipher.getC()));
 
             // 验证生成的会话密钥是否可用 - 进行加密测试
             System.out.println("\n验证生成的会话密钥可用性:");
@@ -442,24 +450,15 @@ public class KeyManagementTest {
                 }
             }
 
-            // 步骤1: 导出内部 ECC 加密公钥
-            System.out.println("\n步骤1: 导出内部 ECC 加密公钥，密钥索引: " + keyIndex);
-            ECCPublicKey publicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
-            System.out.println("内部公钥导出成功，密钥位数: " + publicKey.getBits() + " bits");
-
-            // 步骤2: 生成一个 16 字节的会话密钥（SM4 密钥），并用内部公钥加密
-            System.out.println("\n步骤2: 生成随机会话密钥并用内部 ECC 公钥加密");
-            byte[] sessionKey = sdf.SDF_GenerateRandom(sessionHandle, 16);  // 16 bytes = 128 bits
-            System.out.println("生成随机会话密钥: " + bytesToHex(sessionKey));
-
-            // 使用外部加密接口用内部公钥加密会话密钥
-            ECCCipher eccCipher = sdf.SDF_ExternalEncrypt_ECC(
-                    sessionHandle, AlgorithmID.SGD_SM2_3, publicKey, sessionKey);
+            // 步骤1: 使用内部ECC公钥生成会话密钥并加密
+            System.out.println("\n步骤1: 使用内部 ECC 公钥生成会话密钥并加密");
+            ECCKeyEncryptionResult keyEncResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, SESSION_KEY_BITS_128);
+            ECCCipher eccCipher =  keyEncResult.getEccCipher();
             System.out.println("会话密钥加密成功");
             System.out.println("  ECCCipher C2 长度: " + eccCipher.getL() + " bytes");
 
-            // 步骤3: 导入会话密钥并用内部 ECC 私钥解密
-            System.out.println("\n步骤3: 导入会话密钥并用内部 ECC 私钥解密");
+            // 步骤2: 导入会话密钥并用内部 ECC 私钥解密
+            System.out.println("\n步骤2: 导入会话密钥并用内部 ECC 私钥解密");
             keyHandle = sdf.SDF_ImportKeyWithISK_ECC(sessionHandle, keyIndex, eccCipher);
 
             assertTrue("导入的密钥句柄应大于 0", keyHandle > 0);
@@ -1131,7 +1130,7 @@ public class KeyManagementTest {
 
             // 生成会话密钥
             System.out.println("生成会话密钥");
-            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, SESSION_KEY_BITS_128);
+            ECCKeyEncryptionResult result = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, SESSION_KEY_BITS_128);
             long keyHandle = result.getKeyHandle();
             System.out.println("会话密钥生成成功，密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase());
 

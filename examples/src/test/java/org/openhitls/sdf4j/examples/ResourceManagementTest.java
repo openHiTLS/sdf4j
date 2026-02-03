@@ -189,14 +189,14 @@ public class ResourceManagementTest {
         try {
             // 创建密钥句柄（不手动调用 destroy）
             System.out.println("创建密钥句柄，不手动调用 destroy");
-            KeyEncryptionResult result = sdf6.SDF_GenerateKeyWithIPK_ECC(sessionHandle, 1, 128);
+            ECCKeyEncryptionResult result = sdf6.SDF_GenerateKeyWithIPK_ECC(sessionHandle, 1, 128);
             assertNotNull("密钥生成结果不应为空", result);
             assertTrue("密钥句柄应大于 0", result.getKeyHandle() > 0);
-            assertNotNull("加密密钥不应为空", result.getEncryptedKey());
+            assertNotNull("加密密钥不应为空", result.getEccCipher());
             
             long keyHandle = result.getKeyHandle();
             System.out.println("密钥句柄创建成功: keyHandle=0x" + Long.toHexString(keyHandle).toUpperCase());
-            System.out.println("加密密钥长度: " + result.getEncryptedKey().length + " bytes");
+            System.out.println("加密密钥长度: " + result.getEccCipher().getL() + " bytes");
             // 使用密钥进行加密操作
             byte[] testData = new byte[16];
             byte[] encrypted = sdf6.SDF_Encrypt(sessionHandle, keyHandle, 
