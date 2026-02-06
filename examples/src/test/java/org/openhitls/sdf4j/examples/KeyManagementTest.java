@@ -112,12 +112,6 @@ public class KeyManagementTest {
         System.out.println("========================================");
         System.out.println("SDF4J 密钥管理类函数测试");
         System.out.println("========================================\n");
-
-        // 启用 native 日志输出
-        SDF.setLogger(message -> System.out.println("[NATIVE] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
-
         sdf = new SDF();
         deviceHandle = 0;
         sessionHandle = 0;

@@ -11,23 +11,25 @@
  */
 
 #include "sdf_jni_common.h"
+#include "dynamic_loader.h"
 
 /* ========================================================================
  * NativeLibraryLoader JNI 实现
  * ======================================================================== */
 
 JNIEXPORT jboolean JNICALL
-Java_org_openhitls_sdf4j_internal_NativeLibraryLoader_nativeLoadSDFLibrary
-  (JNIEnv *env, jclass cls, jstring library_path) {
+JNI_NativeLibraryLoader_loadSDFLibrary(JNIEnv *env, jclass cls, jstring library_path) {
     UNUSED(cls);
 
     // Java层应该保证传递非null的库路径或库名
     if (library_path == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x01000006, "Library path is null"); /* SDR_INARGERR */
         return JNI_FALSE;
     }
 
     const char *path = (*env)->GetStringUTFChars(env, library_path, NULL);
     if (path == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to get library path string"); /* SDR_NOBUFFER */
         return JNI_FALSE;
     }
 
@@ -38,5 +40,11 @@ Java_org_openhitls_sdf4j_internal_NativeLibraryLoader_nativeLoadSDFLibrary
 
     (*env)->ReleaseStringUTFChars(env, library_path, path);
 
-    return result ? JNI_TRUE : JNI_FALSE;
+    if (!result) {
+        // 获取详细错误信息并抛出异常
+        const char *error = sdf_get_load_error();
+        THROW_SDF_EXCEPTION(env, 0x01000005, "%s", error ? error : "Failed to load SDF library"); /* SDR_OPENDEVICE */
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
 }

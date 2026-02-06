@@ -20,13 +20,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_RSA(JNIEnv *env, jobject o
     jint keyIndex) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExportSignPublicKey_RSA");
-    SDF_JNI_LOG("SDF_ExportSignPublicKey_RSA: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (g_sdf_functions.SDF_ExportSignPublicKey_RSA == NULL) {
-        SDF_LOG_ERROR("SDF_ExportSignPublicKey_RSA", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -36,25 +31,18 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_RSA(JNIEnv *env, jobject o
     LONG ret = g_sdf_functions.SDF_ExportSignPublicKey_RSA((HANDLE)sessionHandle,
                                                            keyIndex, &publicKey);
 
-    SDF_LOG_EXIT("SDF_ExportSignPublicKey_RSA", ret);
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to handle key operation");
         return NULL;
     }
-    SDF_JNI_LOG("SDF_ExportSignPublicKey_RSA: key_bits=%d", publicKey.bits);
     return native_to_java_RSAPublicKey(env, &publicKey);
 }
 
 JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_RSA(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExportEncPublicKey_RSA");
-    SDF_JNI_LOG("SDF_ExportEncPublicKey_RSA: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (g_sdf_functions.SDF_ExportEncPublicKey_RSA == NULL) {
-        SDF_LOG_ERROR("SDF_ExportEncPublicKey_RSA", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -62,13 +50,11 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_RSA(JNIEnv *env, jobject ob
     LONG ret = g_sdf_functions.SDF_ExportEncPublicKey_RSA((HANDLE)sessionHandle,
                                                           keyIndex, &publicKey);
 
-    SDF_LOG_EXIT("SDF_ExportEncPublicKey_RSA", ret);
     
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to handle key operation");
         return NULL;
     }
-    SDF_JNI_LOG("SDF_ExportEncPublicKey_RSA: key_bits=%d", publicKey.bits);
     return native_to_java_RSAPublicKey(env, &publicKey);
 }
 
@@ -76,13 +62,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_ECC(JNIEnv *env, jobject o
     jint keyIndex) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExportSignPublicKey_ECC");
-    SDF_JNI_LOG("SDF_ExportSignPublicKey_ECC: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (g_sdf_functions.SDF_ExportSignPublicKey_ECC == NULL) {
-        SDF_LOG_ERROR("SDF_ExportSignPublicKey_ECC", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -93,27 +74,18 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_ECC(JNIEnv *env, jobject o
                                                            keyIndex, &publicKey);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to handle key operation");
         return NULL;
     }
 
-    SDF_LOG_EXIT("SDF_ExportSignPublicKey_ECC", ret);
-    SDF_JNI_LOG("SDF_ExportSignPublicKey_ECC: key_bits=%d", publicKey.bits);
-    SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC x", publicKey.x, 32);
-    SDF_LOG_HEX("SDF_ExportSignPublicKey_ECC y", publicKey.y, 32);
     return native_to_java_ECCPublicKey(env, &publicKey);
 }
 
 JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_ECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ExportEncPublicKey_ECC");
-    SDF_JNI_LOG("SDF_ExportEncPublicKey_ECC: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     if (g_sdf_functions.SDF_ExportEncPublicKey_ECC == NULL) {
-        SDF_LOG_ERROR("SDF_ExportEncPublicKey_ECC", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -123,13 +95,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_ECC(JNIEnv *env, jobject ob
     LONG ret = g_sdf_functions.SDF_ExportEncPublicKey_ECC((HANDLE)sessionHandle,
                                                           keyIndex, &publicKey);
 
-    SDF_LOG_EXIT("SDF_ExportEncPublicKey_ECC", ret);
-    SDF_JNI_LOG("SDF_ExportEncPublicKey_ECC: key_bits=%d", publicKey.bits);
-    SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC x", publicKey.x, 32);
-    SDF_LOG_HEX("SDF_ExportEncPublicKey_ECC y", publicKey.y, 32);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to handle key operation");
         return NULL;
     }
 
@@ -140,26 +107,24 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessio
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ImportKey == NULL) {
-        SDF_LOG_ERROR("SDF_ImportKey", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return 0;
     }
 
     if (encryptedKey == NULL) {
-        SDF_LOG_ERROR("SDF_ImportKey", "encryptedKey is NULL");
-        throw_sdf_exception(env, SDR_INARGERR);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
 
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     if (key_len <= 0) {
-        throw_sdf_exception(env, 0x0100001D); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return 0;
     }
 
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, encryptedKey, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C); /* SDR_NOBUFFER */
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed"); /* SDR_NOBUFFER */
         return 0;
     }
 
@@ -172,13 +137,11 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessio
     );
 
     (*env)->ReleasePrimitiveArrayCritical(env, encryptedKey, key_buf, JNI_ABORT);
-    SDF_LOG_EXIT("SDF_ImportKey", ret);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to import key operation");
         return 0;
     }
-    SDF_JNI_LOG("SDF_ImportKey: key_handle=0x%lX", (unsigned long)key_handle);
     return (jlong)key_handle;
 }
 
@@ -186,14 +149,14 @@ JNIEXPORT void JNICALL JNI_SDF_DestroyKey(JNIEnv *env, jobject obj, jlong sessio
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_DestroyKey == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
     LONG ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)keyHandle);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to destroy key operation");
     }
 }
 

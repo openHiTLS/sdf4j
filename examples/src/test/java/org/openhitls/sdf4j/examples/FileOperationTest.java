@@ -48,11 +48,6 @@ public class FileOperationTest {
         System.out.println("6.7 用户文件操作类函数测试");
         System.out.println("========================================\n");
 
-        // 启用 native 日志输出
-        SDF.setLogger(message -> System.out.println("[NATIVE] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
-
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
