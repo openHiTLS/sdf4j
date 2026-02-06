@@ -79,11 +79,6 @@ public class SymmetricOperationTest {
         System.out.println("6.5 对称算法运算类函数测试");
         System.out.println("========================================\n");
 
-        // 启用 native 日志输出
-        SDF.setLogger(message -> System.out.println("[NATIVE] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
-
         config = TestConfig.getInstance();
         keyIndex = config.getSM4InternalKeyIndex();  // Key索引，默认为4
         kekAccessRightObtained = false;

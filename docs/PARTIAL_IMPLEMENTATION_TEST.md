@@ -342,27 +342,6 @@ Warning: Optional SDF function 'SDF_CreateFile' not available in this implementa
 
 这些警告是**正常的**，表示库加载成功但某些功能不可用。
 
-### 使用日志管理功能
-
-SDF4J提供了灵活的日志管理功能，可以控制日志输出：
-
-```java
-// 禁用文件日志，只使用Java回调日志
-SDF.setFileLoggingEnabled(false);
-SDF.setJavaLoggingEnabled(true);
-
-// 设置自定义日志回调
-SDF.setLogger(new SDFLogger() {
-    @Override
-    public void log(int level, String message) {
-        // 自定义日志处理
-        if (level >= 2) {  // 只记录WARN及以上级别
-            System.err.println("[SDF4J] " + message);
-        }
-    }
-});
-```
-
 ## 最佳实践
 
 1. **防御性编程**：调用可选函数前先try-catch

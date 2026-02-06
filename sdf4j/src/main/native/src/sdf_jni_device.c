@@ -19,16 +19,10 @@
 JNIEXPORT jlong JNICALL JNI_SDF_OpenDevice(JNIEnv *env, jobject obj) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_OpenDevice");
-
     HANDLE hDevice;
     LONG ret = g_sdf_functions.SDF_OpenDevice(&hDevice);
-
-    SDF_LOG_EXIT("SDF_OpenDevice", ret);
-    SDF_JNI_LOG("SDF_OpenDevice: hDevice=0x%lX", (unsigned long)hDevice);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to open device");
         return 0;
     }
 
@@ -38,11 +32,8 @@ JNIEXPORT jlong JNICALL JNI_SDF_OpenDevice(JNIEnv *env, jobject obj) {
 JNIEXPORT jlong JNICALL JNI_SDF_OpenDeviceWithConf(JNIEnv *env, jobject obj, jstring configFile) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_OpenDeviceWithConf");
-
     if (g_sdf_functions.SDF_OpenDeviceWithConf == NULL) {
-        SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return 0;
     }
 
@@ -51,13 +42,10 @@ JNIEXPORT jlong JNICALL JNI_SDF_OpenDeviceWithConf(JNIEnv *env, jobject obj, jst
     if (configFile != NULL) {
         configPath = (*env)->GetStringUTFChars(env, configFile, NULL);
         if (configPath == NULL) {
-            SDF_LOG_ERROR("SDF_OpenDeviceWithConf", "Failed to get config file path");
-            throw_sdf_exception(env, SDR_INARGERR);
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to get config file path");
             return 0;
         }
     }
-
-    SDF_JNI_LOG("SDF_OpenDeviceWithConf: configFile=%s", configPath ? configPath : "(null)");
 
     HANDLE hDevice = NULL;
     LONG ret = g_sdf_functions.SDF_OpenDeviceWithConf(&hDevice, configPath);
@@ -68,47 +56,32 @@ JNIEXPORT jlong JNICALL JNI_SDF_OpenDeviceWithConf(JNIEnv *env, jobject obj, jst
     }
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to open device with config");
         return 0;
     }
-    SDF_LOG_EXIT("SDF_OpenDeviceWithConf", ret);
-    SDF_JNI_LOG("SDF_OpenDeviceWithConf: hDevice=0x%lX", (unsigned long)hDevice);
     return (jlong)hDevice;
 }
 
 JNIEXPORT void JNICALL JNI_SDF_CloseDevice(JNIEnv *env, jobject obj, jlong deviceHandle) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_CloseDevice");
-    SDF_JNI_LOG("SDF_CloseDevice: hDevice=0x%lX", (unsigned long)deviceHandle);
-
     VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_CloseDevice", );
 
     LONG ret = g_sdf_functions.SDF_CloseDevice((HANDLE)deviceHandle);
-
-    SDF_LOG_EXIT("SDF_CloseDevice", ret);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to close device");
     }
 }
 
 JNIEXPORT jlong JNICALL JNI_SDF_OpenSession(JNIEnv *env, jobject obj, jlong deviceHandle) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_OpenSession");
-    SDF_JNI_LOG("SDF_OpenSession: hDevice=0x%lX", (unsigned long)deviceHandle);
-
     VALIDATE_DEVICE_HANDLE(env, deviceHandle, "SDF_OpenSession", 0);
 
     HANDLE hSession;
     LONG ret = g_sdf_functions.SDF_OpenSession((HANDLE)deviceHandle, &hSession);
-
-    SDF_LOG_EXIT("SDF_OpenSession", ret);
-    SDF_JNI_LOG("SDF_OpenSession: hSession=0x%lX", (unsigned long)hSession);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to open session");
         return 0;
     }
 
@@ -118,17 +91,11 @@ JNIEXPORT jlong JNICALL JNI_SDF_OpenSession(JNIEnv *env, jobject obj, jlong devi
 JNIEXPORT void JNICALL JNI_SDF_CloseSession(JNIEnv *env, jobject obj, jlong sessionHandle) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_CloseSession");
-    SDF_JNI_LOG("SDF_CloseSession: hSession=0x%lX", (unsigned long)sessionHandle);
-
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_CloseSession", );
 
     LONG ret = g_sdf_functions.SDF_CloseSession((HANDLE)sessionHandle);
-
-    SDF_LOG_EXIT("SDF_CloseSession", ret);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to close session");
     }
 }
 
@@ -138,7 +105,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GetDeviceInfo(JNIEnv *env, jobject obj, jlong 
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetDeviceInfo", NULL);
 
     if (g_sdf_functions.SDF_GetDeviceInfo == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -148,7 +115,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GetDeviceInfo(JNIEnv *env, jobject obj, jlong 
     LONG ret = g_sdf_functions.SDF_GetDeviceInfo((HANDLE)sessionHandle, &deviceInfo);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to get device info");
         return NULL;
     }
 
@@ -158,36 +125,28 @@ JNIEXPORT jobject JNICALL JNI_SDF_GetDeviceInfo(JNIEnv *env, jobject obj, jlong 
 JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jlong sessionHandle, jint length) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_GenerateRandom");
-    SDF_JNI_LOG("SDF_GenerateRandom: hSession=0x%lX, length=%d",
-                (unsigned long)sessionHandle, (int)length);
-
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GenerateRandom", NULL);
 
     if (g_sdf_functions.SDF_GenerateRandom == NULL) {
-        SDF_LOG_ERROR("SDF_GenerateRandom", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
     if (length <= 0 || length > 1024 * 1024) {  /* 限制最大1MB */
-        SDF_LOG_ERROR("SDF_GenerateRandom", "Invalid length parameter");
-        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid random length"); /* SDR_INARGERR */
         return NULL;
     }
 
     jbyteArray result = (*env)->NewByteArray(env, length);
     if (result == NULL) {
-        SDF_LOG_ERROR("SDF_GenerateRandom", "NewByteArray failed");
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to allocate random array"); /* SDR_NOBUFFER */
         return NULL;
     }
 
     jbyte *random = (*env)->GetPrimitiveArrayCritical(env, result, NULL);
     if (random == NULL) {
         (*env)->DeleteLocalRef(env, result);
-        SDF_LOG_ERROR("SDF_GenerateRandom", "GetPrimitiveArrayCritical failed");
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to get random array buffer"); /* SDR_NOBUFFER */
         return NULL;
     }
 
@@ -196,10 +155,9 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
 
     if (ret != SDR_OK) {
         (*env)->DeleteLocalRef(env, result);
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to generate random");
         return NULL;
     }
-    SDF_LOG_EXIT("SDF_GenerateRandom", ret);
     return result;
 }
 
@@ -207,22 +165,16 @@ JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj
     jint keyIndex, jstring password) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_GetPrivateKeyAccessRight");
-    SDF_JNI_LOG("SDF_GetPrivateKeyAccessRight: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetPrivateKeyAccessRight", );
 
     if (g_sdf_functions.SDF_GetPrivateKeyAccessRight == NULL) {
-        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
     char *pwd = java_string_to_native(env, password);
     if (pwd == NULL && password != NULL) {
-        SDF_LOG_ERROR("SDF_GetPrivateKeyAccessRight", "Failed to convert password string");
-        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid password"); /* SDR_INARGERR */
         return;
     }
 
@@ -231,8 +183,6 @@ JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj
     LONG ret = g_sdf_functions.SDF_GetPrivateKeyAccessRight((HANDLE)sessionHandle,
         keyIndex, (LPSTR)pwd, pwd_len);
 
-    SDF_LOG_EXIT("SDF_GetPrivateKeyAccessRight", ret);
-
     if (pwd != NULL) {
         /* 清除密码内存 */
         memset(pwd, 0, pwd_len);
@@ -240,7 +190,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj
     }
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to get private key access right");
     }
 }
 
@@ -251,45 +201,36 @@ JNIEXPORT void JNICALL JNI_SDF_ReleasePrivateKeyAccessRight(JNIEnv *env, jobject
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleasePrivateKeyAccessRight", );
 
     if (g_sdf_functions.SDF_ReleasePrivateKeyAccessRight == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
     LONG ret = g_sdf_functions.SDF_ReleasePrivateKeyAccessRight((HANDLE)sessionHandle, keyIndex);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to release private key access right");
     }
 }
 
 JNIEXPORT void JNICALL JNI_SDF_GetKEKAccessRight(JNIEnv *env, jobject obj, jlong sessionHandle,
     jint keyIndex, jstring password) {
     UNUSED(obj);
-
-    SDF_LOG_ENTER("SDF_GetKEKAccessRight");
-    SDF_JNI_LOG("SDF_GetKEKAccessRight: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_GetKEKAccessRight", );
 
     if (g_sdf_functions.SDF_GetKEKAccessRight == NULL) {
-        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
     char *pwd = java_string_to_native(env, password);
     if (pwd == NULL && password != NULL) {
-        SDF_LOG_ERROR("SDF_GetKEKAccessRight", "Failed to convert password string");
-        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid password"); /* SDR_INARGERR */
         return;
     }
 
     ULONG pwd_len = pwd ? strlen(pwd) : 0;
     LONG ret = g_sdf_functions.SDF_GetKEKAccessRight((HANDLE)sessionHandle,
                                                       keyIndex, (LPSTR)pwd, pwd_len);
-
-    SDF_LOG_EXIT("SDF_GetKEKAccessRight", ret);
 
     if (pwd != NULL) {
         /* 清除密码内存 */
@@ -298,7 +239,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetKEKAccessRight(JNIEnv *env, jobject obj, jlong
     }
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to get KEK access right");
     }
 }
 
@@ -306,24 +247,16 @@ JNIEXPORT void JNICALL JNI_SDF_ReleaseKEKAccessRight(JNIEnv *env, jobject obj, j
     jint keyIndex) {
     UNUSED(obj);
 
-    SDF_LOG_ENTER("SDF_ReleaseKEKAccessRight");
-    SDF_JNI_LOG("SDF_ReleaseKEKAccessRight: hSession=0x%lX, keyIndex=%d",
-                (unsigned long)sessionHandle, (int)keyIndex);
-
     VALIDATE_SESSION_HANDLE(env, sessionHandle, "SDF_ReleaseKEKAccessRight", );
 
     if (g_sdf_functions.SDF_ReleaseKEKAccessRight == NULL) {
-        SDF_LOG_ERROR("SDF_ReleaseKEKAccessRight", "Function not supported");
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
     LONG ret = g_sdf_functions.SDF_ReleaseKEKAccessRight((HANDLE)sessionHandle, keyIndex);
-
-    SDF_LOG_EXIT("SDF_ReleaseKEKAccessRight", ret);
-
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to release KEK access right");
     }
 }
 

@@ -11,7 +11,6 @@
 - [非对称加密](#非对称加密)
 - [杂凑运算](#杂凑运算)
 - [文件操作](#文件操作)
-- [日志管理](#日志管理)
 - [错误处理](#错误处理)
 - [最佳实践](#最佳实践)
 - [常见问题](#常见问题)
@@ -782,59 +781,11 @@ sdf.SDF_DeleteFile(sessionHandle, "config.dat");
 
 ---
 
-## 日志管理
-
-SDF4J提供灵活的日志管理功能，支持Java回调日志和文件日志。
-
-### 设置自定义日志回调
-
-```java
-import org.openhitls.sdf4j.SDFLogger;
-
-// 实现自定义日志回调
-SDFLogger customLogger = new SDFLogger() {
-    @Override
-    public void log(int level, String message) {
-        String levelStr = getLevelString(level);
-        System.out.println("[" + levelStr + "] " + message);
-    }
-
-    private String getLevelString(int level) {
-        switch (level) {
-            case 0: return "DEBUG";
-            case 1: return "INFO";
-            case 2: return "WARN";
-            case 3: return "ERROR";
-            default: return "UNKNOWN";
-        }
-    }
-};
-
-// 设置日志回调
-SDF.setLogger(customLogger);
-```
-
-### 控制日志输出
-
-```java
-// 启用/禁用Java回调日志
-SDF.setJavaLoggingEnabled(true);
-
-// 启用/禁用文件日志
-SDF.setFileLoggingEnabled(false);
-```
-
-### 获取当前日志实例
-
-```java
-SDFLogger currentLogger = SDF.getLogger();
-```
-
----
-
 ## 错误处理
 
 ### 捕获和处理异常
+
+SDF4J 通过 `SDFException` 报告所有错误。异常消息包含完整的调试信息（函数名、文件名、行号、错误码和错误描述），便于定位问题。
 
 ```java
 try {
@@ -846,23 +797,57 @@ try {
     String errorHex = e.getErrorCodeHex();
 
     System.err.println("错误码: " + errorHex);
-    System.err.println("错误消息: " + e.getMessage());
+
+    // 解析异常消息获取详细信息
+    // 消息格式: "Function: xxx, File: xxx, Line: xxx, ErrorNum: 0xXXXXXXXX, Message: xxx"
+    String message = e.getMessage();
+    System.err.println("完整错误信息: " + message);
 
     // 根据错误码进行处理
     switch (errorCode) {
-        case ErrorCode.SDR_NODEVICE:
-            System.err.println("设备未连接");
+        case ErrorCode.SDR_OPENDEVICE:    // 0x01000005
+            System.err.println("打开设备失败");
             break;
-        case ErrorCode.SDR_STEPERR:
-            System.err.println("操作顺序错误");
+        case ErrorCode.SDR_OPENSESSION:   // 0x01000006
+            System.err.println("打开会话失败");
             break;
-        case ErrorCode.SDR_INARGERR:
+        case ErrorCode.SDR_INARGERR:      // 0x0100001D
             System.err.println("参数错误");
             break;
+        case ErrorCode.SDR_NOTSUPPORT:    // 0x01000002
+            System.err.println("不支持该功能");
+            break;
         default:
-            System.err.println("其他错误");
+            System.err.println("其他错误: 0x" + Integer.toHexString(errorCode));
     }
 }
+```
+
+### 异常消息格式
+
+从 JNI 层抛出的异常消息包含完整的调试信息，格式为：
+
+```
+Function: 函数名, File: 文件名, Line: 行号, ErrorNum: 0xXXXXXXXX, Message: 错误描述
+```
+
+**字段说明：**
+
+| 字段 | 说明 |
+|------|------|
+| Function | JNI 函数名 |
+| File | 源文件名（不含路径） |
+| Line | 代码行号 |
+| ErrorNum | 十六进制错误码 |
+| Message | 具体错误描述 |
+
+**示例异常消息：**
+
+```
+Function: JNI_SDF_OpenDevice, File: sdf_jni_device.c, Line: 28, ErrorNum: 0x01000005, Message: Failed to open device
+Function: JNI_SDF_GenerateRandom, File: sdf_jni_device.c, Line: 151, ErrorNum: 0x0100001D, Message: Invalid random length
+Function: JNI_SDF_Encrypt, File: sdf_jni_symmetric.c, Line: 268, ErrorNum: 0x01000002, Message: Function not supported
+Function: JNI_NativeLibraryLoader_loadSDFLibrary, File: sdf_jni_loader.c, Line: 47, ErrorNum: 0x01000005, Message: Failed to load required function 'SDF_OpenDevice': undefined symbol
 ```
 
 ### 错误码说明
@@ -976,34 +961,6 @@ try {
     // 清除密码
     Arrays.fill(password, '0');
     passwordStr = null;
-}
-```
-
-### 4. 日志记录
-
-记录关键操作和错误信息：
-
-```java
-import java.util.logging.Logger;
-
-public class SDFLogger {
-    private static final Logger logger = Logger.getLogger(SDFLogger.class.getName());
-
-    public void performOperation() {
-        SDF sdf = new SDF();
-
-        try {
-            logger.info("Opening device...");
-            long deviceHandle = sdf.SDF_OpenDevice();
-            logger.info("Device opened: " + deviceHandle);
-
-            // ...
-
-        } catch (SDFException e) {
-            logger.severe("SDF operation failed: " + e.getErrorCodeHex() + " - " + e.getMessage());
-            throw new RuntimeException("Failed to perform SDF operation", e);
-        }
-    }
 }
 ```
 
@@ -1224,15 +1181,6 @@ public static byte[] hexToBytes(String hex) {
 | `SDF_ExternalKeyEncryptInit(sessionHandle, algID, key, iv)` | 外部密钥多包加密初始化 |
 | `SDF_ExternalKeyDecryptInit(sessionHandle, algID, key, iv)` | 外部密钥多包解密初始化 |
 | `SDF_ExternalKeyHMACInit(sessionHandle, algID, key)` | 外部密钥HMAC初始化 |
-
-### 日志管理函数
-
-| 函数 | 说明 |
-|------|------|
-| `SDF.setLogger(logger)` | 设置日志回调 |
-| `SDF.getLogger()` | 获取当前日志回调 |
-| `SDF.setFileLoggingEnabled(enable)` | 启用/禁用文件日志 |
-| `SDF.setJavaLoggingEnabled(enable)` | 启用/禁用Java回调日志 |
 
 ---
 

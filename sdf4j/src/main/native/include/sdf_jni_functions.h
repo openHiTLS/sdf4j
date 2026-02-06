@@ -218,6 +218,12 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecryptFinal(JNIEnv *env, jobjec
 JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlong sessionHandle,
     jint algID, jbyteArray key);
 
+/* ========================================================================
+ * NativeLibraryLoader 内部类函数
+ * ======================================================================== */
+JNIEXPORT jboolean JNICALL JNI_NativeLibraryLoader_loadSDFLibrary(JNIEnv *env, jclass cls,
+    jstring library_path);
+
 #ifdef __cplusplus
 }
 #endif
