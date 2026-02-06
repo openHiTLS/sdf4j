@@ -16,8 +16,8 @@
  #include <string.h>
  #include <stdio.h>
  
- /* JNI 方法注册表 */
- static JNINativeMethod methods[] = {
+ /* JNI 方法注册表 - SDF 类 */
+ static JNINativeMethod sdf_methods[] = {
     /* 6.2 设备管理类函数 */
     {"SDF_OpenDeviceNative", "()J", (void*)JNI_SDF_OpenDevice},
     {"SDF_OpenDeviceWithConf", "(Ljava/lang/String;)J", (void*)JNI_SDF_OpenDeviceWithConf},
@@ -110,8 +110,13 @@
      {"SDF_ExternalKeyDecryptInit", "(JI[B[B)V", (void*)JNI_SDF_ExternalKeyDecryptInit},
      {"SDF_ExternalKeyHMACInit", "(JI[B)V", (void*)JNI_SDF_ExternalKeyHMACInit},
  };
- 
- /**
+
+/* JNI 方法注册表 - NativeLibraryLoader 类 */
+static JNINativeMethod loader_methods[] = {
+   {"nativeLoadSDFLibrary", "(Ljava/lang/String;)Z", (void*)JNI_NativeLibraryLoader_loadSDFLibrary},
+};
+
+/**
   * JNI_OnLoad - JVM 加载库时调用
   *
   * 这个函数在 System.loadLibrary() 时被 JVM 自动调用，
@@ -119,28 +124,26 @@
   */
  JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
      UNUSED(reserved);
- 
+
      JNIEnv *env;
      if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_8) != JNI_OK) {
          return JNI_ERR;
      }
- 
+
      /* 初始化 JNI 缓存 */
      if (jni_cache_init(env) != JNI_TRUE) {
          return JNI_ERR;
      }
- 
-     /* 查找 SDF 类 */
+
+     /* 注册 SDF 类的 native 方法 */
      jclass sdfClass = (*env)->FindClass(env, "org/openhitls/sdf4j/SDF");
      if (sdfClass == NULL) {
          jni_cache_cleanup(env);
          return JNI_ERR;
      }
- 
-     /* 注册所有 native 方法 */
-     int methodCount = sizeof(methods) / sizeof(methods[0]);
-     if ((*env)->RegisterNatives(env, sdfClass, methods, methodCount) < 0) {
-         /* 检查是否有异常 */
+
+     int sdfMethodCount = sizeof(sdf_methods) / sizeof(sdf_methods[0]);
+     if ((*env)->RegisterNatives(env, sdfClass, sdf_methods, sdfMethodCount) < 0) {
          if ((*env)->ExceptionCheck(env)) {
              (*env)->ExceptionDescribe(env);
              (*env)->ExceptionClear(env);
@@ -149,9 +152,25 @@
          jni_cache_cleanup(env);
          return JNI_ERR;
      }
- 
      (*env)->DeleteLocalRef(env, sdfClass);
- 
+
+     /* 注册 NativeLibraryLoader 类的 native 方法 */
+     jclass loaderClass = (*env)->FindClass(env, "org/openhitls/sdf4j/internal/NativeLibraryLoader");
+     if (loaderClass == NULL) {
+        jni_cache_cleanup(env);
+        return JNI_ERR;
+     }
+    int loaderMethodCount = sizeof(loader_methods) / sizeof(loader_methods[0]);
+    if ((*env)->RegisterNatives(env, loaderClass, loader_methods, loaderMethodCount) < 0) {
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionDescribe(env);
+            (*env)->ExceptionClear(env);
+        }
+        (*env)->DeleteLocalRef(env, loaderClass);
+        jni_cache_cleanup(env);
+        return JNI_ERR;
+    }
+    (*env)->DeleteLocalRef(env, loaderClass);
      return JNI_VERSION_1_8;
  }
  
@@ -163,20 +182,26 @@
   */
  JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
      UNUSED(reserved);
- 
+
      JNIEnv *env;
      if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_8) != JNI_OK) {
          return;
      }
- 
-     /* 查找 SDF 类 */
+
+     /* 注销 SDF 类的 native 方法 */
      jclass sdfClass = (*env)->FindClass(env, "org/openhitls/sdf4j/SDF");
      if (sdfClass != NULL) {
-         /* 注销所有 native 方法 */
          (*env)->UnregisterNatives(env, sdfClass);
          (*env)->DeleteLocalRef(env, sdfClass);
      }
- 
+
+     /* 注销 NativeLibraryLoader 类的 native 方法 */
+     jclass loaderClass = (*env)->FindClass(env, "org/openhitls/sdf4j/internal/NativeLibraryLoader");
+     if (loaderClass != NULL) {
+         (*env)->UnregisterNatives(env, loaderClass);
+         (*env)->DeleteLocalRef(env, loaderClass);
+     }
+
      /* 清理 JNI 缓存 */
      jni_cache_cleanup(env);
  }

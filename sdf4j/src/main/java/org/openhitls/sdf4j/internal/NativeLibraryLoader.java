@@ -92,14 +92,7 @@ public class NativeLibraryLoader {
         try {
             // 尝试从java.library.path加载
             System.loadLibrary(SDF4J_LIBRARY_NAME);
-            if (isDebugEnabled()) {
-                System.out.println("[SDF4J] Loaded JNI library from java.library.path");
-            }
         } catch (UnsatisfiedLinkError e) {
-            // 如果失败，尝试从resources中提取并加载
-            if (isDebugEnabled()) {
-                System.out.println("[SDF4J] JNI library not found in java.library.path, extracting from JAR...");
-            }
             try {
                 loadLibraryFromResources();
             } catch (IOException ex) {
@@ -115,12 +108,6 @@ public class NativeLibraryLoader {
         String platform = getPlatform();
         String libraryFileName = getLibraryFileName(SDF4J_LIBRARY_NAME);
         String resourcePath = "/native/" + platform + "/" + libraryFileName;
-
-        if (isDebugEnabled()) {
-            System.out.println("[SDF4J] Platform: " + platform);
-            System.out.println("[SDF4J] Looking for library at: " + resourcePath);
-        }
-
         // 尝试从classpath加载资源
         InputStream is = NativeLibraryLoader.class.getResourceAsStream(resourcePath);
         if (is == null) {
@@ -137,13 +124,7 @@ public class NativeLibraryLoader {
 
         try {
             Files.copy(is, tempLibrary, StandardCopyOption.REPLACE_EXISTING);
-            if (isDebugEnabled()) {
-                System.out.println("[SDF4J] Extracted library to: " + tempLibrary.toAbsolutePath());
-            }
             System.load(tempLibrary.toAbsolutePath().toString());
-            if (isDebugEnabled()) {
-                System.out.println("[SDF4J] Successfully loaded JNI library from JAR");
-            }
         } finally {
             is.close();
             // 注册删除钩子

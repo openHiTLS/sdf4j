@@ -16,23 +16,29 @@
 #include <jni.h>
 #include "sdf.h"
 #include <stdbool.h>
+#include <string.h>
 
 /**
- * 抛出SDFException
- *
+ * 抛出SDF异常
  * @param env JNI环境
- * @param error_code SDF错误码
+ * @param error_code 错误码
+ * @param fmt 格式化字符串（可以为NULL，使用默认消息）
+ * @param ... 可变参数
  */
-void throw_sdf_exception(JNIEnv *env, int error_code);
+void throw_sdf_exception_with_format(JNIEnv *env, int error_code, const char *fmt, ...);
 
 /**
- * 抛出带自定义消息的SDFException
+ * 抛出SDF异常的便利宏（自动传递函数名、文件名、行号）
+ * 用法:
+ *   THROW_SDF_EXCEPTION(env, error_code, "message: %s", str)
  *
- * @param env JNI环境
- * @param error_code SDF错误码
- * @param message 错误消息
+ * 异常消息格式: Function: xxx, File: xxx, Line: xxx, ErrorNum: 0xXXXXXXXX, Message: xxx
  */
-void throw_sdf_exception_with_message(JNIEnv *env, int error_code, const char *message);
+#define THROW_SDF_EXCEPTION(env, error_code, ...) \
+    throw_sdf_exception_with_format(env, error_code, \
+        "Function: %s, File: %s, Line: %d, ErrorNum: 0x%08X, Message: " __VA_ARGS__, \
+        __func__, strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__, __LINE__, \
+        (unsigned int)(error_code))
 
 /* ========================================================================
  * C结构体 → Java对象转换

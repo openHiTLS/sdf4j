@@ -87,12 +87,6 @@ public class DeviceManagementTest {
         System.out.println("========================================");
         System.out.println("SDF4J 设备管理类函数测试");
         System.out.println("========================================\n");
-
-        // 启用 native 日志输出
-        SDF.setLogger(message -> System.out.println("[NATIVE] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
-
         sdf = new SDF();
         deviceHandle = 0;
         sessionHandle = 0;
@@ -193,6 +187,13 @@ public class DeviceManagementTest {
         sessionHandle = 0; // 防止tearDown再次关闭
 
         System.out.println("[通过] 会话关闭成功\n");
+        try {
+            sdf.SDF_CloseSession(0);
+            fail("关闭会话0应失败");
+        } catch (SDFException e) {
+            System.err.println("[通过]关闭会话失败: " + e.getErrorCodeHex());
+            System.err.println("[通过]关闭会话失败: " + e.getMessage());
+        }
     }
 
     /**

@@ -48,9 +48,6 @@ public class ResourceManagementTest {
 
     @Before
     public void setUp() {
-        SDF.setLogger(message -> System.out.println("[LOG] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
     }
 
     /**

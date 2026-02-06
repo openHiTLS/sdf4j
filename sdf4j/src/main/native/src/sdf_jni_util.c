@@ -26,7 +26,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_RSA(JNIEnv *env, jobject 
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_GenerateKeyPair_RSA == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -43,7 +43,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_RSA(JNIEnv *env, jobject 
     );
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to generate rsa key");
         return NULL;
     }
 
@@ -76,7 +76,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject 
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_GenerateKeyPair_ECC == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -94,7 +94,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject 
     );
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to generate ecc key pair");
         return NULL;
     }
 
@@ -126,7 +126,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalPrivateKeyOperation_RSA == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -140,7 +140,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
     jsize input_len = (*env)->GetArrayLength(env, dataInput);
     BYTE *input_buf = (BYTE*)malloc(input_len);
     if (input_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
     (*env)->GetByteArrayRegion(env, dataInput, 0, input_len, (jbyte*)input_buf);
@@ -150,7 +150,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         free(input_buf);
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -167,7 +167,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
 
     if (ret != SDR_OK) {
         free(output_buf);
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform rsa operation");
         return NULL;
     }
 
@@ -186,16 +186,17 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalSign_ECC(JNIEnv *env, jobject obj, jlo
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalSign_ECC == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
     if (privateKey == NULL) {
-        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return NULL;
     }
     /* Convert private key */
     ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert private key");
         return NULL;
     }
 
@@ -203,7 +204,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalSign_ECC(JNIEnv *env, jobject obj, jlo
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -221,7 +222,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalSign_ECC(JNIEnv *env, jobject obj, jlo
     (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform sign operation");
         return NULL;
     }
 
@@ -237,24 +238,24 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject ob
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalDecrypt_ECC == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
     if (cipher == NULL || privateKey == NULL) {
-        throw_sdf_exception(env, 0x0100001D);  /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return NULL;
     }
     /* Convert private key */
     ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
-        SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCPrivateKey fail.");
-	return NULL;
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert private key");
+        return NULL;
     }
     
     /* Convert cipher (使用动态分配以支持柔性数组成员) */
     ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
     if (ecc_cipher == NULL) {
-        SDF_JNI_LOG("SDF_ExternalDecrypt_ECC: java to native ECCCipher fail.");
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert cipher");
         return NULL;
     }
 
@@ -264,7 +265,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject ob
     BYTE *plaintext_buf = (BYTE*)malloc(plaintext_len);
     if (plaintext_buf == NULL) {
         free(ecc_cipher);
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -280,7 +281,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject ob
     if (ret != SDR_OK) {
         free(ecc_cipher);
         free(plaintext_buf);
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform dec operation");
         return NULL;
     }
 
@@ -300,7 +301,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalKeyEncrypt == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -308,7 +309,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -320,7 +321,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
         iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
-            throw_sdf_exception(env, 0x0100001C);
+            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
             return NULL;
         }
     }
@@ -333,7 +334,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
         if (iv_buf != NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -346,7 +347,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
         (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -371,7 +372,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
 
     if (ret != SDR_OK) {
         free(enc_buf);
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform enc operation");
         return NULL;
     }
 
@@ -390,7 +391,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalKeyDecrypt == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
 
@@ -398,7 +399,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -410,7 +411,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
         iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
-            throw_sdf_exception(env, 0x0100001C);
+            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
             return NULL;
         }
     }
@@ -423,7 +424,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
         if (iv_buf) {
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -436,7 +437,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
             (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
         }
         (*env)->ReleasePrimitiveArrayCritical(env, encData, enc_buf, JNI_ABORT);
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
@@ -461,7 +462,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
 
     if (ret != SDR_OK) {
         free(plaintext_buf);
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform dec operation");
         return NULL;
     }
 
@@ -480,7 +481,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, 
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalKeyEncryptInit == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
@@ -488,7 +489,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, 
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return;
     }
 
@@ -500,7 +501,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, 
         iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
-            throw_sdf_exception(env, 0x0100001C);
+            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
             return;
         }
     }
@@ -520,7 +521,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, 
     }
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform enc init operation");
     }
 }
 
@@ -533,7 +534,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, 
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalKeyDecryptInit == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
@@ -541,7 +542,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, 
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return;
     }
 
@@ -553,7 +554,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, 
         iv_buf = (*env)->GetPrimitiveArrayCritical(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
-            throw_sdf_exception(env, 0x0100001C);
+            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
             return;
         }
     }
@@ -573,7 +574,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, 
     }
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform dec init operation");
     }
 }
 
@@ -586,7 +587,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlo
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_ExternalKeyHMACInit == NULL) {
-        throw_sdf_exception(env, SDR_NOTSUPPORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
 
@@ -594,7 +595,7 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlo
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
     if (key_buf == NULL) {
-        throw_sdf_exception(env, 0x0100001C);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return;
     }
 
@@ -608,6 +609,6 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlo
     (*env)->ReleasePrimitiveArrayCritical(env, key, key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
-        throw_sdf_exception(env, ret);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform hmac init operation");
     }
 }

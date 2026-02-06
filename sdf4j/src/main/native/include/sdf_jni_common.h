@@ -15,7 +15,6 @@
 
 #include "dynamic_loader.h"
 #include "type_conversion.h"
-#include "sdf_log.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -41,8 +40,10 @@ extern "C" {
 #define VALIDATE_SESSION_HANDLE(env, sessionHandle, funcName, returnValue) \
     do { \
         if ((jlong)(sessionHandle) == 0 || (unsigned long)(sessionHandle) < SDF_MIN_VALID_HANDLE) { \
-            SDF_LOG_ERROR(funcName, "Invalid session handle"); \
-            throw_sdf_exception_with_message(env, SDR_OPENSESSION, "Invalid session handle"); \
+            throw_sdf_exception_with_format(env, SDR_OPENSESSION, \
+                "Function: %s, File: %s, Line: %d, ErrorNum: 0x%08X, Message: Invalid session handle", \
+                funcName, strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__, __LINE__, \
+                (unsigned int)SDR_OPENSESSION); \
             return returnValue; \
         } \
     } while (0)
@@ -50,8 +51,10 @@ extern "C" {
 #define VALIDATE_DEVICE_HANDLE(env, deviceHandle, funcName, returnValue) \
     do { \
         if ((jlong)(deviceHandle) == 0 || (unsigned long)(deviceHandle) < SDF_MIN_VALID_HANDLE) { \
-            SDF_LOG_ERROR(funcName, "Invalid device handle"); \
-            throw_sdf_exception_with_message(env, SDR_OPENDEVICE, "Invalid device handle"); \
+            throw_sdf_exception_with_format(env, SDR_OPENDEVICE, \
+                "Function: %s, File: %s, Line: %d, ErrorNum: 0x%08X, Message: Invalid device handle", \
+                funcName, strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__, __LINE__, \
+                (unsigned int)SDR_OPENDEVICE); \
             return returnValue; \
         } \
     } while (0)

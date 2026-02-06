@@ -12,38 +12,27 @@
 
 #include "type_conversion.h"
 #include "jni_cache.h"
-#include "sdf_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 /* ========================================================================
  * 异常处理
  * ======================================================================== */
 
-void throw_sdf_exception(JNIEnv *env, int error_code) {
-    SDF_JNI_LOG("throw_sdf_exception: error_code=0x%08X", (unsigned int)error_code);
+void throw_sdf_exception_with_format(JNIEnv *env, int error_code, const char *fmt, ...) {
+    char buffer[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
 
-    jobject exception = (*env)->NewObject(env, g_jni_cache.sdfException.cls,
-                                          g_jni_cache.sdfException.ctor_int, error_code);
-    if (exception != NULL) {
-        (*env)->Throw(env, (jthrowable)exception);
-    } else {
-        SDF_LOG_ERROR("throw_sdf_exception", "Failed to create SDFException object");
-    }
-}
-
-void throw_sdf_exception_with_message(JNIEnv *env, int error_code, const char *message) {
-    SDF_JNI_LOG("throw_sdf_exception_with_message: error_code=0x%08X, message=%s",
-                (unsigned int)error_code, message ? message : "NULL");
-
-    jstring jmsg = (*env)->NewStringUTF(env, message);
+    jstring jmsg = (*env)->NewStringUTF(env, buffer);
     jobject exception = (*env)->NewObject(env, g_jni_cache.sdfException.cls,
                                           g_jni_cache.sdfException.ctor_int_string,
                                           error_code, jmsg);
     if (exception != NULL) {
         (*env)->Throw(env, (jthrowable)exception);
-    } else {
-        SDF_LOG_ERROR("throw_sdf_exception_with_message", "Failed to create SDFException object");
     }
 }
 

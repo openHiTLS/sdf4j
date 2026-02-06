@@ -106,12 +106,6 @@ public class AsymmetricOperationTest {
         System.out.println("========================================");
         System.out.println("SDF4J 非对称算法运算类函数测试");
         System.out.println("========================================\n");
-
-        // 启用 native 日志输出
-        SDF.setLogger(message -> System.out.println("[NATIVE] " + message));
-        SDF.setFileLoggingEnabled(false);
-        SDF.setJavaLoggingEnabled(false);
-
         sdf = new SDF();
         deviceHandle = 0;
         sessionHandle = 0;
@@ -308,7 +302,7 @@ public class AsymmetricOperationTest {
                 fail("篡改数据验签应该失败");
             } catch (SDFException e) {
                 // 验签失败说明数据被篡改
-                System.out.println("篡改数据验签失败，错误码: " + e.getErrorCodeHex());
+                System.out.println("篡改数据验签失败，错误码: " + e.getErrorCodeHex() + "错误信息: " + e.getMessage());
                 System.out.println("检测结果: 数据已被篡改！验签失败证明数据与签名不匹配");
             }
         } catch (SDFException e) {
@@ -486,7 +480,7 @@ public class AsymmetricOperationTest {
                 sdf.SDF_InternalVerify_ECC(sessionHandle, keyIndex, tamperedHash, signature);
                 fail("篡改数据验签应该失败");
             } catch (SDFException e) {
-                System.out.println("篡改数据验签失败: " + e.getErrorCodeHex());
+                System.out.println("篡改数据验签失败: " + e.getErrorCodeHex() + "错误信息: " + e.getMessage());
             }
 
         } catch (SDFException e) {
@@ -785,7 +779,7 @@ public class AsymmetricOperationTest {
                 );
                 fail("使用错误公钥验签应该失败");
             } catch (SDFException e) {
-                System.out.println("使用错误公钥验签失败: " + e.getErrorCodeHex());
+                System.out.println("使用错误公钥验签失败: " + e.getErrorCodeHex() + " 错误信息: " + e.getMessage());
             }
 
             System.out.println("[通过] 密钥对隔离性测试成功\n");
