@@ -91,6 +91,10 @@ typedef struct DeviceInfo_st
 #define RSAref_MAX_PBITS    ((RSAref_MAX_BITS + 1) / 2)
 #define RSAref_MAX_PLEN     ((RSAref_MAX_PBITS + 7) / 8)
 
+/* 后量子相关参数 */
+#define HYBRIDENCref_MAX_LEN 1576
+#define HYBRIDSIGref_MAX_LEN 4636
+
 typedef struct RSArefPublicKey_st
 {
     ULONG bits;
@@ -258,6 +262,26 @@ typedef struct SM9refSignEnvelopedKey_st
     SM9KeyPackage        keyPackage;
 } SM9SignEnvelopedKey;
 
+/**
+ * 混合加密数据结构 (HybridCipher)
+ * 用于混合加密算法（如SM2+KDF+对称加密）
+ */
+
+typedef struct HybridCipher_st {
+    ULONG L1;
+    BYTE ct_m[HYBRIDENCref_MAX_LEN];
+    ULONG uiAlgID;
+    ECCCipher ct_s;
+} HybridCipher;
+
+/**
+ * 混合签名数据结构 (HybridSignature)
+ */
+typedef struct HybridSignature_st {
+    ECCSignature sig_s;                  /* SM2签名值 */
+    ULONG L;                             /* 后量子算法签名值长度 */
+    BYTE sig_m[HYBRIDSIGref_MAX_LEN];    /* 后量子算法签名值 */
+} HybridSignature;
 
 #ifdef __cplusplus
 }

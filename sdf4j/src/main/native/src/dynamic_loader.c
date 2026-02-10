@@ -253,6 +253,20 @@ static bool load_all_functions(void *handle) {
     load_function(handle, (void**)&g_sdf_functions.SDF_ExternalKeyHMACInit,
                  "SDF_ExternalKeyHMACInit", false);
 
+    /* ========================================
+     * 可选混合算法函数
+     * ======================================== */
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExportPublicKey_Hybrid,
+                 "SDF_ExportPublicKey_Hybrid", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ImportKeyWithISK_Hybrid,
+                 "SDF_ImportKeyWithISK_Hybrid", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_GenerateKeyWithEPK_Hybrid,
+                 "SDF_GenerateKeyWithEPK_Hybrid", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_InternalSign_Composite,
+                 "SDF_InternalSign_Composite", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExternalVerify_Composite,
+                 "SDF_ExternalVerify_Composite", false);
+
     return true;
 }
 

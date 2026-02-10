@@ -270,6 +270,20 @@ public final class AlgorithmID {
      */
     public static final int SGD_SM3_HMAC = 0x00100001;
 
+    /**
+     * 后量子算法id
+     */
+    public static final int SGD_HYBRID = 0x00000FFF;
+
+    public static final int SGD_HYBRID_ENV_SM2_MLKEM_512 = 0x80000000;
+    public static final int SGD_HYBRID_ENV_SM2_MLKEM_768 = 0x80000001;
+    public static final int SGD_HYBRID_ENV_SM2_MLKEM_1024 = 0x80000002;
+    public static final int SGD_HYBRID_ENV_SM2_POLAR_LAC_LIGHT = 0x80000003;
+
+    public static final int SGD_COMPOSITE_MLDSA44_SM2 = 0x80000004;
+    public static final int SGD_COMPOSITE_MLDSA65_SM2 = 0x80000005;
+    public static final int SGD_COMPOSITE_MLDSA87_SM2 = 0x80000006;
+
     // ========================================================================
     // 工具方法 (Utility Methods)
     // ========================================================================
@@ -371,6 +385,20 @@ public final class AlgorithmID {
                 return "SM2-Decrypt";
             case SGD_SM3_HMAC:
                 return "SM3-HMAC";
+            case SGD_HYBRID_ENV_SM2_MLKEM_512:
+                return "HYBRID-ENV-SM2-MLKEM-512";
+            case SGD_HYBRID_ENV_SM2_MLKEM_768:
+                return "HYBRID-ENV-SM2-MLKEM-768";
+            case SGD_HYBRID_ENV_SM2_MLKEM_1024:
+                return "HYBRID-ENV-SM2-MLKEM-1024";
+            case SGD_HYBRID_ENV_SM2_POLAR_LAC_LIGHT:
+                return "HYBRID-ENV-SM2-POLAR-LAC-LIGHT";
+            case SGD_COMPOSITE_MLDSA44_SM2:
+                return "COMPOSITE-MLDSA44-SM2";
+            case SGD_COMPOSITE_MLDSA65_SM2:
+                return "COMPOSITE-MLDSA65-SM2";
+            case SGD_COMPOSITE_MLDSA87_SM2:
+                return "COMPOSITE-MLDSA87-SM2";
             default:
                 return "Unknown(0x" + Integer.toHexString(algorithmID).toUpperCase() + ")";
         }

@@ -202,6 +202,38 @@ static jint init_key_agreement_result_cache(JNIEnv *env)
     return JNI_TRUE;
 }
 
+/* Initialize HybridCipher cache */
+static jint init_hybrid_cipher_cache(JNIEnv *env) {
+    CACHE_CLASS(env, g_jni_cache.hybridCipher.cls, "org/openhitls/sdf4j/types/HybridCipher");
+    CACHE_METHOD(env, g_jni_cache.hybridCipher.ctor,
+                 g_jni_cache.hybridCipher.cls, "<init>", "()V");
+    CACHE_FIELD(env, g_jni_cache.hybridCipher.l1,
+                g_jni_cache.hybridCipher.cls, "l1", "J");
+    CACHE_FIELD(env, g_jni_cache.hybridCipher.ctM,
+                g_jni_cache.hybridCipher.cls, "ctM", "[B");
+    CACHE_FIELD(env, g_jni_cache.hybridCipher.uiAlgID,
+                g_jni_cache.hybridCipher.cls, "uiAlgID", "J");
+    CACHE_FIELD(env, g_jni_cache.hybridCipher.ctS,
+                g_jni_cache.hybridCipher.cls, "ctS", "Lorg/openhitls/sdf4j/types/ECCCipher;");
+    CACHE_FIELD(env, g_jni_cache.hybridCipher.keyHandle,
+                g_jni_cache.hybridCipher.cls, "keyHandle", "J");
+    return JNI_TRUE;
+}
+
+/* Initialize HybridSignature cache */
+static jint init_hybrid_signature_cache(JNIEnv *env) {
+    CACHE_CLASS(env, g_jni_cache.hybridSignature.cls, "org/openhitls/sdf4j/types/HybridSignature");
+    CACHE_METHOD(env, g_jni_cache.hybridSignature.ctor,
+                 g_jni_cache.hybridSignature.cls, "<init>", "()V");
+    CACHE_FIELD(env, g_jni_cache.hybridSignature.sigS,
+                g_jni_cache.hybridSignature.cls, "sigS", "Lorg/openhitls/sdf4j/types/ECCSignature;");
+    CACHE_FIELD(env, g_jni_cache.hybridSignature.l,
+                g_jni_cache.hybridSignature.cls, "l", "I");
+    CACHE_FIELD(env, g_jni_cache.hybridSignature.sigM,
+                g_jni_cache.hybridSignature.cls, "sigM", "[B");
+    return JNI_TRUE;
+}
+
 /* Initialize common class cache */
 static jint init_common_class_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.common.objectClass, "java/lang/Object");
@@ -280,6 +312,16 @@ jint jni_cache_init(JNIEnv *env) {
         return JNI_FALSE;
     }
 
+    if (init_hybrid_cipher_cache(env) != JNI_TRUE) {
+        jni_cache_cleanup(env);
+        return JNI_FALSE;
+    }
+
+    if (init_hybrid_signature_cache(env) != JNI_TRUE) {
+        jni_cache_cleanup(env);
+        return JNI_FALSE;
+    }
+
     if (init_common_class_cache(env) != JNI_TRUE) {
         jni_cache_cleanup(env);
         return JNI_FALSE;
@@ -301,6 +343,8 @@ void jni_cache_cleanup(JNIEnv *env) {
     delete_global_ref_safe(env, &g_jni_cache.keyEncryptionResult.cls);
     delete_global_ref_safe(env, &g_jni_cache.eccKeyEncryptionResult.cls);
     delete_global_ref_safe(env, &g_jni_cache.keyAgreementResult.cls);
+    delete_global_ref_safe(env, &g_jni_cache.hybridCipher.cls);
+    delete_global_ref_safe(env, &g_jni_cache.hybridSignature.cls);
     delete_global_ref_safe(env, &g_jni_cache.common.objectClass);
     delete_global_ref_safe(env, &g_jni_cache.common.byteArrayClass);
     g_jni_cache.initialized = false;

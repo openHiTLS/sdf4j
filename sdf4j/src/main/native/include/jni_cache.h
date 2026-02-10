@@ -119,11 +119,30 @@ typedef struct {
 } ECCKeyEncryptionResultCache;
 
 /* KeyAgreementResult cache */
-typedef struct
-{
+typedef struct {
     jclass cls;     /* org/openhitls/sdf4j/types/KeyAgreementResult */
     jmethodID ctor; /* <init>(JLorg/openhitls/sdf4j/types/ECCPublicKey;Lorg/openhitls/sdf4j/types/ECCPublicKey;)V */
 } KeyAgreementResultCache;
+
+/* HybridCipher cache */
+typedef struct {
+    jclass cls;                     /* org/openhitls/sdf4j/types/HybridCipher */
+    jmethodID ctor;                 /* <init>()V */
+    jfieldID l1;                    /* J */
+    jfieldID ctM;                   /* [B */
+    jfieldID uiAlgID;               /* J */
+    jfieldID ctS;                   /* Lorg/openhitls/sdf4j/types/ECCCipher; */
+    jfieldID keyHandle;             /* J */
+} HybridCipherCache;
+
+/* HybridSignature cache */
+typedef struct {
+    jclass cls;                     /* org/openhitls/sdf4j/types/HybridSignature */
+    jmethodID ctor;                 /* <init>()V */
+    jfieldID sigS;                  /* Lorg/openhitls/sdf4j/types/ECCSignature; */
+    jfieldID l;                     /* I */
+    jfieldID sigM;                  /* [B */
+} HybridSignatureCache;
 
 /* Common Java classes cache */
 typedef struct {
@@ -145,6 +164,8 @@ typedef struct {
     KeyEncryptionResultCache keyEncryptionResult;
     ECCKeyEncryptionResultCache eccKeyEncryptionResult;
     KeyAgreementResultCache keyAgreementResult;
+    HybridCipherCache hybridCipher;
+    HybridSignatureCache hybridSignature;
     CommonClassCache common;
 } JNICache;
 

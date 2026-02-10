@@ -263,6 +263,21 @@ typedef LONG (*SDF_ExternalKeyDecryptInit_FN)(HANDLE hSessionHandle, ULONG uiAlg
 typedef LONG (*SDF_ExternalKeyHMACInit_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
                                            BYTE *pucKey, ULONG uiKeyLength);
 
+/* 混合算法函数 */
+typedef LONG (*SDF_ExportPublicKey_Hybrid_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                               BYTE *pucPublicKey, ULONG *puiPublicKeyLength);
+typedef LONG (*SDF_ImportKeyWithISK_Hybrid_FN)(HANDLE hSessionHandle, ULONG uiISKIndex,
+                                               HybridCipher *pucKey, HANDLE *phKeyHandle);
+typedef LONG (*SDF_GenerateKeyWithEPK_Hybrid_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
+                                               BYTE *pucPublicKey, ULONG *puiPublicKeyLength,
+                                               HybridCipher *pucEncData, HANDLE *phKeyHandle);
+typedef LONG (*SDF_InternalSign_Composite_FN)(HANDLE hSessionHandle, ULONG uiISKIndex,
+                                               BYTE *pucData, ULONG uiDataLength,
+                                               HybridSignature *pucSignature);
+typedef LONG (*SDF_ExternalVerify_Composite_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
+                                                BYTE *pucPublicKey, ULONG *puiPublicKeyLength, BYTE *pucDataInput,
+                                                ULONG pucDataInputLength, HybridSignature *pucSignature);
+
 /**
  * SDF函数指针表
  */
@@ -359,6 +374,13 @@ typedef struct {
     SDF_ExternalKeyEncryptInit_FN           SDF_ExternalKeyEncryptInit;
     SDF_ExternalKeyDecryptInit_FN           SDF_ExternalKeyDecryptInit;
     SDF_ExternalKeyHMACInit_FN              SDF_ExternalKeyHMACInit;
+
+    /* 混合算法 */
+    SDF_ExportPublicKey_Hybrid_FN           SDF_ExportPublicKey_Hybrid;
+    SDF_ImportKeyWithISK_Hybrid_FN          SDF_ImportKeyWithISK_Hybrid;
+    SDF_GenerateKeyWithEPK_Hybrid_FN           SDF_GenerateKeyWithEPK_Hybrid;
+    SDF_InternalSign_Composite_FN           SDF_InternalSign_Composite;
+    SDF_ExternalVerify_Composite_FN         SDF_ExternalVerify_Composite;
 } SDFFunctionTable;
 
 /**

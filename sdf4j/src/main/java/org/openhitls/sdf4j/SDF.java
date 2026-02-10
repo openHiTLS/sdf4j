@@ -1322,4 +1322,71 @@ public class SDF {
         return "SDF4J 1.0.0-SNAPSHOT (OpenHitls)";
     }
 
+    // ========================================================================
+    // 混合算法相关接口 (Hybrid Algorithm Functions)
+    // ========================================================================
+
+    /**
+     * 导出密码设备内部存储的指定索引位置的混合加密公钥
+     * Export Hybrid Public Key from Internal Storage
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      密钥索引号 / Key index
+     * @return 公钥数据 / Public key data
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native byte[] SDF_ExportPublicKey_Hybrid(long sessionHandle, int keyIndex) throws SDFException;
+
+    /**
+     * 导入会话密钥并用内部混合私钥解密
+     * Import Session Key with Internal Hybrid Private Key
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部私钥索引 / Internal private key index
+     * @param hybridCipher  混合加密密文 / Hybrid cipher
+     * @return 密钥句柄 / Key handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native long SDF_ImportKeyWithISK_Hybrid(long sessionHandle, int keyIndex,
+            HybridCipher hybridCipher) throws SDFException;
+
+    /**
+     * 使用外部公钥对数据进行混合加密运算
+     * External Encrypt with Hybrid Public Key
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param algID         算法标识 / Algorithm ID
+     * @param publicKey     外部公钥 / External public key
+     * @return 混合加密密文 / Hybrid cipher
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native HybridCipher SDF_GenerateKeyWithEPK_Hybrid(long sessionHandle, int algID,
+            byte[] publicKey) throws SDFException;
+
+    /**
+     * 使用内部指定索引的私钥对数据进行混合签名运算
+     * Internal Sign with Composite Algorithm
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      私钥索引号 / Private key index
+     * @param data          待签名数据 / Data to be signed
+     * @return 混合签名对象 / Hybrid signature object
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native HybridSignature SDF_InternalSign_Composite(long sessionHandle, int keyIndex,
+            byte[] data) throws SDFException;
+
+    /**
+     * 使用外部公钥对混合签名值进行验证运算
+     * External Verify with Composite Algorithm
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param algID         算法标识 / Algorithm ID
+     * @param publicKey     外部公钥 / External public key
+     * @param data          原始数据 / Original data
+     * @param signature     混合签名 / Hybrid signature
+     * @throws SDFException 如果操作失败或验证失败 / if operation fails or verification fails
+     */
+    public native void SDF_ExternalVerify_Composite(long sessionHandle, int algID,
+            byte[] publicKey, byte[] data, HybridSignature signature) throws SDFException;
 }

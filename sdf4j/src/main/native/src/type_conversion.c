@@ -652,3 +652,145 @@ jobject native_to_java_KeyAgreementResult (JNIEnv *env, HANDLE agreement_handle,
                                     java_pub_key, java_tmp_pub_key);
     return obj;
 }
+
+jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, ULONG cipher_len,
+    HANDLE key_handle)
+{
+    jobject obj = (*env)->NewObject(env, g_jni_cache.hybridCipher.cls,
+                                    g_jni_cache.hybridCipher.ctor);
+    if (obj == NULL) return NULL;
+
+    /* l1 */
+    (*env)->SetLongField(env, obj, g_jni_cache.hybridCipher.l1, (jlong)native_cipher->L1);
+
+    /* ctM */
+    jsize ctm_len = (jsize)native_cipher->L1;
+    if (ctm_len > HYBRIDENCref_MAX_LEN) ctm_len = HYBRIDENCref_MAX_LEN;
+    jbyteArray ctm_array = (*env)->NewByteArray(env, ctm_len);
+    if (ctm_array != NULL) {
+        (*env)->SetByteArrayRegion(env, ctm_array, 0, ctm_len, (jbyte*)native_cipher->ct_m);
+        (*env)->SetObjectField(env, obj, g_jni_cache.hybridCipher.ctM, ctm_array);
+    }
+
+    /* uiAlgID */
+    (*env)->SetLongField(env, obj, g_jni_cache.hybridCipher.uiAlgID, (jlong)native_cipher->uiAlgID);
+
+    /* ctS - ECCCipher部分 */
+    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, &native_cipher->ct_s, cipher_len);
+    if (ecc_cipher_obj != NULL) {
+        (*env)->SetObjectField(env, obj, g_jni_cache.hybridCipher.ctS, ecc_cipher_obj);
+    }
+
+    /* keyHandle */
+    (*env)->SetLongField(env, obj, g_jni_cache.hybridCipher.keyHandle, (jlong)key_handle);
+
+    return obj;
+}
+
+HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher) {
+    jobject cts_obj = (*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctS);
+
+    ECCCipher *temp_cts = NULL;
+    jsize c_len = 0;
+    if (cts_obj != NULL) {
+        temp_cts = java_to_native_ECCCipher_alloc(env, cts_obj);
+        if (temp_cts != NULL) {
+            c_len = (jsize)temp_cts->L;
+        }
+    }
+
+    /* 分配 HybridCipher 内存，含 ct_s 柔性数组空间 */
+    size_t alloc_size = sizeof(HybridCipher) + c_len;
+    HybridCipher *native_cipher = (HybridCipher*)calloc(1, alloc_size);
+    if (native_cipher == NULL) {
+        free(temp_cts);
+        return NULL;
+    }
+
+    /* L1 */
+    native_cipher->L1 = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
+
+    /* ct_m */
+    jbyteArray ctm_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
+                                                              g_jni_cache.hybridCipher.ctM);
+    if (ctm_array != NULL) {
+        jsize len = (*env)->GetArrayLength(env, ctm_array);
+        if (len > HYBRIDENCref_MAX_LEN) len = HYBRIDENCref_MAX_LEN;
+        (*env)->GetByteArrayRegion(env, ctm_array, 0, len, (jbyte*)native_cipher->ct_m);
+    }
+
+    /* uiAlgID */
+    native_cipher->uiAlgID = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.uiAlgID);
+
+    /* ct_s */
+    if (temp_cts != NULL) {
+        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + c_len);
+        free(temp_cts);
+    }
+
+    return native_cipher;
+}
+
+jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig, ULONG sig_m_len) {
+    jobject obj = (*env)->NewObject(env, g_jni_cache.hybridSignature.cls,
+                                    g_jni_cache.hybridSignature.ctor);
+    if (obj == NULL) return NULL;
+
+    /* sigS - ECC签名部分 */
+    jobject ecc_sig_obj = native_to_java_ECCSignature(env, &native_sig->sig_s);
+    if (ecc_sig_obj != NULL) {
+        (*env)->SetObjectField(env, obj, g_jni_cache.hybridSignature.sigS, ecc_sig_obj);
+    }
+
+    /* l */
+    (*env)->SetIntField(env, obj, g_jni_cache.hybridSignature.l, (jint)native_sig->L);
+
+    if (sig_m_len > HYBRIDSIGref_MAX_LEN) {
+        sig_m_len = HYBRIDSIGref_MAX_LEN;
+    }
+    /* sigM */
+    if (sig_m_len > 0) {
+        jbyteArray sig_m_array = (*env)->NewByteArray(env, sig_m_len);
+        if (sig_m_array != NULL) {
+            (*env)->SetByteArrayRegion(env, sig_m_array, 0, sig_m_len, (jbyte*)native_sig->sig_m);
+            (*env)->SetObjectField(env, obj, g_jni_cache.hybridSignature.sigM, sig_m_array);
+        }
+    }
+
+    return obj;
+}
+
+HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_sig) {
+    /* Get the sig_m array length */
+    jbyteArray sig_m_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
+                                                                 g_jni_cache.hybridSignature.sigM);
+    /* Also check L field */
+    jint l_value = (*env)->GetIntField(env, java_sig, g_jni_cache.hybridSignature.l);
+
+    /* Allocate memory for HybridSignature struct */
+    HybridSignature *native_sig = (HybridSignature*)calloc(1, sizeof(HybridSignature));
+    if (native_sig == NULL) {
+        return NULL;
+    }
+
+    /* Get ECC signature part */
+    jobject ecc_sig_obj = (jobject)(*env)->GetObjectField(env, java_sig,
+                                                          g_jni_cache.hybridSignature.sigS);
+    if (ecc_sig_obj != NULL) {
+        if (!java_to_native_ECCSignature(env, ecc_sig_obj, &native_sig->sig_s)) {
+            free(native_sig);
+            return NULL;
+        }
+    }
+
+    /* L - sig value length */
+    if (l_value > HYBRIDSIGref_MAX_LEN) l_value = HYBRIDSIGref_MAX_LEN;
+    native_sig->L = (ULONG)l_value;
+
+    /* sig_m  */
+    if (sig_m_array != NULL) {
+        (*env)->GetByteArrayRegion(env, sig_m_array, 0, l_value, (jbyte*)native_sig->sig_m);
+    }
+
+    return native_sig;
+}

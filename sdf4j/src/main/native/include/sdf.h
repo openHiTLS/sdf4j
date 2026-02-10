@@ -1076,6 +1076,73 @@ LONG SDF_GenerateKeywithEPK_SSL(
     ULONG uiServerIVLength
 );
 
+
+/************************************************************************
+ * 混合算法相关接口函数 (Hybrid Algorithm Interface Functions)
+ ************************************************************************/
+
+/**
+ * 导出密码设备内部存储的指定索引位置的混合加密公钥
+ * Export Hybrid Public Key from Internal Storage
+ */
+LONG SDF_ExportPublicKey_Hybrid(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    BYTE *pucPublicKey,
+    ULONG *puiPublicKeyLength
+);
+
+/**
+ * 导入会话密钥并用内部混合私钥解密
+ * Import Session Key with Internal Hybrid Private Key
+ */
+LONG SDF_ImportKeyWithISK_Hybrid(
+    HANDLE hSessionHandle,
+    ULONG uiISKIndex,
+    HybridCipher *pucKey,
+    HANDLE *phKeyHandle
+);
+
+/**
+ * 使用外部公钥对数据进行混合加密运算
+ * External Encrypt with Hybrid Public Key
+ */
+LONG SDF_GenerateKeyWithEPK_Hybrid(
+    HANDLE hSessionHandle,
+    ULONG uiAlgID,
+    BYTE *pucPublicKey,
+    ULONG *puiPublicKeyLength,
+    HybridCipher *pucEncData,
+    HANDLE *phKeyHandle
+);
+
+/**
+ * 使用内部指定索引的私钥对数据进行混合签名运算
+ * Internal Sign with Composite Algorithm
+ */
+LONG SDF_InternalSign_Composite(
+    HANDLE hSessionHandle,
+    ULONG uiISKIndex,
+    BYTE *pucData,
+    ULONG uiDataLength,
+    HybridSignature *pucSignature
+);
+
+/**
+ * 使用外部公钥对混合签名值进行验证运算
+ * External Verify with Composite Algorithm
+ */
+LONG SDF_ExternalVerify_Composite(
+    HANDLE hSessionHandle,
+    ULONG uiAlgID,
+    BYTE *pucPublicKey,
+    ULONG *puiPublicKeyLength,
+    BYTE *pucDataInput,
+    ULONG pucDataInputLength,
+    HybridSignature *pucSignature
+);
+
+
 #ifdef __cplusplus
 }
 #endif

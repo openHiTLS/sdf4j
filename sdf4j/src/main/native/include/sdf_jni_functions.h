@@ -224,6 +224,17 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlo
 JNIEXPORT jboolean JNICALL JNI_NativeLibraryLoader_loadSDFLibrary(JNIEnv *env, jclass cls,
     jstring library_path);
 
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExportPublicKey_Hybrid(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex);
+JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_Hybrid(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jobject hybridCipher);
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint algID, jbyteArray publicKey);
+JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jbyteArray data);
+JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_Composite(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint algID, jbyteArray publicKey, jbyteArray data, jobject signature);
+
 #ifdef __cplusplus
 }
 #endif

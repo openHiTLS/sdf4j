@@ -169,4 +169,27 @@ jobject native_to_java_KeyAgreementResult (JNIEnv *env, HANDLE agreement_handle,
                                     const ECCrefPublicKey *pub_key,
                                     const ECCrefPublicKey *tmp_pub_key);
 
+/**
+ * HybridCipher → HybridCipher (Java)
+ */
+jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, ULONG cipher_len,
+    HANDLE key_handle);
+
+/**
+ * HybridCipher (Java) → HybridCipher (with dynamic memory allocation)
+ * Caller MUST free the returned pointer.
+ */
+HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher);
+
+/**
+ * HybridSignature → HybridSignature (Java)
+ */
+jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig, ULONG sig_m_len);
+
+/**
+ * HybridSignature (Java) → HybridSignature (with dynamic memory allocation)
+ * Caller MUST free the returned pointer.
+ */
+HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_sig);
+
 #endif /* SDF4J_TYPE_CONVERSION_H */

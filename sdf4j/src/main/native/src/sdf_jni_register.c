@@ -110,6 +110,13 @@
      {"SDF_ExternalKeyEncryptInit", "(JI[B[B)V", (void*)JNI_SDF_ExternalKeyEncryptInit},
      {"SDF_ExternalKeyDecryptInit", "(JI[B[B)V", (void*)JNI_SDF_ExternalKeyDecryptInit},
      {"SDF_ExternalKeyHMACInit", "(JI[B)V", (void*)JNI_SDF_ExternalKeyHMACInit},
+
+     /* 后量子相关接口 */
+     {"SDF_ExportPublicKey_Hybrid", "(JI)[B", (void*)JNI_SDF_ExportPublicKey_Hybrid},
+     {"SDF_ImportKeyWithISK_Hybrid", "(JILorg/openhitls/sdf4j/types/HybridCipher;)J", (void*)JNI_SDF_ImportKeyWithISK_Hybrid},
+     {"SDF_GenerateKeyWithEPK_Hybrid", "(JI[B)Lorg/openhitls/sdf4j/types/HybridCipher;", (void*)JNI_SDF_GenerateKeyWithEPK_Hybrid},
+     {"SDF_InternalSign_Composite", "(JI[B)Lorg/openhitls/sdf4j/types/HybridSignature;", (void*)JNI_SDF_InternalSign_Composite},
+     {"SDF_ExternalVerify_Composite", "(JI[B[BLorg/openhitls/sdf4j/types/HybridSignature;)V", (void*)JNI_SDF_ExternalVerify_Composite},
  };
 
 /* JNI 方法注册表 - NativeLibraryLoader 类 */
