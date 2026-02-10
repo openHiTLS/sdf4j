@@ -325,6 +325,17 @@ LONG SDF_ExchangeDigitEnvelopeBaseOnECC(
     ECCCipher *pucEncDataOut
 );
 
+/* RSA 数字信封转换 */
+LONG SDF_ExchangeDigitEnvelopeBaseOnRSA(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    RSArefPublicKey *pucPublicKey,
+    BYTE *pucDEInput,
+    ULONG uiDELength,
+    BYTE *pucDEOutput,
+    ULONG *puiDELength
+);
+
 
 /************************************************************************
  * 6.5 对称算法运算类函数 (Symmetric Algorithm Functions)

@@ -164,7 +164,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalEncrypt_ECC(JNIEnv *env, jobject obj, 
     }
 
     /* 分配ECCCipher结构 + 密文空间 + 额外空间*/
-    ECCCipher *cipher = (ECCCipher*)calloc(1,sizeof(ECCCipher) + data_len);
+    ECCCipher *cipher = (ECCCipher*)calloc(1, sizeof(ECCCipher) + data_len);
     if (cipher == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
@@ -346,6 +346,70 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnECC(JNIEnv *env, jo
     return result;
 }
 
+/**
+ * SDF_ExchangeDigitEnvelopeBaseOnRSA
+ */
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnRSA(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint uiKeyIndex, jobject pucPublicKey, jbyteArray pucDEInput) {
+    UNUSED(obj);
+
+    if (g_sdf_functions.SDF_ExchangeDigitEnvelopeBaseOnRSA == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
+        return NULL;
+    }
+
+    if (pucPublicKey == NULL || pucDEInput == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
+        return NULL;
+    }
+
+    RSArefPublicKey native_key;
+    if (!java_to_native_RSAPublicKey(env, pucPublicKey, &native_key)) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to convert public key");
+        return NULL;
+    }
+
+    jsize input_len = (*env)->GetArrayLength(env, pucDEInput);
+    jbyte *input_buf = (*env)->GetPrimitiveArrayCritical(env, pucDEInput, NULL);
+    if (input_buf == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "GetPrimitiveArrayCritical failed");
+        return NULL;
+    }
+
+    ULONG output_len = (native_key.bits + 7) / 8;
+    if (output_len == 0 || output_len > RSAref_MAX_LEN) {
+        (*env)->ReleasePrimitiveArrayCritical(env, pucDEInput, input_buf, JNI_ABORT);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Output length is invalid");
+        return NULL;
+    }
+    BYTE *output_buf = (BYTE*)malloc(output_len);
+    if (output_buf == NULL) {
+        (*env)->ReleasePrimitiveArrayCritical(env, pucDEInput, input_buf, JNI_ABORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
+        return NULL;
+    }
+
+    LONG ret = g_sdf_functions.SDF_ExchangeDigitEnvelopeBaseOnRSA(
+        (HANDLE)sessionHandle,
+        (ULONG)uiKeyIndex,
+        &native_key,
+        (BYTE*)input_buf,
+        (ULONG)input_len,
+        output_buf,
+        &output_len
+    );
+
+    (*env)->ReleasePrimitiveArrayCritical(env, pucDEInput, input_buf, JNI_ABORT);
+    if (ret != SDR_OK) {
+        free(output_buf);
+        THROW_SDF_EXCEPTION(env, ret, "Failed to perform RSA digit envelope operation");
+        return NULL;
+    }
+    jbyteArray result = native_to_java_byte_array(env, output_buf, output_len);
+    free(output_buf);
+    return result;
+}
+
 /* ========================================================================
  * RSA Operations (Public/Private Key Operations)
  * ======================================================================== */
@@ -381,6 +445,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPublicKeyOperation_RSA(JNIEnv *env,
 
     /* 分配输出缓冲区（RSA输出长度等于模长）*/
     ULONG output_len = (native_key.bits + 7) / 8;
+    if (output_len == 0 || output_len > RSAref_MAX_LEN) {
+        free(input_buf);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Output length is invalid");
+        return NULL;
+    }
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         free(input_buf);

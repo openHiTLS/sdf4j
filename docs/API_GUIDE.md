@@ -231,6 +231,8 @@ System.out.println("指数e: " + bytesToHex(signPubKey.getE()));
 RSAPublicKey encPubKey = sdf.SDF_ExportEncPublicKey_RSA(sessionHandle, 1);
 ```
 
+**注意：** RSA密钥最大支持4096 bits。
+
 ### 导出ECC公钥
 
 ```java
@@ -1090,13 +1092,13 @@ public static byte[] hexToBytes(String hex) {
 
 | 函数 | 说明 |
 |------|------|
-| `SDF_ExportSignPublicKey_RSA(sessionHandle, keyIndex)` | 导出RSA签名公钥 |
-| `SDF_ExportEncPublicKey_RSA(sessionHandle, keyIndex)` | 导出RSA加密公钥 |
+| `SDF_ExportSignPublicKey_RSA(sessionHandle, keyIndex)` | 导出RSA签名公钥  (最大规格4096 bits) |
+| `SDF_ExportEncPublicKey_RSA(sessionHandle, keyIndex)` | 导出RSA加密公钥  (最大规格4096 bits) |
 | `SDF_ExportSignPublicKey_ECC(sessionHandle, keyIndex)` | 导出ECC签名公钥 |
 | `SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex)` | 导出ECC加密公钥 |
-| `SDF_GenerateKeyWithIPK_RSA(sessionHandle, keyIndex, keyBits)` | 用内部RSA公钥生成会话密钥 |
-| `SDF_GenerateKeyWithEPK_RSA(sessionHandle, keyBits, publicKey)` | 用外部RSA公钥生成会话密钥 |
-| `SDF_ImportKeyWithISK_RSA(sessionHandle, keyIndex, encryptedKey)` | 用内部RSA私钥导入会话密钥 |
+| `SDF_GenerateKeyWithIPK_RSA(sessionHandle, keyIndex, keyBits)` | 用内部RSA公钥生成会话密钥  (最大规格4096 bits) |
+| `SDF_GenerateKeyWithEPK_RSA(sessionHandle, keyBits, publicKey)` | 用外部RSA公钥生成会话密钥  (最大规格4096 bits) |
+| `SDF_ImportKeyWithISK_RSA(sessionHandle, keyIndex, encryptedKey)` | 用内部RSA私钥导入会话密钥  (最大规格4096 bits) |
 | `SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, keyBits)` | 用内部ECC公钥生成会话密钥 |
 | `SDF_GenerateKeyWithEPK_ECC(sessionHandle, keyBits, algID, publicKey)` | 用外部ECC公钥生成会话密钥 |
 | `SDF_ImportKeyWithISK_ECC(sessionHandle, keyIndex, cipher)` | 用内部ECC私钥导入会话密钥 |
@@ -1111,9 +1113,9 @@ public static byte[] hexToBytes(String hex) {
 
 | 函数 | 说明 |
 |------|------|
-| `SDF_ExternalPublicKeyOperation_RSA(sessionHandle, publicKey, data)` | 外部公钥RSA运算 |
-| `SDF_InternalPublicKeyOperation_RSA(sessionHandle, keyIndex, data)` | 内部公钥RSA运算 |
-| `SDF_InternalPrivateKeyOperation_RSA(sessionHandle, keyIndex, data)` | 内部私钥RSA运算 |
+| `SDF_ExternalPublicKeyOperation_RSA(sessionHandle, publicKey, data)` | 外部公钥RSA运算 (最大规格4096 bits) |
+| `SDF_InternalPublicKeyOperation_RSA(sessionHandle, keyIndex, data)` | 内部公钥RSA运算 (最大规格4096 bits) |
+| `SDF_InternalPrivateKeyOperation_RSA(sessionHandle, keyIndex, data)` | 内部私钥RSA运算 (最大规格4096 bits) |
 | `SDF_InternalSign_ECC(sessionHandle, keyIndex, data)` | 内部私钥ECC签名 |
 | `SDF_InternalVerify_ECC(sessionHandle, keyIndex, data, signature)` | 内部公钥ECC验签 |
 | `SDF_ExternalVerify_ECC(sessionHandle, algID, publicKey, data, signature)` | 外部公钥ECC验签 |
@@ -1121,6 +1123,7 @@ public static byte[] hexToBytes(String hex) {
 | `SDF_InternalEncrypt_ECC(sessionHandle, keyIndex, data)` | 内部公钥ECC加密 |
 | `SDF_InternalDecrypt_ECC(sessionHandle, keyIndex, eccKeyType, cipher)` | 内部私钥ECC解密 |
 | `SDF_ExchangeDigitEnvelopeBaseOnECC(sessionHandle, keyIndex, algID, publicKey, encDataIn)` | ECC 数字信封转换 |
+| `SDF_ExchangeDigitEnvelopeBaseOnRSA(sessionHandle, uiKeyIndex, pucPublicKey, pucDEInput)` | RSA 数字信封转换 (最大规格4096 bits) |
 
 ### 对称算法运算类函数（6.5）
 
@@ -1171,9 +1174,9 @@ public static byte[] hexToBytes(String hex) {
 
 | 函数 | 说明 |
 |------|------|
-| `SDF_GenerateKeyPair_RSA(sessionHandle, keyBits)` | 生成RSA密钥对 |
+| `SDF_GenerateKeyPair_RSA(sessionHandle, keyBits)` | 生成RSA密钥对 (最大规格4096 bits) |
 | `SDF_GenerateKeyPair_ECC(sessionHandle, algID, keyBits)` | 生成ECC密钥对 |
-| `SDF_ExternalPrivateKeyOperation_RSA(sessionHandle, privateKey, data)` | 外部私钥RSA运算 |
+| `SDF_ExternalPrivateKeyOperation_RSA(sessionHandle, privateKey, data)` | 外部私钥RSA运算 (最大规格4096 bits) |
 | `SDF_ExternalSign_ECC(sessionHandle, algID, privateKey, data)` | 外部私钥ECC签名 |
 | `SDF_ExternalDecrypt_ECC(sessionHandle, algID, privateKey, cipher)` | 外部私钥ECC解密 |
 | `SDF_ExternalKeyEncrypt(sessionHandle, algID, key, iv, data)` | 外部密钥对称加密 |

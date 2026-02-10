@@ -128,12 +128,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_EncryptFinal(JNIEnv *env, jobject obj, jlon
 
     /* 分配最终块缓冲区（最多一个块大小 + 填充）*/
     ULONG enc_len = 64;  /* 预留足够空间 */
-    BYTE *enc_buf = (BYTE*)malloc(enc_len);
-    if (enc_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
-
+    BYTE enc_buf[64];
     LONG ret = g_sdf_functions.SDF_EncryptFinal(
         (HANDLE)sessionHandle,
         enc_buf,
@@ -141,15 +136,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_EncryptFinal(JNIEnv *env, jobject obj, jlon
     );
 
     if (ret != SDR_OK) {
-        free(enc_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform enc final operation");
         return NULL;
     }
 
-    jbyteArray result = native_to_java_byte_array(env, enc_buf, enc_len);
-    free(enc_buf);
-
-    return result;
+    return native_to_java_byte_array(env, enc_buf, enc_len);
 }
 
 /* ========================================================================
@@ -440,12 +431,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_DecryptFinal(JNIEnv *env, jobject obj, jlon
     }
 
     ULONG data_len = 64;
-    BYTE *data_buf = (BYTE*)malloc(data_len);
-    if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
-
+    BYTE data_buf[64];
     LONG ret = g_sdf_functions.SDF_DecryptFinal(
         (HANDLE)sessionHandle,
         data_buf,
@@ -453,15 +439,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_DecryptFinal(JNIEnv *env, jobject obj, jlon
     );
 
     if (ret != SDR_OK) {
-        free(data_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform dec final operation");
         return NULL;
     }
 
-    jbyteArray result = native_to_java_byte_array(env, data_buf, data_len);
-    free(data_buf);
-
-    return result;
+    return native_to_java_byte_array(env, data_buf, data_len);
 }
 
 /* ========================================================================
@@ -502,17 +484,8 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
     }
 
     /* 分配MAC缓冲区 */
-    ULONG mac_len = 64;  /* SM4-CBC-MAC 通常为16字节,可能是必须要传入固定64 TODO */
-
-    BYTE *mac_buf = (BYTE*)malloc(mac_len);
-    if (mac_buf == NULL) {
-        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
-        if (iv_buf) {
-            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
-        }
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
+    ULONG mac_len = 64;
+    BYTE mac_buf[64];
 
     LONG ret = g_sdf_functions.SDF_CalculateMAC((HANDLE)sessionHandle, (HANDLE)keyHandle,
                                                  algID, (BYTE *)iv_buf, (BYTE *)data_buf, data_len,
@@ -524,15 +497,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
     }
 
     if (ret != SDR_OK) {
-        free(mac_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform calculate mac operation");
         return NULL;
     }
 
-    jbyteArray result = native_to_java_byte_array(env, mac_buf, mac_len);
-    free(mac_buf);
-
-    return result;
+    return native_to_java_byte_array(env, mac_buf, mac_len);
 }
 
 /* ========================================================================
@@ -776,19 +745,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
     }
 
     ULONG tag_len = 16;  /* GCM tag size is 16 bytes */
-    BYTE *tag_buf = (BYTE*)malloc(tag_len);
-    if (tag_buf == NULL) {
-        if (iv_buf != NULL) {
-            (*env)->ReleasePrimitiveArrayCritical(env, iv, iv_buf, JNI_ABORT);
-        }
-        if (aad_buf != NULL) {
-            (*env)->ReleasePrimitiveArrayCritical(env, aad, aad_buf, JNI_ABORT);
-        }
-        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
-        free(enc_buf);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
+    BYTE tag_buf[16];
 
     LONG ret = g_sdf_functions.SDF_AuthEnc(
         (HANDLE)sessionHandle,
@@ -816,7 +773,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
 
     if (ret != SDR_OK) {
         free(enc_buf);
-        free(tag_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform auth enc operation");
         return NULL;
     }
@@ -824,7 +780,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.byteArrayClass, NULL);
     if (result == NULL) {
         free(enc_buf);
-        free(tag_buf);
         return NULL;
     }
 
@@ -841,8 +796,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
     }
 
     free(enc_buf);
-    free(tag_buf);
-
     return result;
 }
 
@@ -1122,12 +1075,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEncFinal(JNIEnv *env, jobject obj, jl
 
     /* Allocate tag buffer */
     ULONG tag_len = 16;  /* GCM tag size is 16 bytes */
-    BYTE *tag_buf = (BYTE*)malloc(tag_len);
-    if (tag_buf == NULL) {
-        if (output_buf != NULL) free(output_buf);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
+    BYTE tag_buf[16];
 
     LONG ret = g_sdf_functions.SDF_AuthEncFinal(
         (HANDLE)sessionHandle,
@@ -1139,7 +1087,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEncFinal(JNIEnv *env, jobject obj, jl
 
     if (ret != SDR_OK) {
         if (output_buf != NULL) free(output_buf);
-        free(tag_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform auth enc final operation");
         return NULL;
     }
@@ -1147,7 +1094,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEncFinal(JNIEnv *env, jobject obj, jl
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.byteArrayClass, NULL);
     if (result == NULL) {
         if (output_buf != NULL) free(output_buf);
-        free(tag_buf);
         return NULL;
     }
 
@@ -1164,7 +1110,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEncFinal(JNIEnv *env, jobject obj, jl
     }
 
     if (output_buf != NULL) free(output_buf);
-    free(tag_buf);
 
     return result;
 }
@@ -1326,14 +1271,9 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDecFinal(JNIEnv *env, jobject obj, jlon
         return NULL;
     }
 
-    /* Allocate output buffer - must be large enough for plaintext data */
-    ULONG output_len = 4096;  /* Allocate sufficient buffer size */
-    BYTE *output_buf = (BYTE*)malloc(output_len);
-    if (output_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
-
+    /* max len is the last block size */
+    ULONG output_len = 16;
+    BYTE output_buf[16];
     LONG ret = g_sdf_functions.SDF_AuthDecFinal(
         (HANDLE)sessionHandle,
         output_buf,
@@ -1341,15 +1281,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDecFinal(JNIEnv *env, jobject obj, jlon
     );
 
     if (ret != SDR_OK) {
-        free(output_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform auth dec final operation");
         return NULL;
     }
 
-    jbyteArray result = native_to_java_byte_array(env, output_buf, output_len);
-    free(output_buf);
-
-    return result;
+    return native_to_java_byte_array(env, output_buf, output_len);
 }
 
 /* ========================================================================

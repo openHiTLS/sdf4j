@@ -20,7 +20,7 @@ import java.util.Arrays;
  *
  * <p>对应C结构体: RSArefPublicKey_st
  * <p>定义于GM/T 0018-2023 5.5节
- * <p>最大支持2048位密钥
+ * <p>最大支持4096位密钥
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -30,7 +30,7 @@ public class RSAPublicKey {
     /**
      * 最大位数
      */
-    public static final int RSA_MAX_BITS = 2048;
+    public static final int RSA_MAX_BITS = 4096;
 
     /**
      * 最大字节数
@@ -43,13 +43,13 @@ public class RSAPublicKey {
     private int bits;
 
     /**
-     * 模数 m (最大256字节)
+     * 模数 m (最大512字节)
      * Modulus
      */
     private byte[] m;
 
     /**
-     * 公钥指数 e (最大256字节)
+     * 公钥指数 e (最大512字节)
      * Public exponent
      */
     private byte[] e;

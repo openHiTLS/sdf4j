@@ -131,12 +131,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
-
-    if (length <= 0 || length > 1024 * 1024) {  /* 限制最大1MB */
+    if (length <= 0) {
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid random length"); /* SDR_INARGERR */
         return NULL;
     }
-
     jbyteArray result = (*env)->NewByteArray(env, length);
     if (result == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to allocate random array"); /* SDR_NOBUFFER */

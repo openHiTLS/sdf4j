@@ -128,6 +128,8 @@ static bool load_all_functions(void *handle) {
                  "SDF_DestroyKey", false);
     load_function(handle, (void**)&g_sdf_functions.SDF_ExchangeDigitEnvelopeBaseOnECC,
                  "SDF_ExchangeDigitEnvelopeBaseOnECC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExchangeDigitEnvelopeBaseOnRSA,
+                 "SDF_ExchangeDigitEnvelopeBaseOnRSA", false);
 
     /* ========================================
      * 可选非对称算法函数

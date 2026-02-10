@@ -86,7 +86,9 @@ JNIEXPORT void JNICALL JNI_SDF_DestroyKey(JNIEnv *env, jobject obj, jlong sessio
 JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray encryptedKey);
 JNIEXPORT jobject JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnECC(JNIEnv *env, jobject obj,
     jlong sessionHandle, jint keyIndex, jint algID, jobject publicKey, jobject encDataIn);
-    
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnRSA(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jobject publicKey, jbyteArray deInput);
+
 /* ========================================================================
  * 6.4 非对称算法类函数 (Asymmetric Algorithms)
  * ======================================================================== */

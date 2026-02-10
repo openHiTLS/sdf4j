@@ -86,7 +86,7 @@ typedef struct DeviceInfo_st
 #define SGD_SM9_3                   0x00080400   /* SM9 identity-based encryption algorithm */
 
 /* 5.5 RSA密钥数据结构定义 (RSA Key Data Structure Definitions) */
-#define RSAref_MAX_BITS     2048
+#define RSAref_MAX_BITS     4096
 #define RSAref_MAX_LEN      ((RSAref_MAX_BITS + 7) / 8)
 #define RSAref_MAX_PBITS    ((RSAref_MAX_BITS + 1) / 2)
 #define RSAref_MAX_PLEN     ((RSAref_MAX_PBITS + 7) / 8)

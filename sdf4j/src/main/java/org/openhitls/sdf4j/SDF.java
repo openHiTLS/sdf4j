@@ -671,6 +671,19 @@ public class SDF {
     public native ECCCipher SDF_ExchangeDigitEnvelopeBaseOnECC(
             long sessionHandle, int keyIndex, int algID, ECCPublicKey publicKey, ECCCipher encDataIn) throws SDFException;
 
+    /**
+     * Exchange Digital Envelope Based On RSA
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param uiKeyIndex 密钥索引 / Key index
+     * @param pucPublicKey RSA公钥 / RSA public key
+     * @param pucDEInput 输入数字信封 / Input digital envelope
+     * @return 转换后的数字信封值 / Converted digital envelope
+     * @throws SDFException 如果操作失败或转换失败 / if operation fails or conversion fails
+     */
+    public native byte[] SDF_ExchangeDigitEnvelopeBaseOnRSA(
+            long sessionHandle, int uiKeyIndex, RSAPublicKey pucPublicKey, byte[] pucDEInput) throws SDFException;
+
     // ========================================================================
     // 6.4 非对称算法运算类函数 (Asymmetric Algorithm Functions)
     // ========================================================================

@@ -204,14 +204,12 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_ECC(JNIEnv *env, jobject ob
     }
 
     jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
+    free(ecc_cipher);
     if (result == NULL) {
-        free(ecc_cipher);
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
-    free(ecc_cipher);
-
     return result;
 }
 
@@ -262,14 +260,12 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
     }
 
     jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
+    free(ecc_cipher);
     if (result == NULL) {
-        free(ecc_cipher);
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
-    free(ecc_cipher);
-
     return result;
 }
 

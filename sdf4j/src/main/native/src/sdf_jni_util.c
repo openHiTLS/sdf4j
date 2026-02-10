@@ -30,10 +30,8 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_RSA(JNIEnv *env, jobject 
         return NULL;
     }
 
-    RSArefPublicKey pub_key;
-    RSArefPrivateKey priv_key;
-    memset(&pub_key, 0, sizeof(RSArefPublicKey));
-    memset(&priv_key, 0, sizeof(RSArefPrivateKey));
+    RSArefPublicKey pub_key = {0};
+    RSArefPrivateKey priv_key = {0};
 
     LONG ret = g_sdf_functions.SDF_GenerateKeyPair_RSA(
         (HANDLE)sessionHandle,
@@ -55,10 +53,6 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_RSA(JNIEnv *env, jobject 
         return NULL;  /* Exception already thrown */
     }
 
-    /* Create Object array */
-    if (!jni_cache_is_initialized()) {
-        return NULL;
-    }
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
     if (result != NULL) {
         (*env)->SetObjectArrayElement(env, result, 0, java_pub);
@@ -80,10 +74,8 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject 
         return NULL;
     }
 
-    ECCrefPublicKey pub_key;
-    ECCrefPrivateKey priv_key;
-    memset(&pub_key, 0, sizeof(ECCrefPublicKey));
-    memset(&priv_key, 0, sizeof(ECCrefPrivateKey));
+    ECCrefPublicKey pub_key = {0};
+    ECCrefPrivateKey priv_key = {0};
 
     LONG ret = g_sdf_functions.SDF_GenerateKeyPair_ECC(
         (HANDLE)sessionHandle,
@@ -106,14 +98,9 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject 
         return NULL;  /* Exception already thrown */
     }
 
-    /* Create Object array */
-    if (!jni_cache_is_initialized()) {
-        return NULL;
-    }
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
     (*env)->SetObjectArrayElement(env, result, 0, java_pub);
     (*env)->SetObjectArrayElement(env, result, 1, java_priv);
-
     return result;
 }
 
@@ -145,8 +132,13 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
     }
     (*env)->GetByteArrayRegion(env, dataInput, 0, input_len, (jbyte*)input_buf);
 
-    /* Allocate output buffer */
-    ULONG output_len = 512;  /* Max RSA key size */
+    /* Allocate output buffer based on key size */
+    ULONG output_len = (priv_key.bits + 7) / 8;  /* Calculate from private key bits */
+    if (output_len == 0 || output_len > RSAref_MAX_LEN) {
+        free(input_buf);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Output length is invalid");
+        return NULL;
+    }
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         free(input_buf);
@@ -259,11 +251,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    /* Allocate output buffer */
-    ULONG plaintext_len = ecc_cipher->L + 64;
-    if (plaintext_len < 256) plaintext_len = 256;  /* Reasonable min */
+    /* Allocate output buffer, L is the length of the encrypted data */
+    ULONG plaintext_len = ecc_cipher->L;
     BYTE *plaintext_buf = (BYTE*)malloc(plaintext_len);
-    if (plaintext_buf == NULL) {
+    if (plaintext_buf == NULL && plaintext_len != 0) {
         free(ecc_cipher);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;

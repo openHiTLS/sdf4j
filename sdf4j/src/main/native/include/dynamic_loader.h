@@ -97,6 +97,9 @@ typedef LONG (*SDF_DestroyKey_FN)(HANDLE hSessionHandle, HANDLE hKeyHandle);
 typedef LONG (*SDF_ExchangeDigitEnvelopeBaseOnECC_FN)(HANDLE hSessionHandle, ULONG uiKEKIndex,
                                         ULONG uiAlgID, ECCrefPublicKey *pucPublicKey, ECCCipher *pucEncDataIn,
                                         ECCCipher *pucEncDataOut);
+typedef LONG (*SDF_ExchangeDigitEnvelopeBaseOnRSA_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                        RSArefPublicKey *pucPublicKey, BYTE *pucDEInput,
+                                        ULONG uiDELength, BYTE *pucDEOutput, ULONG *puiDELength);
 
 /* 非对称算法函数 */
 typedef LONG (*SDF_ExternalPublicKeyOperation_RSA_FN)(HANDLE hSessionHandle,
@@ -296,6 +299,7 @@ typedef struct {
     SDF_ImportKey_FN                        SDF_ImportKey;
     SDF_DestroyKey_FN                       SDF_DestroyKey;
     SDF_ExchangeDigitEnvelopeBaseOnECC_FN   SDF_ExchangeDigitEnvelopeBaseOnECC;
+    SDF_ExchangeDigitEnvelopeBaseOnRSA_FN   SDF_ExchangeDigitEnvelopeBaseOnRSA;
 
     /* 非对称算法 */
     SDF_ExternalPublicKeyOperation_RSA_FN   SDF_ExternalPublicKeyOperation_RSA;

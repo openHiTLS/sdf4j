@@ -50,6 +50,7 @@
      {"SDF_DestroyKey_Native", "(JJ)V", (void*)JNI_SDF_DestroyKey},
      {"SDF_ImportKey", "(J[B)J", (void*)JNI_SDF_ImportKey},
      {"SDF_ExchangeDigitEnvelopeBaseOnECC", "(JIILorg/openhitls/sdf4j/types/ECCPublicKey;Lorg/openhitls/sdf4j/types/ECCCipher;)Lorg/openhitls/sdf4j/types/ECCCipher;", (void*)JNI_SDF_ExchangeDigitEnvelopeBaseOnECC},
+     {"SDF_ExchangeDigitEnvelopeBaseOnRSA", "(JILorg/openhitls/sdf4j/types/RSAPublicKey;[B)[B", (void*)JNI_SDF_ExchangeDigitEnvelopeBaseOnRSA},
 
      /* 6.4 非对称算法类函数 */
      {"SDF_ExternalPublicKeyOperation_RSA", "(JLorg/openhitls/sdf4j/types/RSAPublicKey;[B)[B", (void*)JNI_SDF_ExternalPublicKeyOperation_RSA},

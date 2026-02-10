@@ -951,4 +951,30 @@ public class AsymmetricOperationTest {
         }
         return sb.toString();
     }
+
+    /**
+     * RSA 数字信封转换
+     * SDF_ExchangeDigitEnvelopeBaseOnRSA
+     */
+    @Test
+    public void testExchangeDigitEnvelopeBaseOnRSA() throws SDFException {
+        deviceHandle = sdf.SDF_OpenDevice();
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+
+        try {
+            Object[] keyPair = sdf.SDF_GenerateKeyPair_RSA(sessionHandle, 2048);
+            assertNotNull(keyPair);
+            RSAPublicKey publicKey = (RSAPublicKey) keyPair[0];
+            byte[] deInput = new byte[256];
+            byte[] deOutput = sdf.SDF_ExchangeDigitEnvelopeBaseOnRSA(sessionHandle, keyIndex, publicKey, deInput);
+            assertNotNull(deOutput);
+            assertTrue("输出长度应大于0", deOutput.length > 0);
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("[跳过] RSA 相关功能未实现\n");
+            } else {
+                throw e;
+            }
+        }
+    }
 }

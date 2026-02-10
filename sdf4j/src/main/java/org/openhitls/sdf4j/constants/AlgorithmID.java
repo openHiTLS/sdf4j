@@ -161,6 +161,12 @@ public final class AlgorithmID {
     public static final int SGD_RSA = 0x00010000;
 
     /**
+     * SM2 椭圆曲线密码算法
+     * SM2 elliptic curve cryptography algorithm
+     */
+    public static final int SGD_SM2 = 0x00020100;
+
+    /**
      * SM2 椭圆曲线签名算法
      * SM2 elliptic curve sign algorithm
      */
@@ -252,6 +258,18 @@ public final class AlgorithmID {
      */
     public static final int SGD_SM9_3 = 0x00080400;
 
+    // 扩展算法id支持
+
+    /**
+     * SM2 椭圆曲线解密算法
+     */
+    public static final int SGD_SM2_DECRYPT = 0x00020801;
+
+    /**
+     * SM3 密码杂凑算法 HMAC
+     */
+    public static final int SGD_SM3_HMAC = 0x00100001;
+
     // ========================================================================
     // 工具方法 (Utility Methods)
     // ========================================================================
@@ -313,6 +331,8 @@ public final class AlgorithmID {
                 return "RSA";
 
             // SM2
+            case SGD_SM2:
+                return "SM2";
             case SGD_SM2_1:
                 return "SM2-Sign";
             case SGD_SM2_2:
@@ -346,6 +366,11 @@ public final class AlgorithmID {
             case SGD_SM9_3:
                 return "SM9-Encrypt";
 
+            // 扩展算法id支持
+            case SGD_SM2_DECRYPT:
+                return "SM2-Decrypt";
+            case SGD_SM3_HMAC:
+                return "SM3-HMAC";
             default:
                 return "Unknown(0x" + Integer.toHexString(algorithmID).toUpperCase() + ")";
         }
