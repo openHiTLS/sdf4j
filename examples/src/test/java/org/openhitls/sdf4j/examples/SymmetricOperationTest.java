@@ -75,9 +75,6 @@ public class SymmetricOperationTest {
 
     @Before
     public void setUp() throws SDFException {
-        System.out.println("========================================");
-        System.out.println("6.5 对称算法运算类函数测试");
-        System.out.println("========================================\n");
 
         config = TestConfig.getInstance();
         keyIndex = config.getSM4InternalKeyIndex();  // Key索引，默认为4
@@ -87,37 +84,34 @@ public class SymmetricOperationTest {
         sdf = new SDF();
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
-        System.out.println("设备和会话已打开");
 
         // 获取KEK访问权限
         try {
             String kekPassword = config.getSM4KeyAccessPassword();
-            System.out.println("获取KEK访问权限 (密钥索引: " + keyIndex + ")");
             sdf.SDF_GetKEKAccessRight(sessionHandle, keyIndex, kekPassword);
             kekAccessRightObtained = true;
-            System.out.println("成功获取KEK访问权限");
         } catch (SDFException e) {
             if (e.getErrorCode() == org.openhitls.sdf4j.constants.ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("获取KEK权限不需要或不支持，继续测试...");
+                System.out.println("[跳过] KEK 权限获取功能不支持");
+                Assume.assumeTrue("[跳过] KEK 权限获取功能不支持", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
 
         // 使用KEK（密钥加密密钥）生成SM4会话密钥（128位）
         try {
-            System.out.println("生成SM4会话密钥 (使用Key索引: " + keyIndex + ")");
             KeyEncryptionResult result = sdf.SDF_GenerateKeyWithKEK(sessionHandle, 128, AlgorithmID.SGD_SM4_ECB, keyIndex);
             keyHandle = result.getKeyHandle();
             keyAvailable = true;  // 标记密钥生成成功
-            System.out.println("SM4密钥生成成功，密钥句柄: 0x" + Long.toHexString(keyHandle).toUpperCase() + "\n");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_GenerateKeyWithKEK 功能不支持，跳过需要密钥的测试");
+                System.out.println("[跳过] SDF_GenerateKeyWithKEK 功能不支持，跳过需要密钥的测试");
+                Assume.assumeTrue("SDF_GenerateKeyWithKEK 功能不支持，跳过需要密钥的测试", false);
                 keyAvailable = false;
                 return;
             } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                System.out.println("内部密钥不存在 (Key索引: " + keyIndex + ")，跳过需要密钥的测试");
                 keyAvailable = false;
             }
             // 除 SDR_NOTSUPPORT 外，异常抛出并失败
@@ -134,7 +128,6 @@ public class SymmetricOperationTest {
             if (kekAccessRightObtained) {
                 try {
                     sdf.SDF_ReleaseKEKAccessRight(sessionHandle, keyIndex);
-                    System.out.println("已释放KEK访问权限");
                 } catch (SDFException e) {
                     System.err.println("释放KEK访问权限失败: " + e.getMessage());
                 }
@@ -145,7 +138,6 @@ public class SymmetricOperationTest {
             if (deviceHandle != 0) {
                 sdf.SDF_CloseDevice(deviceHandle);
             }
-            System.out.println("\n资源已清理");
         } catch (SDFException e) {
             System.err.println("关闭资源失败: " + e.getMessage());
         }
@@ -165,39 +157,31 @@ public class SymmetricOperationTest {
      */
     @Test
     public void testEncrypt() throws SDFException {
-        System.out.println("测试 6.5.2 SDF_Encrypt - 单包对称加密");
 
         assumeKeyAvailable();
 
         try {
             String originalText = "Hello SDF4J!";
             byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-            System.out.println("  明文: " + originalText);
-            System.out.println("  明文(填充后): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
 
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-CBC");
 
             byte[] ciphertext = sdf.SDF_Encrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, plaintext);
 
             assertNotNull("密文不应为空", ciphertext);
             assertTrue("密文长度应大于0", ciphertext.length > 0);
-            System.out.println("  密文: " + bytesToHex(ciphertext) + " (" + ciphertext.length + "字节)");
 
             // 解密验证
-            System.out.println("  执行解密验证...");
             byte[] decrypted = sdf.SDF_Decrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, ciphertext);
             assertNotNull("解密结果不应为空", decrypted);
             byte[] unpaddedData = pkcs7Unpadding(decrypted);
             String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", originalText, decryptedText);
 
-            System.out.println("SDF_Encrypt 测试通过（含解密验证）");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_Encrypt 功能未实现");
+                System.out.println("[跳过] SDF_Encrypt 功能未实现");
+                Assume.assumeTrue("SDF_Encrypt 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_Encrypt 测试失败: " + e.getMessage());
             }
@@ -210,7 +194,6 @@ public class SymmetricOperationTest {
      */
     @Test
     public void testDecrypt() throws SDFException {
-        System.out.println("测试 6.5.3 SDF_Decrypt - 单包对称解密");
 
         assumeKeyAvailable();
 
@@ -218,28 +201,24 @@ public class SymmetricOperationTest {
             String originalText = "Hello SDF4J!";
             byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  原始明文: " + originalText);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-CBC");
+            assertNotNull("iv不应为空", iv);
 
             // 先加密
-            System.out.println("  执行加密...");
             byte[] ciphertext = sdf.SDF_Encrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, plaintext);
-            System.out.println("  密文: " + bytesToHex(ciphertext));
+            assertNotNull(" 密文不应为空", ciphertext);
 
             // 再解密
-            System.out.println("  执行解密...");
             byte[] decrypted = sdf.SDF_Decrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, ciphertext);
-
             assertNotNull("解密结果不应为空", decrypted);
             byte[] unpaddedData = pkcs7Unpadding(decrypted);
+            assertNotNull(" 去填充数据不应为空", unpaddedData);
+
             String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", originalText, decryptedText);
-            System.out.println("SDF_Decrypt 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_Decrypt 功能未实现");
+                System.out.println("[跳过] SDF_Decrypt 功能未实现");
+                Assume.assumeTrue("SDF_Decrypt 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_Decrypt 测试失败: " + e.getMessage());
             }
@@ -252,7 +231,6 @@ public class SymmetricOperationTest {
      */
     @Test
     public void testCalculateMAC() throws SDFException {
-        System.out.println("测试 6.5.4 SDF_CalculateMAC - 计算单包MAC");
 
         assumeKeyAvailable();
 
@@ -260,21 +238,15 @@ public class SymmetricOperationTest {
             String message = "Message for MAC";
             byte[] data = pkcs7Padding(message.getBytes(StandardCharsets.UTF_8), 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  消息: " + message);
-            System.out.println("  数据(填充后): " + bytesToHex(data) + " (" + data.length + "字节)");
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-MAC");
 
-            System.out.println("  计算MAC...");
             byte[] mac = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
 
             assertNotNull("MAC值不应为空", mac);
             assertTrue("MAC长度应大于0", mac.length > 0);
-            System.out.println("  MAC值: " + bytesToHex(mac) + " (" + mac.length + "字节)");
-            System.out.println("SDF_CalculateMAC 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_CalculateMAC 功能未实现");
+                System.out.println("[跳过] SDF_CalculateMAC 功能未实现");
+                Assume.assumeTrue("SDF_CalculateMAC 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_CalculateMAC 测试失败: " + e.getMessage());
             }
@@ -287,7 +259,6 @@ public class SymmetricOperationTest {
      */
     @Test
     public void testAuthEnc() throws SDFException {
-        System.out.println("测试 6.5.5 SDF_AuthEnc - 单包可鉴别加密");
 
         assumeKeyAvailable();
 
@@ -297,33 +268,24 @@ public class SymmetricOperationTest {
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 12);  // GCM标准12字节IV
             String aadStr = "Additional Data!";  // 16字节AAD
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  明文: " + message + " (" + plaintext.length + "字节)");
-            System.out.println("  IV: " + bytesToHex(iv) + " (" + iv.length + "字节)");
-            System.out.println("  AAD: " + aadStr + " (" + aad.length + "字节)");
-            System.out.println("  算法: SM4-GCM");
 
-            System.out.println("  执行可鉴别加密...");
             byte[][] result = sdf.SDF_AuthEnc(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext);
 
             assertNotNull("AuthEnc结果不应为空", result);
             assertEquals("结果应包含2个元素(密文和认证标签)", 2, result.length);
             assertNotNull("密文不应为空", result[0]);
             assertNotNull("认证标签不应为空", result[1]);
-            System.out.println("  密文: " + bytesToHex(result[0]) + " (" + result[0].length + "字节)");
-            System.out.println("  认证标签: " + bytesToHex(result[1]) + " (" + result[1].length + "字节)");
 
             // 解密验证
-            System.out.println("  执行可鉴别解密验证...");
             byte[] decrypted = sdf.SDF_AuthDec(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, result[1], result[0]);
             assertNotNull("解密结果不应为空", decrypted);
             String decryptedText = new String(decrypted, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", message, decryptedText);
 
-            System.out.println("SDF_AuthEnc 测试通过（含解密验证）");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthEnc 功能未实现");
+                System.out.println("[跳过] SDF_AuthEnc 功能未实现");
+                Assume.assumeTrue("SDF_AuthEnc 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthEnc 测试失败: " + e.getMessage());
             }
@@ -336,7 +298,6 @@ public class SymmetricOperationTest {
      */
     @Test
     public void testAuthDec() throws SDFException {
-        System.out.println("测试 6.5.6 SDF_AuthDec - 单包可鉴别解密");
 
         assumeKeyAvailable();
 
@@ -346,31 +307,22 @@ public class SymmetricOperationTest {
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 12);
             String aadStr = "Additional Data";
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  原始明文: " + originalText);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  算法: SM4-GCM");
 
             // 先进行可鉴别加密
-            System.out.println("  执行可鉴别加密...");
             byte[][] encResult = sdf.SDF_AuthEnc(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext);
+            assertNotNull("加密结果不应为空", encResult);
             byte[] ciphertext = encResult[0];
             byte[] authTag = encResult[1];
-            System.out.println("  密文: " + bytesToHex(ciphertext));
-            System.out.println("  认证标签: " + bytesToHex(authTag));
 
             // 再进行可鉴别解密
-            System.out.println("  执行可鉴别解密...");
             byte[] decrypted = sdf.SDF_AuthDec(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag, ciphertext);
-
             assertNotNull("解密结果不应为空", decrypted);
             String decryptedText = new String(decrypted, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", originalText, decryptedText);
-            System.out.println("SDF_AuthDec 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthDec 功能未实现");
+                System.out.println("[跳过] SDF_AuthDec 功能未实现");
+                Assume.assumeTrue("SDF_AuthDec 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthDec 测试失败: " + e.getMessage());
             }
@@ -383,7 +335,6 @@ public class SymmetricOperationTest {
  */
 @Test
 public void testMultiPacketEncrypt() throws SDFException {
-    System.out.println("测试 6.5.7-6.5.9 SDF_EncryptInit/Update/Final - 多包对称加密");
 
     assumeKeyAvailable();
 
@@ -391,22 +342,16 @@ public void testMultiPacketEncrypt() throws SDFException {
         // 准备测试数据
         String originalText = "这是一段用于测试多包加密的数据，需要分多次处理。This is a test message for multi-packet encryption.";
         byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-        System.out.println("  明文: " + originalText);
-        System.out.println("  明文(填充后): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
 
         // 生成IV
         byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-        System.out.println("  IV: " + bytesToHex(iv));
-        System.out.println("  算法: SM4-CBC");
 
         // 1. 单包加密（用于比较结果）
         byte[] singlePacketCipher = sdf.SDF_Encrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, plaintext);
-        System.out.println("  单包加密密文: " + bytesToHex(singlePacketCipher) + " (" + singlePacketCipher.length + "字节)");
 
         // 2. 多包加密
         // 初始化加密
         sdf.SDF_EncryptInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv);
-        System.out.println("  SDF_EncryptInit 调用成功");
 
         // 分多次处理数据
         int blockSize = 16;
@@ -416,57 +361,33 @@ public void testMultiPacketEncrypt() throws SDFException {
         int offset1 = 0;
         int length1 = 16;
         byte[] data1 = Arrays.copyOfRange(plaintext, offset1, offset1 + length1);
-        System.out.println("  第一次更新 - 输入明文: " + bytesToHex(data1) + " (" + length1 + "字节)");
         byte[] cipher1 = sdf.SDF_EncryptUpdate(sessionHandle, data1);
         if (cipher1 != null) {
-            System.out.println("  第一次更新 - 输出密文: " + bytesToHex(cipher1) + " (" + cipher1.length + "字节)");
             cipherStream.write(cipher1);
-        } else {
-            System.out.println("  第一次更新 - 输出密文: null (返回空)");
         }
-        System.out.println("  第一次更新: 处理" + length1 + "字节明文，返回" + (cipher1 != null ? cipher1.length : 0) + "字节密文");
-
         // 第二次更新：处理中间32字节
         int offset2 = offset1 + length1;
         int length2 = 32;
         byte[] data2 = Arrays.copyOfRange(plaintext, offset2, offset2 + length2);
-        System.out.println("  第二次更新 - 输入明文: " + bytesToHex(data2) + " (" + length2 + "字节)");
         byte[] cipher2 = sdf.SDF_EncryptUpdate(sessionHandle, data2);
         if (cipher2 != null) {
-            System.out.println("  第二次更新 - 输出密文: " + bytesToHex(cipher2) + " (" + cipher2.length + "字节)");
             cipherStream.write(cipher2);
-        } else {
-            System.out.println("  第二次更新 - 输出密文: null (返回空)");
         }
-        System.out.println("  第二次更新: 处理" + length2 + "字节明文，返回" + (cipher2 != null ? cipher2.length : 0) + "字节密文");
-
         // 第三次更新：处理剩余数据
         int offset3 = offset2 + length2;
         int length3 = plaintext.length - offset3;
         byte[] data3 = Arrays.copyOfRange(plaintext, offset3, plaintext.length);
-        System.out.println("  第三次更新 - 输入明文: " + bytesToHex(data3) + " (" + length3 + "字节)");
         byte[] cipher3 = sdf.SDF_EncryptUpdate(sessionHandle, data3);
         if (cipher3 != null) {
-            System.out.println("  第三次更新 - 输出密文: " + bytesToHex(cipher3) + " (" + cipher3.length + "字节)");
             cipherStream.write(cipher3);
-        } else {
-            System.out.println("  第三次更新 - 输出密文: null (返回空)");
         }
-        System.out.println("  第三次更新: 处理" + length3 + "字节明文，返回" + (cipher3 != null ? cipher3.length : 0) + "字节密文");
-
         // 结束加密
         byte[] finalCipher = sdf.SDF_EncryptFinal(sessionHandle);
         if (finalCipher != null) {
-            System.out.println("  加密结束 - 最终密文: " + bytesToHex(finalCipher) + " (" + finalCipher.length + "字节)");
             cipherStream.write(finalCipher);
-        } else {
-            System.out.println("  加密结束 - 最终密文: null (返回空)");
         }
-        System.out.println("  加密结束: 返回" + (finalCipher != null ? finalCipher.length : 0) + "字节>密文");
-
         // 获取完整密文
         byte[] multiPacketCipher = cipherStream.toByteArray();
-        System.out.println("  多包加密密文: " + bytesToHex(multiPacketCipher) + " (" + multiPacketCipher.length + "字节)");
 
         // 验证结果
         assertNotNull("多包加密密文不应为空", multiPacketCipher);
@@ -474,27 +395,13 @@ public void testMultiPacketEncrypt() throws SDFException {
         assertArrayEquals("多包加密结果应与单包加密一致", singlePacketCipher, multiPacketCipher);
 
         // 测试小数据块
-        System.out.println("\n  测试小数据块处理：");
         byte[] smallData = pkcs7Padding("test".getBytes(StandardCharsets.UTF_8), 16);
-        System.out.println("  小数据块明文: " + bytesToHex(smallData) + " (" + smallData.length + "字节)");
+        assertNotNull("pad数据不应该为空", smallData);
 
         sdf.SDF_EncryptInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv);
-        System.out.println("  小数据块加密初始化完成");
-
-        System.out.println("  小数据块更新 - 输入明文: " + bytesToHex(smallData) + " (" + smallData.length + "字节)");
         byte[] smallCipher1 = sdf.SDF_EncryptUpdate(sessionHandle, smallData);
-        if (smallCipher1 != null) {
-            System.out.println("  小数据块更新 - 输出密文: " + bytesToHex(smallCipher1) + " (" + smallCipher1.length + "字节)");
-        } else {
-            System.out.println("  小数据块更新 - 输出密文: null (返回空)");
-        }
 
         byte[] smallCipher2 = sdf.SDF_EncryptFinal(sessionHandle);
-        if (smallCipher2 != null) {
-            System.out.println("  小数据块结束 - 最终密文: " + bytesToHex(smallCipher2) + " (" + smallCipher2.length + "字节)");
-        } else {
-            System.out.println("  小数据块结束 - 最终密文: null (返回空)");
-        }
 
         ByteArrayOutputStream smallStream = new ByteArrayOutputStream();
         if (smallCipher1 != null) smallStream.write(smallCipher1);
@@ -504,13 +411,10 @@ public void testMultiPacketEncrypt() throws SDFException {
         byte[] smallExpected = sdf.SDF_Encrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, smallData);
 
         assertArrayEquals("小数据块加密结果应一致", smallExpected, smallEncrypted);
-        System.out.println("  小数据块测试通过");
-
-        System.out.println("SDF_EncryptInit/Update/Final 测试通过");
-
     } catch (SDFException e) {
         if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-            System.out.println("SDF_EncryptInit/Update/Final 功能未实现");
+            System.out.println("[跳过] SDF_EncryptInit/Update/Final 功能未实现");
+            Assume.assumeTrue("SDF_EncryptInit/Update/Final 功能未实现", false);
         } else {
             throw new SDFException(e.getErrorCode(), "SDF_EncryptInit/Update/Final 测试失败: " + e.getMessage());
         }
@@ -525,28 +429,21 @@ public void testMultiPacketEncrypt() throws SDFException {
  */
 @Test
 public void testMultiPacketDecrypt() throws SDFException {
-    System.out.println("测试 6.5.10-6.5.12 SDF_DecryptInit/Update/Final - 多包对称解密");
 
     try {
         // 准备测试数据
         String originalText = "这是一段用于测试多包解密的数据，需要分多次处理。This is a test message for multi-packet decryption.";
         byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-        System.out.println("  原始明文: " + originalText);
-        System.out.println("  原始明文(填充后): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
 
         // 生成IV
         byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-        System.out.println("  IV: " + bytesToHex(iv));
-        System.out.println("  算法: SM4-CBC");
 
         // 1. 先加密数据（使用单包加密函数）
         byte[] ciphertext = sdf.SDF_Encrypt(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv, plaintext);
-        System.out.println("  密文: " + bytesToHex(ciphertext) + " (" + ciphertext.length + "字节)");
 
         // 2. 多包解密测试
         // 初始化解密
         sdf.SDF_DecryptInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_CBC, iv);
-        System.out.println("SDF_DecryptInit 成功");
 
         // 分多次解密数据
         ByteArrayOutputStream plainStream = new ByteArrayOutputStream();
@@ -559,7 +456,6 @@ public void testMultiPacketDecrypt() throws SDFException {
         if (plainPart1 != null) {
             plainStream.write(plainPart1);
         }
-        System.out.println("  第一次解密: 处理" + length1 + "字节密文，返回" + (plainPart1 != null ? plainPart1.length : 0) + "字节明文");
 
         // 第二次更新：解密中间16字节
         int offset2 = offset1 + length1;
@@ -569,7 +465,6 @@ public void testMultiPacketDecrypt() throws SDFException {
         if (plainPart2 != null) {
             plainStream.write(plainPart2);
         }
-        System.out.println("  第二次解密: 处理" + length2 + "字节密文，返回" + (plainPart2 != null ? plainPart2.length : 0) + "字节明文");
 
         // 第三次更新：解密剩余数据
         int offset3 = offset2 + length2;
@@ -579,23 +474,19 @@ public void testMultiPacketDecrypt() throws SDFException {
         if (plainPart3 != null) {
             plainStream.write(plainPart3);
         }
-        System.out.println("  第三次解密: 处理" + length3 + "字节密文，返回" + (plainPart3 != null ? plainPart3.length : 0) + "字节明文");
 
         // 结束解密
         byte[] finalPlain = sdf.SDF_DecryptFinal(sessionHandle);
         if (finalPlain != null) {
             plainStream.write(finalPlain);
         }
-        System.out.println("  解密结束: 返回" + (finalPlain != null ? finalPlain.length : 0) + "字节明>文");
 
         // 获取完整明文
         byte[] decryptedData = plainStream.toByteArray();
-        System.out.println("  解密后数据(填充): " + bytesToHex(decryptedData) + " (" + decryptedData.length + "字节)");
 
         // 移除PKCS7填充
         byte[] unpaddedData = pkcs7Unpadding(decryptedData);
         String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-        System.out.println("  解密后明文: " + decryptedText);
 
         // 验证结果
         assertNotNull("解密后数据不应为空", decryptedData);
@@ -612,16 +503,15 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] partialPlain = sdf.SDF_DecryptUpdate(sessionHandle, partialCipher);
             byte[] finalResult = sdf.SDF_DecryptFinal(sessionHandle);
 
-            System.out.println("  不完整密文块测试: 处理" + partialCipher.length + "字节密文");
         } catch (SDFException e) {
-            System.out.println("  不完整密文块测试结果: " + e.getMessage());
+            // 预期会抛出异常，因为密文块不完整，无法正确解密
         }
 
-        System.out.println("SDF_DecryptInit/Update/Final 测试通过");
 
     } catch (SDFException e) {
         if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-            System.out.println("SDF_DecryptInit/Update/Final 功能未实现");
+            System.out.println("[跳过] SDF_DecryptInit/Update/Final 功能未实现");
+            Assume.assumeTrue("SDF_DecryptInit/Update/Final 功能未实现", false);
         } else {
             throw new SDFException(e.getErrorCode(), "SDF_DecryptInit/Update/Final 测试失败: " + e.getMessage());
         }
@@ -637,7 +527,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthEncInit() throws SDFException {
-        System.out.println("测试 6.5.16 SDF_AuthEncInit - 多包可鉴别加密初始化");
 
         assumeKeyAvailable();
 
@@ -646,17 +535,11 @@ public void testMultiPacketDecrypt() throws SDFException {
             String aadStr = "Additional Data";
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             int dataLength = 32;
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  预期数据长度: " + dataLength + "字节");
-            System.out.println("  算法: SM4-GCM");
-
-            System.out.println("  执行初始化...");
             sdf.SDF_AuthEncInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, dataLength);
-            System.out.println("SDF_AuthEncInit 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthEncInit 功能未实现");
+                System.out.println("[跳过] SDF_AuthEncInit 功能未实现");
+                Assume.assumeTrue("SDF_AuthEncInit 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthEncInit 测试失败: " + e.getMessage());
             }
@@ -669,7 +552,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthEncUpdate() throws SDFException {
-        System.out.println("测试 6.5.17 SDF_AuthEncUpdate - 多包可鉴别加密");
 
         assumeKeyAvailable();
 
@@ -679,26 +561,18 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             String dataStr = "Test data block";
             byte[] data = dataStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  待加密数据: " + dataStr + " (" + data.length + "字节)");
-            System.out.println("  待加密数据(hex): " + bytesToHex(data));
-            System.out.println("  算法: SM4-GCM");
 
             // 先初始化
-            System.out.println("  执行初始化...");
             sdf.SDF_AuthEncInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, data.length);
 
             // 更新数据
-            System.out.println("  执行更新加密...");
             byte[] encData = sdf.SDF_AuthEncUpdate(sessionHandle, data);
 
             assertNotNull("加密数据不应为空", encData);
-            System.out.println("  加密数据: " + bytesToHex(encData) + " (" + encData.length + "字节)");
-            System.out.println("SDF_AuthEncUpdate 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthEncUpdate 功能未实现");
+                System.out.println("[跳过] SDF_AuthEncUpdate 功能未实现");
+                Assume.assumeTrue("SDF_AuthEncUpdate 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthEncUpdate 测试失败: " + e.getMessage());
             }
@@ -711,7 +585,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthEncFinal() throws SDFException {
-        System.out.println("测试 6.5.18 SDF_AuthEncFinal - 多包可鉴别加密结束");
 
         assumeKeyAvailable();
 
@@ -721,33 +594,21 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             String dataStr = "Test data block";
             byte[] data = dataStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  待加密数据: " + dataStr + " (" + data.length + "字节)");
-            System.out.println("  待加密数据(hex): " + bytesToHex(data));
-            System.out.println("  算法: SM4-GCM");
 
             // 初始化
-            System.out.println("  步骤1: 执行初始化...");
             sdf.SDF_AuthEncInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, data.length);
 
             // 更新
-            System.out.println("  步骤2: 执行更新加密...");
             byte[] encData = sdf.SDF_AuthEncUpdate(sessionHandle, data);
-            System.out.println("  中间密文: " + bytesToHex(encData));
 
             // 结束
-            System.out.println("  步骤3: 执行结束...");
             byte[][] result = sdf.SDF_AuthEncFinal(sessionHandle, encData);
-
             assertNotNull("AuthEncFinal结果不应为空", result);
             assertEquals("结果应包含2个元素", 2, result.length);
-            System.out.println("  最终密文: " + bytesToHex(result[0]) + " (" + (result[0] != null ? result[0].length : 0) + "字节)");
-            System.out.println("  认证标签: " + bytesToHex(result[1]) + " (" + (result[1] != null ? result[1].length : 0) + "字节)");
-            System.out.println("SDF_AuthEncFinal 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthEncFinal 功能未实现");
+                System.out.println("[跳过] SDF_AuthEncFinal 功能未实现");
+                Assume.assumeTrue("SDF_AuthEncFinal 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthEncFinal 测试失败: " + e.getMessage());
             }
@@ -760,7 +621,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthDecInit() throws SDFException {
-        System.out.println("测试 6.5.19 SDF_AuthDecInit - 多包可鉴别解密初始化");
 
         assumeKeyAvailable();
 
@@ -770,18 +630,11 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             byte[] authTag = new byte[16];  // 模拟认证标签
             int dataLength = 32;
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  认证标签: " + bytesToHex(authTag) + " (" + authTag.length + "字节)");
-            System.out.println("  预期数据长度: " + dataLength + "字节");
-            System.out.println("  算法: SM4-GCM");
-
-            System.out.println("  执行初始化...");
             sdf.SDF_AuthDecInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag, dataLength);
-            System.out.println("SDF_AuthDecInit 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthDecInit 功能未实现");
+                System.out.println("[跳过] SDF_AuthDecInit 功能未实现");
+                Assume.assumeTrue("SDF_AuthDecInit 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthDecInit 测试失败: " + e.getMessage());
             }
@@ -794,7 +647,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthDecUpdate() throws SDFException {
-        System.out.println("测试 6.5.20 SDF_AuthDecUpdate - 多包可鉴别解密");
 
         assumeKeyAvailable();
 
@@ -804,34 +656,23 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             String plaintextStr = "Test data block";
             byte[] plaintext = plaintextStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  原始明文: " + plaintextStr);
-            System.out.println("  原始明文(hex): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  算法: SM4-GCM");
 
             // 先用单包接口加密获取密文和标签
-            System.out.println("  准备: 使用单包接口加密获取密文和标签...");
             byte[][] encResult = sdf.SDF_AuthEnc(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext);
             byte[] ciphertext = encResult[0];
             byte[] authTag = encResult[1];
-            System.out.println("  密文: " + bytesToHex(ciphertext));
-            System.out.println("  认证标签: " + bytesToHex(authTag));
 
             // 初始化解密
-            System.out.println("  步骤1: 执行解密初始化...");
             sdf.SDF_AuthDecInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag, ciphertext.length);
 
             // 更新解密
-            System.out.println("  步骤2: 执行更新解密...");
             byte[] decData = sdf.SDF_AuthDecUpdate(sessionHandle, ciphertext);
 
             assertNotNull("解密数据不应为空", decData);
-            System.out.println("  解密数据: " + bytesToHex(decData) + " (" + decData.length + "字节)");
-            System.out.println("SDF_AuthDecUpdate 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthDecUpdate 功能未实现");
+                System.out.println("[跳过] SDF_AuthDecUpdate 功能未实现");
+                Assume.assumeTrue("SDF_AuthDecUpdate 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthDecUpdate 测试失败: " + e.getMessage());
             }
@@ -844,7 +685,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testAuthDecFinal() throws SDFException {
-        System.out.println("测试 6.5.21 SDF_AuthDecFinal - 多包可鉴别解密结束");
 
         assumeKeyAvailable();
 
@@ -854,40 +694,26 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
             String plaintextStr = "Test data block";
             byte[] plaintext = plaintextStr.getBytes(StandardCharsets.UTF_8);
-            System.out.println("  原始明文: " + plaintextStr);
-            System.out.println("  原始明文(hex): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  算法: SM4-GCM");
 
             // 先用单包接口加密获取密文和标签
-            System.out.println("  准备: 使用单包接口加密获取密文和标签...");
             byte[][] encResult = sdf.SDF_AuthEnc(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext);
             byte[] ciphertext = encResult[0];
             byte[] authTag = encResult[1];
-            System.out.println("  密文: " + bytesToHex(ciphertext));
-            System.out.println("  认证标签: " + bytesToHex(authTag));
 
             // 初始化解密
-            System.out.println("  步骤1: 执行解密初始化...");
             sdf.SDF_AuthDecInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag, ciphertext.length);
 
             // 更新解密
-            System.out.println("  步骤2: 执行更新解密...");
             byte[] decData = sdf.SDF_AuthDecUpdate(sessionHandle, ciphertext);
-            System.out.println("  中间解密数据: " + bytesToHex(decData));
+            assertNotNull("AuthDecUpdate结果不应为空", decData);
 
             // 结束解密
-            System.out.println("  步骤3: 执行结束解密...");
             byte[] finalData = sdf.SDF_AuthDecFinal(sessionHandle);
-
-            // assertNotNull("AuthDecFinal结果不应为空", finalData);
-	    System.out.println("  最终解密数据: " + bytesToHex(finalData) + " (" + (finalData != null ?finalData.length : 0) + "字节)");
-            System.out.println("  解密结果(文本): " + new String(decData, StandardCharsets.UTF_8));
-            System.out.println("SDF_AuthDecFinal 测试通过");
+            assertNotNull("AuthDecFinal结果不应为空", finalData);
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_AuthDecFinal 功能未实现");
+                System.out.println("[跳过] SDF_AuthDecFinal 功能未实现");
+                Assume.assumeTrue("SDF_AuthDecFinal 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_AuthDecFinal 测试失败: " + e.getMessage());
             }
@@ -900,41 +726,30 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testExternalKeyEncrypt() throws SDFException {
-        System.out.println("测试 SDF_ExternalKeyEncrypt - 外部密钥对称加密");
 
         try {
             String originalText = "Hello External Key!";
             byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-            System.out.println("  明文: " + originalText);
-            System.out.println("  明文(填充后): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
 
             // 生成外部密钥
             byte[] externalKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  外部密钥: " + bytesToHex(externalKey));
-
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-CBC");
-
             byte[] ciphertext = sdf.SDF_ExternalKeyEncrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, plaintext);
 
             assertNotNull("密文不应为空", ciphertext);
             assertTrue("密文长度应大于0", ciphertext.length > 0);
-            System.out.println("  密文: " + bytesToHex(ciphertext) + " (" + ciphertext.length + "字节)");
 
             // 解密验证
-            System.out.println("  执行解密验证...");
             byte[] decrypted = sdf.SDF_ExternalKeyDecrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, ciphertext);
             assertNotNull("解密结果不应为空", decrypted);
             byte[] unpaddedData = pkcs7Unpadding(decrypted);
             String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", originalText, decryptedText);
 
-            System.out.println("SDF_ExternalKeyEncrypt 测试通过（含解密验证）");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_ExternalKeyEncrypt 功能未实现");
+                System.out.println("[跳过] SDF_ExternalKeyEncrypt 功能未实现");
+                Assume.assumeTrue("SDF_ExternalKeyEncrypt 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_ExternalKeyEncrypt 测试失败: " + e.getMessage());
             }
@@ -947,7 +762,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testExternalKeyDecrypt() throws SDFException {
-        System.out.println("测试 SDF_ExternalKeyDecrypt - 外部密钥对称解密");
 
         try {
             String originalText = "Hello External Key!";
@@ -957,29 +771,20 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] externalKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
 
-            System.out.println("  原始明文: " + originalText);
-            System.out.println("  外部密钥: " + bytesToHex(externalKey));
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-CBC");
-
             // 先加密
-            System.out.println("  执行加密...");
             byte[] ciphertext = sdf.SDF_ExternalKeyEncrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, plaintext);
-            System.out.println("  密文: " + bytesToHex(ciphertext));
 
             // 再解密
-            System.out.println("  执行解密...");
             byte[] decrypted = sdf.SDF_ExternalKeyDecrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, ciphertext);
 
             assertNotNull("解密结果不应为空", decrypted);
             byte[] unpaddedData = pkcs7Unpadding(decrypted);
             String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("解密后应与原文一致", originalText, decryptedText);
-            System.out.println("SDF_ExternalKeyDecrypt 测试通过");
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_ExternalKeyDecrypt 功能未实现");
+                System.out.println("[跳过] SDF_ExternalKeyDecrypt 功能未实现");
+                Assume.assumeTrue("SDF_ExternalKeyDecrypt 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_ExternalKeyDecrypt 测试失败: " + e.getMessage());
             }
@@ -993,28 +798,20 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testExternalKeyMultiPacketEncrypt() throws SDFException {
-        System.out.println("测试 SDF_ExternalKeyEncryptInit + EncryptUpdate/Final - 外部密钥多包对称加密");
 
         try {
             String originalText = "This is a test message for external key multi-packet encryption.";
             byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-            System.out.println("  明文: " + originalText);
-            System.out.println("  明文(填充后): " + bytesToHex(plaintext) + " (" + plaintext.length + "字节)");
 
             // 生成外部密钥和IV
             byte[] externalKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  外部密钥: " + bytesToHex(externalKey));
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-CBC");
 
             // 单包加密（用于比较结果）
             byte[] singlePacketCipher = sdf.SDF_ExternalKeyEncrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, plaintext);
-            System.out.println("  单包加密密文: " + bytesToHex(singlePacketCipher));
 
             // 多包加密：使用 ExternalKeyEncryptInit 初始化，然后通用的 EncryptUpdate/Final
             sdf.SDF_ExternalKeyEncryptInit(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv);
-            System.out.println("  SDF_ExternalKeyEncryptInit 调用成功");
 
             ByteArrayOutputStream cipherStream = new ByteArrayOutputStream();
 
@@ -1024,7 +821,6 @@ public void testMultiPacketDecrypt() throws SDFException {
             while (offset < plaintext.length) {
                 int length = Math.min(chunkSize, plaintext.length - offset);
                 byte[] dataChunk = Arrays.copyOfRange(plaintext, offset, offset + length);
-                System.out.println("  更新 - 处理 " + length + " 字节");
                 byte[] cipherChunk = sdf.SDF_EncryptUpdate(sessionHandle, dataChunk);
                 if (cipherChunk != null) {
                     cipherStream.write(cipherChunk);
@@ -1038,15 +834,14 @@ public void testMultiPacketDecrypt() throws SDFException {
             }
 
             byte[] multiPacketCipher = cipherStream.toByteArray();
-            System.out.println("  多包加密密文: " + bytesToHex(multiPacketCipher));
 
             assertNotNull("多包加密密文不应为空", multiPacketCipher);
             assertArrayEquals("多包加密结果应与单包加密一致", singlePacketCipher, multiPacketCipher);
-            System.out.println("SDF_ExternalKeyEncryptInit + EncryptUpdate/Final 测试通过");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_ExternalKeyEncryptInit 功能未实现");
+                System.out.println("[跳过] SDF_ExternalKeyEncryptInit 功能未实现");
+                Assume.assumeTrue("SDF_ExternalKeyEncryptInit 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_ExternalKeyEncryptInit 测试失败: " + e.getMessage());
             }
@@ -1061,24 +856,19 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testExternalKeyMultiPacketDecrypt() throws SDFException {
-        System.out.println("测试 SDF_ExternalKeyDecryptInit + DecryptUpdate/Final - 外部密钥多包对称解密");
 
         try {
             String originalText = "This is a test message for external key multi-packet decryption.";
             byte[] plaintext = pkcs7Padding(originalText.getBytes(StandardCharsets.UTF_8), 16);
-            System.out.println("  原始明文: " + originalText);
-
             // 生成外部密钥和IV
             byte[] externalKey = sdf.SDF_GenerateRandom(sessionHandle, 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
 
             // 先加密数据
             byte[] ciphertext = sdf.SDF_ExternalKeyEncrypt(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv, plaintext);
-            System.out.println("  密文: " + bytesToHex(ciphertext));
 
             // 多包解密：使用 ExternalKeyDecryptInit 初始化，然后通用的 DecryptUpdate/Final
             sdf.SDF_ExternalKeyDecryptInit(sessionHandle, AlgorithmID.SGD_SM4_CBC, externalKey, iv);
-            System.out.println("SDF_ExternalKeyDecryptInit 成功");
 
             ByteArrayOutputStream plainStream = new ByteArrayOutputStream();
 
@@ -1103,15 +893,14 @@ public void testMultiPacketDecrypt() throws SDFException {
             byte[] decryptedData = plainStream.toByteArray();
             byte[] unpaddedData = pkcs7Unpadding(decryptedData);
             String decryptedText = new String(unpaddedData, StandardCharsets.UTF_8);
-            System.out.println("  解密后明文: " + decryptedText);
 
             assertArrayEquals("解密后数据应与原始数据一致", plaintext, decryptedData);
             assertEquals("解密后文本应与原始文本一致", originalText, decryptedText);
-            System.out.println("SDF_ExternalKeyDecryptInit + DecryptUpdate/Final 测试通过");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_ExternalKeyDecryptInit 功能未实现");
+                System.out.println("[跳过] SDF_ExternalKeyDecryptInit 功能未实现");
+                Assume.assumeTrue("SDF_ExternalKeyDecryptInit 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_ExternalKeyDecryptInit 测试失败: " + e.getMessage());
             }
@@ -1130,7 +919,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testMultiPacketCalculateMAC() throws SDFException {
-        System.out.println("测试 6.5.13-6.5.15 SDF_CalculateMACInit/Update/Final - 多包MAC计算");
 
         assumeKeyAvailable();
 
@@ -1138,18 +926,12 @@ public void testMultiPacketDecrypt() throws SDFException {
             String message = "Message for multi-packet MAC calculation. This message is longer than single packet test.";
             byte[] data = pkcs7Padding(message.getBytes(StandardCharsets.UTF_8), 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  消息: " + message);
-            System.out.println("  数据(填充后): " + bytesToHex(data) + " (" + data.length + "字节)");
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  算法: SM4-MAC");
 
             // 单包MAC（用于比较结果）
             byte[] singlePacketMAC = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
-            System.out.println("  单包MAC: " + bytesToHex(singlePacketMAC));
 
             // 多包MAC
             sdf.SDF_CalculateMACInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv);
-            System.out.println("  SDF_CalculateMACInit 调用成功");
 
             // 分三次处理数据
             int offset = 0;
@@ -1157,13 +939,11 @@ public void testMultiPacketDecrypt() throws SDFException {
             while (offset < data.length) {
                 int length = Math.min(chunkSize, data.length - offset);
                 byte[] dataChunk = Arrays.copyOfRange(data, offset, offset + length);
-                System.out.println("  更新 - 处理 " + length + " 字节");
                 sdf.SDF_CalculateMACUpdate(sessionHandle, dataChunk);
                 offset += length;
             }
 
             byte[] multiPacketMAC = sdf.SDF_CalculateMACFinal(sessionHandle);
-            System.out.println("  多包MAC: " + bytesToHex(multiPacketMAC));
 
             assertNotNull("MAC值不应为空", multiPacketMAC);
             assertArrayEquals("多包MAC应与单包MAC一致", singlePacketMAC, multiPacketMAC);
@@ -1171,13 +951,10 @@ public void testMultiPacketDecrypt() throws SDFException {
             // 验证MAC一致性
             byte[] mac2 = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
             assertArrayEquals("MAC计算应一致", singlePacketMAC, mac2);
-            System.out.println("  MAC一致性验证通过");
-
-            System.out.println("SDF_CalculateMACInit/Update/Final 测试通过");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_CalculateMACInit/Update/Final 功能未实现");
+                System.out.println("[跳过] SDF_CalculateMACInit/Update/Final 功能未实现");
+                Assume.assumeTrue("SDF_CalculateMACInit/Update/Final 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_CalculateMACInit/Update/Final 测试失败: " + e.getMessage());
             }
@@ -1192,7 +969,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testCalculateMACConsistency() throws SDFException {
-        System.out.println("测试 MAC 计算一致性");
 
         assumeKeyAvailable();
 
@@ -1200,25 +976,18 @@ public void testMultiPacketDecrypt() throws SDFException {
             String message = "Message for MAC consistency test";
             byte[] data = pkcs7Padding(message.getBytes(StandardCharsets.UTF_8), 16);
             byte[] iv = sdf.SDF_GenerateRandom(sessionHandle, 16);
-            System.out.println("  消息: " + message);
-            System.out.println("  IV: " + bytesToHex(iv));
 
             // 多次计算MAC
             byte[] mac1 = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
             byte[] mac2 = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
             byte[] mac3 = sdf.SDF_CalculateMAC(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_MAC, iv, data);
 
-            System.out.println("  MAC1: " + bytesToHex(mac1));
-            System.out.println("  MAC2: " + bytesToHex(mac2));
-            System.out.println("  MAC3: " + bytesToHex(mac3));
-
             assertArrayEquals("第一次和第二次MAC应相同", mac1, mac2);
             assertArrayEquals("第二次和第三次MAC应相同", mac2, mac3);
-            System.out.println("MAC 一致性验证通过");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("SDF_CalculateMAC 功能未实现");
+                Assume.assumeTrue("SDF_CalculateMAC 功能未实现", false);
             } else {
                 throw new SDFException(e.getErrorCode(), "SDF_CalculateMAC 测试失败: " + e.getMessage());
             }
@@ -1235,7 +1004,6 @@ public void testMultiPacketDecrypt() throws SDFException {
      */
     @Test
     public void testCompleteAEADProcess() throws SDFException {
-        System.out.println("测试完整 AEAD 加密解密流程");
 
         assumeKeyAvailable();
 
@@ -1246,52 +1014,38 @@ public void testMultiPacketDecrypt() throws SDFException {
             String aadStr = "Additional Auth Data";
             byte[] aad = aadStr.getBytes(StandardCharsets.UTF_8);
 
-            System.out.println("  原始明文: " + originalText);
-            System.out.println("  IV: " + bytesToHex(iv));
-            System.out.println("  AAD: " + aadStr);
-            System.out.println("  算法: SM4-GCM");
-
             // 单包加密
-            System.out.println("  步骤1: 单包 AEAD 加密");
             byte[][] encResult = sdf.SDF_AuthEnc(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext);
             byte[] ciphertext = encResult[0];
             byte[] authTag = encResult[1];
-            System.out.println("  密文: " + bytesToHex(ciphertext));
-            System.out.println("  认证标签: " + bytesToHex(authTag));
 
             // 单包解密
-            System.out.println("  步骤2: 单包 AEAD 解密");
             byte[] decrypted = sdf.SDF_AuthDec(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag, ciphertext);
             String decryptedText = new String(decrypted, StandardCharsets.UTF_8);
-            System.out.println("  解密结果: " + decryptedText);
             assertEquals("单包解密后应与原文一致", originalText, decryptedText);
 
             // 多包加密
-            System.out.println("  步骤3: 多包 AEAD 加密");
             sdf.SDF_AuthEncInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, plaintext.length);
             byte[] encData = sdf.SDF_AuthEncUpdate(sessionHandle, plaintext);
             byte[][] finalResult = sdf.SDF_AuthEncFinal(sessionHandle, encData);
             byte[] ciphertext2 = finalResult[0];
             byte[] authTag2 = finalResult[1];
-            System.out.println("  多包密文: " + bytesToHex(ciphertext2));
-            System.out.println("  多包认证标签: " + bytesToHex(authTag2));
 
             // 多包解密
-            System.out.println("  步骤4: 多包 AEAD 解密");
             sdf.SDF_AuthDecInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM4_GCM, iv, aad, authTag2, ciphertext2.length);
             byte[] decData = sdf.SDF_AuthDecUpdate(sessionHandle, encData);
             byte[] finalDecrypted = sdf.SDF_AuthDecFinal(sessionHandle);
             String decDataText = new String(decData, StandardCharsets.UTF_8);
             String finalDecryptedText = new String(finalDecrypted, StandardCharsets.UTF_8);
             String result = decDataText + finalDecryptedText;
-            System.out.println("  多包解密结果: " + result);
             assertEquals("多包解密后应与原文一致", originalText, result);
-            System.out.println("完整 AEAD 加密解密流程测试通过");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("AEAD 功能未实现");
+                System.out.println("[跳过] AEAD 功能未实现");
+                Assume.assumeTrue("AEAD 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }

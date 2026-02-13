@@ -38,7 +38,6 @@ public abstract class BaseSDFTest {
             deviceHandle = sdf.SDF_OpenDevice();
             sessionHandle = sdf.SDF_OpenSession(deviceHandle);
             deviceAvailable = true;
-            System.out.println("SDF设备可用，使用真实设备进行测试");
         } catch (UnsatisfiedLinkError e) {
             System.out.println("SDF库未加载，跳过需要设备的测试: " + e.getMessage());
         } catch (SDFException e) {
@@ -97,14 +96,5 @@ public abstract class BaseSDFTest {
                                 + Character.digit(hex.charAt(i + 1), 16));
         }
         return data;
-    }
-
-    /**
-     * 打印测试信息
-     */
-    protected void printTestInfo(String testName) {
-        System.out.println("\n========================================");
-        System.out.println("测试: " + testName);
-        System.out.println("========================================");
     }
 }

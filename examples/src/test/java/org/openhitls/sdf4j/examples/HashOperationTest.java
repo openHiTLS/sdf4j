@@ -13,6 +13,7 @@
 package org.openhitls.sdf4j.examples;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -73,7 +74,6 @@ public class HashOperationTest {
                             testConfig.getProperty("sm2.internal.key.index", String.valueOf(DEFAULT_KEY_INDEX)));
                     keyPassword = testConfig.getProperty("sm2.key.access.password", DEFAULT_KEY_PASSWORD);
                     userId = testConfig.getProperty("sm2.default.user.id", DEFAULT_USER_ID);
-                    System.out.println("已从配置文件加载测试配置: keyIndex=" + keyIndex);
                     return;
                 }
             } catch (IOException e) {
@@ -84,14 +84,10 @@ public class HashOperationTest {
         keyIndex = DEFAULT_KEY_INDEX;
         keyPassword = DEFAULT_KEY_PASSWORD;
         userId = DEFAULT_USER_ID;
-        System.out.println("使用默认测试配置: keyIndex=" + keyIndex);
     }
 
     @Before
     public void setUp() throws SDFException {
-        System.out.println("========================================");
-        System.out.println("SDF4J 杂凑运算类函数测试");
-        System.out.println("========================================\n");
         sdf = new SDF();
         deviceHandle = 0;
         sessionHandle = 0;
@@ -101,16 +97,13 @@ public class HashOperationTest {
     public void tearDown() {
         try {
             if (sessionHandle != 0) {
-                System.out.println("\n关闭会话...");
                 sdf.SDF_CloseSession(sessionHandle);
                 sessionHandle = 0;
             }
             if (deviceHandle != 0) {
-                System.out.println("关闭设备...");
                 sdf.SDF_CloseDevice(deviceHandle);
                 deviceHandle = 0;
             }
-            System.out.println("资源清理完成\n");
         } catch (SDFException e) {
             System.err.println("关闭资源失败: " + e.getMessage());
         }
@@ -121,9 +114,6 @@ public class HashOperationTest {
      */
     @Test
     public void testBasicSM3Hash() throws SDFException {
-        System.out.println("测试 6.6.5-6.6.7 SDF_HashInit/Update/Final - 基础 SM3 杂凑运算");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -131,31 +121,22 @@ public class HashOperationTest {
         try {
             String message = "Hello, SM3! 你好，国密SM3！";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
-
-            System.out.println("原始消息: " + message);
-            System.out.println("消息长度: " + data.length + " bytes");
-
             // 初始化 SM3 哈希
             sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
-            System.out.println("SM3 哈希已初始化");
 
             // 更新数据
             sdf.SDF_HashUpdate(sessionHandle, data);
-            System.out.println("数据已更新");
 
             // 获取最终哈希值
             byte[] hashValue = sdf.SDF_HashFinal(sessionHandle);
             assertNotNull("哈希值不应为空", hashValue);
             assertEquals("SM3 哈希值应为32字节", 32, hashValue.length);
-
-            System.out.println("SM3 哈希值: " + bytesToHex(hashValue));
-            System.out.println("长度: " + hashValue.length + " bytes (" + (hashValue.length * 8) + " bits)");
-            System.out.println("[通过] 基础 SM3 杂凑运算成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] SM3 杂凑功能未实现");
+                Assume.assumeTrue("SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -166,9 +147,6 @@ public class HashOperationTest {
      */
     @Test
     public void testStreamingSM3Hash() throws SDFException {
-        System.out.println("测试 6.6.5-6.6.7 SDF_HashInit/Update/Final - 流式 SM3 杂凑");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -182,8 +160,6 @@ public class HashOperationTest {
                     "最后一块数据 / Final chunk data."
             };
 
-            System.out.println("分块处理数据:");
-
             // 初始化 SM3 哈希
             sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
 
@@ -191,16 +167,13 @@ public class HashOperationTest {
             for (int i = 0; i < chunks.length; i++) {
                 byte[] chunkData = chunks[i].getBytes(StandardCharsets.UTF_8);
                 sdf.SDF_HashUpdate(sessionHandle, chunkData);
-                System.out.println("  第 " + (i + 1) + " 块已更新 (" + chunkData.length + " bytes)");
             }
 
             // 获取最终哈希值
             byte[] hashValue = sdf.SDF_HashFinal(sessionHandle);
             assertNotNull("哈希值不应为空", hashValue);
-            System.out.println("流式 SM3 哈希值: " + bytesToHex(hashValue));
 
             // 验证：计算整体数据的哈希值应该相同
-            System.out.println("\n验证流式哈希与一次性哈希结果一致:");
             String fullMessage = String.join("", chunks);
             byte[] fullData = fullMessage.getBytes(StandardCharsets.UTF_8);
 
@@ -209,13 +182,12 @@ public class HashOperationTest {
             byte[] hashValue2 = sdf.SDF_HashFinal(sessionHandle);
 
             assertArrayEquals("流式哈希与一次性哈希结果应相同", hashValue, hashValue2);
-            System.out.println("整体哈希值: " + bytesToHex(hashValue2));
-            System.out.println("[通过] 流式 SM3 杂凑运算成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] SM3 杂凑功能未实现");
+                Assume.assumeTrue("SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -226,9 +198,6 @@ public class HashOperationTest {
      */
     @Test
     public void testSM3WithUserIDAndPublicKey() throws SDFException {
-        System.out.println("测试 6.6.5 SDF_HashInit - 带用户 ID 和公钥的 SM3");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -238,44 +207,38 @@ public class HashOperationTest {
             ECCPublicKey publicKey = null;
             try {
                 publicKey = sdf.SDF_ExportSignPublicKey_ECC(sessionHandle, keyIndex);
-                System.out.println("已导出 SM2 签名公钥, 密钥索引: " + keyIndex);
-                System.out.println("密钥长度: " + publicKey.getBits() + " bits");
+                assertNotNull("publicKey不应为空", publicKey);
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 无法导出 SM2 公钥: " + e.getMessage() + "\n");
                     return;
                 }
+                System.out.println(e.getMessage());
                 throw e;
             }
 
             // SM2 默认用户 ID
             byte[] userIdBytes = userId.getBytes(StandardCharsets.UTF_8);
-            System.out.println("用户 ID: " + userId);
-            System.out.println("用户 ID 长度: " + userIdBytes.length + " bytes");
 
             // 待签名的消息
             String message = "SM2 签名测试消息 / SM2 signature test message";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
-            System.out.println("待签名消息: " + message);
 
             // 使用 SM3 计算哈希（带用户 ID 和公钥）
             sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, publicKey, userIdBytes);
-            System.out.println("SM3 哈希已初始化（带用户 ID 和公钥）");
 
             sdf.SDF_HashUpdate(sessionHandle, data);
-            System.out.println("消息数据已更新");
 
             byte[] hashValue = sdf.SDF_HashFinal(sessionHandle);
             assertNotNull("哈希值不应为空", hashValue);
             assertEquals("SM3 哈希值应为32字节", 32, hashValue.length);
 
-            System.out.println("SM2 签名用的 SM3 哈希值: " + bytesToHex(hashValue));
-            System.out.println("[通过] 带用户 ID 和公钥的 SM3 杂凑运算成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] 带参数的 SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] 带参数的 SM3 杂凑功能未实现");
+                Assume.assumeTrue("带参数的 SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -286,9 +249,6 @@ public class HashOperationTest {
      */
     @Test
     public void testExternalKeyHMAC() throws SDFException {
-        System.out.println("测试 6.8.13 + 6.6.3-6.6.4 SDF_ExternalKeyHMACInit/HMACUpdate/HMACFinal");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -297,41 +257,34 @@ public class HashOperationTest {
             // 生成一个随机密钥用于 HMAC
             int hmacKeyLength = 32; // 256 bits
             byte[] hmacKey = sdf.SDF_GenerateRandom(sessionHandle, hmacKeyLength);
-            System.out.println("生成随机 HMAC 密钥: " + bytesToHex(hmacKey));
-            System.out.println("密钥长度: " + hmacKeyLength + " bytes (" + (hmacKeyLength * 8) + " bits)");
+            assertNotNull("hmacKey不应为空", hmacKey);
 
             String message = "这是需要认证的消息 / This is the message to authenticate";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
-            System.out.println("消息: " + message);
 
             // 使用外部密钥初始化 SM3-HMAC
             sdf.SDF_ExternalKeyHMACInit(sessionHandle, AlgorithmID.SGD_SM3, hmacKey);
-            System.out.println("SM3-HMAC 已初始化");
 
             // 更新数据
             sdf.SDF_HMACUpdate(sessionHandle, data);
-            System.out.println("数据已更新");
 
             // 获取 HMAC 值
             byte[] hmacValue = sdf.SDF_HMACFinal(sessionHandle);
             assertNotNull("HMAC 值不应为空", hmacValue);
-            System.out.println("SM3-HMAC 值: " + bytesToHex(hmacValue));
-            System.out.println("长度: " + hmacValue.length + " bytes");
 
             // 验证：使用相同的密钥重新计算应该得到相同的 HMAC
-            System.out.println("\n验证重复计算 HMAC 结果一致:");
             sdf.SDF_ExternalKeyHMACInit(sessionHandle, AlgorithmID.SGD_SM3, hmacKey);
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] hmacValue2 = sdf.SDF_HMACFinal(sessionHandle);
 
             assertArrayEquals("两次 HMAC 计算结果应相同", hmacValue, hmacValue2);
-            System.out.println("重新计算: " + bytesToHex(hmacValue2));
-            System.out.println("[通过] 外部密钥 HMAC 运算成功\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3-HMAC 功能未实现\n");
+                System.out.println("[跳过] SM3-HMAC 功能未实现");
+                Assume.assumeTrue("SM3-HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -342,9 +295,6 @@ public class HashOperationTest {
      */
     @Test
     public void testHMACTamperDetection() throws SDFException {
-        System.out.println("测试 HMAC 篡改检测");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -361,9 +311,6 @@ public class HashOperationTest {
             sdf.SDF_HMACUpdate(sessionHandle, originalData);
             byte[] originalHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
-            System.out.println("原始消息: " + originalMessage);
-            System.out.println("原始 HMAC: " + bytesToHex(originalHMAC));
-
             // 篡改消息后计算 HMAC
             String tamperedMessage = "篡改后的消息内容";
             byte[] tamperedData = tamperedMessage.getBytes(StandardCharsets.UTF_8);
@@ -372,17 +319,15 @@ public class HashOperationTest {
             sdf.SDF_HMACUpdate(sessionHandle, tamperedData);
             byte[] tamperedHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
-            System.out.println("篡改消息: " + tamperedMessage);
-            System.out.println("篡改后 HMAC: " + bytesToHex(tamperedHMAC));
-
             // 验证篡改检测
             assertFalse("篡改后的 HMAC 应该与原始不同", java.util.Arrays.equals(originalHMAC, tamperedHMAC));
-            System.out.println("[通过] 成功检测到消息篡改\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3-HMAC 功能未实现\n");
+                System.out.println("[跳过] SM3-HMAC 功能未实现");
+                Assume.assumeTrue("SM3-HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -393,9 +338,6 @@ public class HashOperationTest {
      */
     @Test
     public void testHMACWrongKey() throws SDFException {
-        System.out.println("测试 HMAC 密钥错误检测");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -413,24 +355,20 @@ public class HashOperationTest {
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] correctHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
-            System.out.println("消息: " + message);
-            System.out.println("正确密钥 HMAC: " + bytesToHex(correctHMAC));
-
             // 使用错误密钥计算 HMAC
             sdf.SDF_ExternalKeyHMACInit(sessionHandle, AlgorithmID.SGD_SM3, wrongKey);
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] wrongHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
-            System.out.println("错误密钥 HMAC: " + bytesToHex(wrongHMAC));
-
             // 验证密钥错误检测
             assertFalse("错误密钥的 HMAC 应该与正确密钥不同", java.util.Arrays.equals(correctHMAC, wrongHMAC));
-            System.out.println("[通过] 成功检测到密钥错误\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3-HMAC 功能未实现\n");
+                System.out.println("[跳过] SM3-HMAC 功能未实现");
+                Assume.assumeTrue("SM3-HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -441,9 +379,6 @@ public class HashOperationTest {
      */
     @Test
     public void testLargeDataHash() throws SDFException {
-        System.out.println("测试大数据哈希");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -453,7 +388,6 @@ public class HashOperationTest {
             int dataSize = 1024 * 1024; // 1MB
             byte[] largeData = sdf.SDF_GenerateRandom(sessionHandle, dataSize);
 
-            System.out.println("数据大小: " + dataSize + " bytes (1 MB)");
 
             long startTime = System.currentTimeMillis();
             sdf.SDF_HashInit(sessionHandle, AlgorithmID.SGD_SM3, null, null);
@@ -464,14 +398,12 @@ public class HashOperationTest {
             assertNotNull("哈希值不应为空", hashValue);
             assertEquals("SM3 哈希值应为32字节", 32, hashValue.length);
 
-            System.out.println("SM3 哈希值: " + bytesToHex(hashValue));
-            System.out.println("耗时: " + (endTime - startTime) + " ms");
-            System.out.println("[通过] 大数据哈希运算成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] SM3 杂凑功能未实现");
+                Assume.assumeTrue("SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -482,9 +414,6 @@ public class HashOperationTest {
      */
     @Test
     public void testHashConsistency() throws SDFException {
-        System.out.println("测试哈希一致性");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -511,16 +440,12 @@ public class HashOperationTest {
             assertArrayEquals("第一次和第二次哈希结果应相同", hash1, hash2);
             assertArrayEquals("第二次和第三次哈希结果应相同", hash2, hash3);
 
-            System.out.println("消息: " + message);
-            System.out.println("第一次哈希: " + bytesToHex(hash1));
-            System.out.println("第二次哈希: " + bytesToHex(hash2));
-            System.out.println("第三次哈希: " + bytesToHex(hash3));
-            System.out.println("[通过] 哈希一致性验证成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] SM3 杂凑功能未实现");
+                Assume.assumeTrue("SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -531,9 +456,6 @@ public class HashOperationTest {
      */
     @Test
     public void testHashCollisionResistance() throws SDFException {
-        System.out.println("测试哈希抗碰撞性");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -562,16 +484,12 @@ public class HashOperationTest {
 
             assertFalse("不同消息的哈希应不同", java.util.Arrays.equals(hash1, hash2));
             assertFalse("仅差一个空格的消息哈希也应不同", java.util.Arrays.equals(hash1, hash3));
-
-            System.out.println("消息1: \"" + message1 + "\" -> " + bytesToHex(hash1));
-            System.out.println("消息2: \"" + message2 + "\" -> " + bytesToHex(hash2));
-            System.out.println("消息3: \"" + message3 + "\" -> " + bytesToHex(hash3));
-            System.out.println("[通过] 哈希抗碰撞性验证成功\n");
-
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] SM3 杂凑功能未实现\n");
+                System.out.println("[跳过] SM3 杂凑功能未实现");
+                Assume.assumeTrue("SM3 杂凑功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         }
@@ -583,9 +501,6 @@ public class HashOperationTest {
      */
     @Test
     public void testInternalKeyHMAC() throws SDFException {
-        System.out.println("测试 6.6.2-6.6.4 SDF_HMACInit/HMACUpdate/HMACFinal - 内部密钥 HMAC");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -594,65 +509,51 @@ public class HashOperationTest {
         boolean accessRightObtained = false;
         try {
             // 获取私钥访问权限（使用内部 ECC 密钥前必须先获取权限）
-            System.out.println("获取私钥访问权限，密钥索引: " + keyIndex);
             try {
                 sdf.SDF_GetPrivateKeyAccessRight(sessionHandle, keyIndex, keyPassword);
                 accessRightObtained = true;
-                System.out.println("成功获取私钥访问权限");
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                    System.out.println("获取私钥权限不支持，继续测试...");
+                    System.out.println("[跳过] 获取私钥权限不支持");
+                    Assume.assumeTrue("获取私钥权限不支持，继续测试...", false);
                 } else {
+                    System.out.println(e.getMessage());
                     throw e;
                 }
             }
 
             // 使用内部 ECC 密钥生成会话密钥（128 位用于 HMAC）
-            System.out.println("使用内部 ECC 密钥生成会话密钥，密钥索引: " + keyIndex);
             ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
-            System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
-            System.out.println("ECC加密密钥C2长度: " + keyResult.getEccCipher().getL() + " bytes");
 
             // 待认证的消息
             String message = "这是使用内部密钥进行 HMAC 认证的消息 / Internal key HMAC message";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
-            System.out.println("\n消息: " + message);
-            System.out.println("消息长度: " + data.length + " bytes");
 
             // 使用内部密钥初始化 SM3-HMAC
             sdf.SDF_HMACInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM3);
-            System.out.println("\nSM3-HMAC 已初始化（使用内部密钥）");
 
             // 更新数据
             sdf.SDF_HMACUpdate(sessionHandle, data);
-            System.out.println("数据已更新");
 
             // 获取 HMAC 值
             byte[] hmacValue = sdf.SDF_HMACFinal(sessionHandle);
             assertNotNull("HMAC 值不应为空", hmacValue);
-            System.out.println("SM3-HMAC 值: " + bytesToHex(hmacValue));
-            System.out.println("长度: " + hmacValue.length + " bytes");
 
             // 验证：使用相同的密钥重新计算应该得到相同的 HMAC
-            System.out.println("\n验证重复计算 HMAC 结果一致:");
             sdf.SDF_HMACInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM3);
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] hmacValue2 = sdf.SDF_HMACFinal(sessionHandle);
 
             assertArrayEquals("两次 HMAC 计算结果应相同", hmacValue, hmacValue2);
-            System.out.println("重新计算: " + bytesToHex(hmacValue2));
-            System.out.println("[通过] 内部密钥 HMAC 运算成功\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现\n");
-            } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
-            } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
+                System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现");
+                Assume.assumeTrue("内部密钥 SM3-HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         } finally {
@@ -660,7 +561,6 @@ public class HashOperationTest {
             if (keyHandle != 0) {
                 try {
                     sdf.SDF_DestroyKey(sessionHandle, keyHandle);
-                    System.out.println("会话密钥已销毁");
                 } catch (SDFException e) {
                     System.err.println("销毁密钥失败: " + e.getMessage());
                 }
@@ -669,7 +569,6 @@ public class HashOperationTest {
             if (accessRightObtained) {
                 try {
                     sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
-                    System.out.println("已释放私钥访问权限");
                 } catch (SDFException e) {
                     System.err.println("释放私钥访问权限失败: " + e.getMessage());
                 }
@@ -682,9 +581,6 @@ public class HashOperationTest {
      */
     @Test
     public void testInternalKeyHMACStreaming() throws SDFException {
-        System.out.println("测试内部密钥 HMAC 流式处理");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -693,15 +589,15 @@ public class HashOperationTest {
         boolean accessRightObtained = false;
         try {
             // 获取私钥访问权限
-            System.out.println("获取私钥访问权限，密钥索引: " + keyIndex);
             try {
                 sdf.SDF_GetPrivateKeyAccessRight(sessionHandle, keyIndex, keyPassword);
                 accessRightObtained = true;
-                System.out.println("成功获取私钥访问权限");
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                    System.out.println("获取私钥权限不需要或不支持，继续测试...");
+                    System.out.println("[跳过] 获取私钥权限不支持");
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
                 } else {
+                    System.out.println(e.getMessage());
                     throw e;
                 }
             }
@@ -710,7 +606,6 @@ public class HashOperationTest {
             ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             assertNotNull("密钥生成结果不应为空", keyResult);
             keyHandle = keyResult.getKeyHandle();
-            System.out.println("会话密钥生成成功，密钥句柄: " + keyHandle);
 
             // 分块数据
             String[] chunks = {
@@ -719,22 +614,15 @@ public class HashOperationTest {
                     "第三块数据 / Chunk 3. ",
                     "最后一块 / Final chunk."
             };
-
-            System.out.println("\n分块计算 HMAC:");
-
             // 流式计算 HMAC
             sdf.SDF_HMACInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM3);
             for (int i = 0; i < chunks.length; i++) {
                 byte[] chunkData = chunks[i].getBytes(StandardCharsets.UTF_8);
                 sdf.SDF_HMACUpdate(sessionHandle, chunkData);
-                System.out.println("  第 " + (i + 1) + " 块已更新 (" + chunkData.length + " bytes)");
             }
             byte[] streamHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
-            System.out.println("流式 HMAC 值: " + bytesToHex(streamHMAC));
-
             // 验证：一次性计算整体数据的 HMAC 应该相同
-            System.out.println("\n验证流式 HMAC 与一次性 HMAC 结果一致:");
             String fullMessage = String.join("", chunks);
             byte[] fullData = fullMessage.getBytes(StandardCharsets.UTF_8);
 
@@ -743,24 +631,19 @@ public class HashOperationTest {
             byte[] fullHMAC = sdf.SDF_HMACFinal(sessionHandle);
 
             assertArrayEquals("流式 HMAC 与一次性 HMAC 结果应相同", streamHMAC, fullHMAC);
-            System.out.println("整体 HMAC 值: " + bytesToHex(fullHMAC));
-            System.out.println("[通过] 内部密钥 HMAC 流式处理成功\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现\n");
-            } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
-            } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
+                System.out.println("[跳过] 内部密钥 SM3-HMAC 功能未实现");
+                Assume.assumeTrue("内部密钥 SM3-HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         } finally {
             if (keyHandle != 0) {
                 try {
                     sdf.SDF_DestroyKey(sessionHandle, keyHandle);
-                    System.out.println("会话密钥已销毁");
                 } catch (SDFException e) {
                     System.err.println("销毁密钥失败: " + e.getMessage());
                 }
@@ -769,7 +652,6 @@ public class HashOperationTest {
             if (accessRightObtained) {
                 try {
                     sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
-                    System.out.println("已释放私钥访问权限");
                 } catch (SDFException e) {
                     System.err.println("释放私钥访问权限失败: " + e.getMessage());
                 }
@@ -783,9 +665,6 @@ public class HashOperationTest {
      */
     @Test
     public void testInternalVsExternalKeyHMAC() throws SDFException {
-        System.out.println("测试内部密钥与外部密钥 HMAC 对比");
-        System.out.println("----------------------------------------");
-
         // 打开设备和会话
         deviceHandle = sdf.SDF_OpenDevice();
         sessionHandle = sdf.SDF_OpenSession(deviceHandle);
@@ -794,15 +673,15 @@ public class HashOperationTest {
         boolean accessRightObtained = false;
         try {
             // 获取私钥访问权限
-            System.out.println("获取私钥访问权限，密钥索引: " + keyIndex);
             try {
                 sdf.SDF_GetPrivateKeyAccessRight(sessionHandle, keyIndex, keyPassword);
                 accessRightObtained = true;
-                System.out.println("成功获取私钥访问权限");
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                    System.out.println("获取私钥权限不需要或不支持，继续测试...");
+                    System.out.println("[跳过] 获取私钥权限不支持");
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
                 } else {
+                    System.out.println(e.getMessage());
                     throw e;
                 }
             }
@@ -810,49 +689,40 @@ public class HashOperationTest {
             // 生成内部会话密钥
             ECCKeyEncryptionResult keyResult = sdf.SDF_GenerateKeyWithIPK_ECC(sessionHandle, keyIndex, 128);
             keyHandle = keyResult.getKeyHandle();
-            System.out.println("内部会话密钥生成成功，密钥句柄: " + keyHandle);
 
             // 生成外部随机密钥
             byte[] externalKey = sdf.SDF_GenerateRandom(sessionHandle, 32);
-            System.out.println("外部随机密钥: " + bytesToHex(externalKey));
 
             // 待认证的消息
             String message = "对比测试消息 / Comparison test message";
             byte[] data = message.getBytes(StandardCharsets.UTF_8);
-            System.out.println("\n消息: " + message);
 
             // 使用内部密钥计算 HMAC
             sdf.SDF_HMACInit(sessionHandle, keyHandle, AlgorithmID.SGD_SM3);
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] internalHMAC = sdf.SDF_HMACFinal(sessionHandle);
-            System.out.println("\n内部密钥 HMAC: " + bytesToHex(internalHMAC));
 
             // 使用外部密钥计算 HMAC
             sdf.SDF_ExternalKeyHMACInit(sessionHandle, AlgorithmID.SGD_SM3, externalKey);
             sdf.SDF_HMACUpdate(sessionHandle, data);
             byte[] externalHMAC = sdf.SDF_HMACFinal(sessionHandle);
-            System.out.println("外部密钥 HMAC: " + bytesToHex(externalHMAC));
 
             // 验证两个 HMAC 值不同（因为使用了不同的密钥）
             assertFalse("内部密钥和外部密钥的 HMAC 应该不同",
                     java.util.Arrays.equals(internalHMAC, externalHMAC));
-            System.out.println("\n[通过] 内部密钥与外部密钥 HMAC 结果不同（符合预期）\n");
 
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-                System.out.println("[跳过] HMAC 功能未实现\n");
-            } else if (e.getErrorCode() == ErrorCode.SDR_KEYNOTEXIST) {
-                throw new SDFException(ErrorCode.SDR_KEYNOTEXIST, "内部 ECC 密钥不存在，密钥索引: " + keyIndex);
-            } else if (e.getErrorCode() == ErrorCode.SDR_INARGERR) {
-                throw new SDFException(ErrorCode.SDR_INARGERR, "输入参数错误，可能密钥索引或密钥长度不支持");
+                System.out.println("[跳过] HMAC 功能未实现");
+                Assume.assumeTrue("HMAC 功能未实现", false);
             } else {
+                System.out.println(e.getMessage());
                 throw e;
             }
         } finally {
             if (keyHandle != 0) {
                 try {
                     sdf.SDF_DestroyKey(sessionHandle, keyHandle);
-                    System.out.println("会话密钥已销毁");
                 } catch (SDFException e) {
                     System.err.println("销毁密钥失败: " + e.getMessage());
                 }
@@ -861,7 +731,6 @@ public class HashOperationTest {
             if (accessRightObtained) {
                 try {
                     sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
-                    System.out.println("已释放私钥访问权限");
                 } catch (SDFException e) {
                     System.err.println("释放私钥访问权限失败: " + e.getMessage());
                 }
