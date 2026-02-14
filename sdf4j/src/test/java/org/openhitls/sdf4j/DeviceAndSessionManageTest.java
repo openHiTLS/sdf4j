@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  */
 
-package org.openhitls.sdf4j.examples;
+package org.openhitls.sdf4j;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -41,7 +41,7 @@ import static org.junit.Assert.*;
  * - 6.2.8 SDF_GetPrivateKeyAccessRight - 获取私钥使用权限
  * - 6.2.9 SDF_ReleasePrivateKeyAccessRight - 释放私钥使用权限
  */
-public class DeviceManagementTest {
+public class DeviceAndSessionManageTest {
 
     // 配置开关：设置为 true 时从配置文件读取，false 时使用下面的默认值
     private static final boolean USE_CONFIG_FILE = true;
@@ -62,7 +62,7 @@ public class DeviceManagementTest {
     public static void loadConfig() {
         if (USE_CONFIG_FILE) {
             Properties testConfig = new Properties();
-            try (InputStream is = DeviceManagementTest.class.getClassLoader()
+            try (InputStream is = DeviceAndSessionManageTest.class.getClassLoader()
                     .getResourceAsStream("test-config.properties")) {
                 if (is != null) {
                     testConfig.load(is);

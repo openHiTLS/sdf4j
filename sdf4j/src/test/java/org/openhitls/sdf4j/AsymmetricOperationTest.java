@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  */
 
-package org.openhitls.sdf4j.examples;
+package org.openhitls.sdf4j;
 
 import org.junit.After;
 import org.junit.Assume;

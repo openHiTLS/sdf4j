@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  */
 
-package org.openhitls.sdf4j.examples;
+package org.openhitls.sdf4j;
 
 import java.io.IOException;
 import java.io.InputStream;

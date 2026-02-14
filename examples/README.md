@@ -1,245 +1,219 @@
-# SDF4J Examples
+# SDF4J 示例
 
-This module contains example usage of SDF4J, including both standalone programs and JUnit tests.
+本模块包含使用 JUnit 测试编写的 SDF4J 使用示例。
 
-## Overview
+## 概述
 
-Examples are written as JUnit tests instead of standalone programs with `main()` methods. This provides:
-- Better resource management with `@Before` and `@After` hooks
-- Assertions to verify correct behavior
-- Easy integration with Maven test lifecycle
-- Graceful handling of optional SDF functions (SDR_NOTSUPPORT)
+本模块包含使用 JUnit 测试框架编写的 SDF4J 示例程序，演示如何使用 SDF4J 进行各种密码操作。
 
-## Configuration
+## 配置
 
-### Test Configuration Files
+### 测试配置文件
 
-SDF4J examples use a configuration file to manage device-specific settings like key indices and passwords. This makes examples more flexible and easier to adapt to different SDF devices.
+SDF4J 示例使用配置文件来管理设备特定的设置，如密钥索引和密码。
 
-**Configuration file** (located in `src/test/resources/`):
-- `test-config.properties` - Configuration for test examples
+**配置文件**（位于 `src/test/resources/`）：
+- `test-config.properties` - 示例测试的配置
 
-**Configuration properties**:
+**配置属性**：
 ```properties
-# SM2 internal key index (used by SM2InternalKeyExampleTest and SM4ExampleTest)
+# SM2 内部密钥索引
 sm2.internal.key.index=10
 
-# Password to obtain private key access right
+# 获取私钥访问权限的密码
 sm2.key.access.password=<your-device-password>
 
-# SM2 default user ID (GM/T 0009-2012 standard)
+# SM2 默认用户 ID（GM/T 0009-2012 标准）
 sm2.default.user.id=1234567812345678
 
-# Environment identifier
+# 环境标识符
 environment.name=default
+
+#其他配置
+...
+
 ```
 
-### Configuring for Your Device
+### 配置您的设备
 
-Edit `test-config.properties` with your device-specific settings:
+根据您的设备设置编辑 `test-config.properties`：
 
 ```bash
-# Edit the config file
+# 编辑配置文件
 vi examples/src/test/resources/test-config.properties
 
-# Update these values according to your SDF device:
+# 根据您的 SDF 设备更新这些值：
 # sm2.internal.key.index=10
 # sm2.key.access.password=<your-device-password>
 # sm2.default.user.id=1234567812345678
 # environment.name=default
 
-# Run tests
+# 运行测试
 mvn test
 ```
 
-## Running Examples
+## 运行示例
 
-### Run All Examples
+### 运行所有示例
+
 ```bash
-cd sdf4j-examples
+cd examples
 mvn test
+
+# 运行特定测试类
+mvn test -Dtest=SM2Example
+mvn test -Dtest=SM3Example
+mvn test -Dtest=SM4Example
+
+# 运行特定测试方法
+mvn test -Dtest=SM2Example#testExternalSign
+mvn test -Dtest=SM3Example#testSM3Hash
+mvn test -Dtest=SM4Example#testSM4ECB
 ```
 
-### Run Specific Example
-```bash
-# Basic device and session management
-mvn test -Dtest=BasicExampleTest
+### SDF 库配置
 
-# SM3 hash algorithm demonstrations
-mvn test -Dtest=SM3ExampleTest
+运行测试之前，请确保已配置 SDF 库：
 
-# SM2 with internal device keys (complete examples)
-mvn test -Dtest=SM2InternalKeyExampleTest
-
-# SM2 with external generated keys (complete examples)
-mvn test -Dtest=SM2ExternalKeyExampleTest
-
-# SM4 symmetric encryption (ECB/CBC/MAC)
-mvn test -Dtest=SM4ExampleTest
-```
-
-### Run Specific Test Method
-```bash
-# Run a specific test method
-mvn test -Dtest=BasicExampleTest#testGenerateRandom
-mvn test -Dtest=SM2InternalKeyExampleTest#testInternalSignAndVerify
-mvn test -Dtest=SM2ExternalKeyExampleTest#testExternalEncryptDecrypt
-```
-
-### Run with Custom SDF Library
 ```bash
 mvn test -Dsdf4j.library.name=swsds -Dsdf4j.library.path=/opt/sdf/lib
 ```
 
-## Available Examples
+## 可用示例
 
-All examples are implemented as JUnit tests in the `src/test/java` directory.
+示例程序位于 `src/test/java/org/openhitls/` 目录，使用 JUnit 测试框架实现。
 
-### JUnit Test Examples
+### SM2Example.java
 
-#### BasicExampleTest
-Demonstrates fundamental SDF operations:
-- `testDeviceAndSessionManagement()` - Opening/closing devices and sessions
-- `testGetDeviceInfo()` - Retrieving device information
-- `testGenerateRandom()` - Generating random numbers
-- `testMultipleSessions()` - Managing multiple concurrent sessions
+SM2 非对称加密算法测试：
+- `testExternalSign()` - 外部密钥签名和验签
+- `testExternalEncrypt()` - 外部密钥加密和解密
 
-#### SM3ExampleTest
-SM3 (Chinese cryptographic hash algorithm) demonstrations:
-- `testBasicSM3Hash()` - Basic SM3 hash calculation
-- `testStreamingSM3Hash()` - Streaming/chunked SM3 calculation (for large files)
-- `testSM3WithUserID()` - SM3 for SM2 signature scenarios (with user ID and public key)
-- `testSM3HMAC()` - SM3-HMAC (keyed message authentication code)
-- `testCompareHashLengths()` - Comparison of different hash algorithm output lengths
-
-#### SM2InternalKeyExampleTest (内部密钥完整示例)
-Complete SM2 examples using internal device keys:
-- `testSignAndVerify()` - Sign with internal private key and verify signature
-- `testVerifyWithTamperedData()` - Verify data integrity protection
-
-**Configuration Required**: Yes - uses `sm2.internal.key.index` and `sm2.key.access.password`
-
-**Use Case**: Enterprise scenarios requiring hardware-protected keys that never leave the secure device.
-
-**Running with configuration**:
+**运行测试**：
 ```bash
-mvn test -Dtest=SM2InternalKeyExampleTest
+mvn test -Dtest=SM2Example
+
+# 或运行单个测试方法
+mvn test -Dtest=SM2Example#testExternalSign
+mvn test -Dtest=SM2Example#testExternalEncrypt
 ```
 
-#### SM2ExternalKeyExampleTest (外部密钥完整示例)
-Complete SM2 examples using dynamically generated external key pairs:
-- `testGenerateKeyPair()` - Generate temporary SM2 key pair (public + private)
-- `testExternalSignAndVerify()` - Sign with external private key, verify with external public key
-- `testExternalEncryptDecrypt()` - Complete encrypt/decrypt cycle with external keys
-- `testMultipleKeyPairs()` - Generate and use multiple independent key pairs
-- `testCrossVerification()` - Verify key isolation (wrong key pair cannot verify)
+### SM3Example.java
 
-**Use Case**: Scenarios requiring temporary keys, multi-user key management, or key exportability.
+SM3 哈希算法测试：
+- `testSM3Hash()` - SM3 哈希计算
 
-#### SM4ExampleTest
-SM4 symmetric encryption examples:
-- `testSM4ECB()` - ECB mode encryption/decryption
-- `testSM4CBC()` - CBC mode encryption/decryption with IV
-- `testSM4MAC()` - Message authentication code calculation
-
-**Configuration Required**: Yes - uses `sm2.internal.key.index` for generating SM4 session keys
-
-**Note:** SM4 tests use internal ECC keys to generate session keys. The key index is read from configuration.
-
-**Running with configuration**:
+**运行测试**：
 ```bash
-mvn test -Dtest=SM4ExampleTest
+mvn test -Dtest=SM3Example
+
+# 或运行单个测试方法
+mvn test -Dtest=SM3Example#testSM3Hash
 ```
 
-## Dependencies
+### SM4Example.java
 
-This module depends on `sdf4j-core`:
+SM4 对称加密算法测试：
+- `testSM4ECB()` - ECB 模式加密解密
+- `testSM4CBC()` - CBC 模式加密解密
+
+**配置要求**：需要配置密钥索引和密码（见上方配置说明）
+
+**运行测试**：
+```bash
+mvn test -Dtest=SM4Example
+
+# 或运行单个测试方法
+mvn test -Dtest=SM4Example#testSM4ECB
+mvn test -Dtest=SM4Example#testSM4CBC
+```
+
+## 依赖
+
+本模块依赖于 `sdf4j-core` 和 JUnit：
 ```xml
+<!-- SDF4J Core -->
 <dependency>
     <groupId>org.openhitls</groupId>
     <artifactId>sdf4j-core</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
+
 ```
 
-The JNI library (`libsdf4j-jni.so`) is loaded from `../sdf4j-core/target/native/`.
+JNI 库（`libsdf4j-jni.so`）从 `../sdf4j-core/target/native/` 加载。
 
-## Writing New Examples
+## 测试结构
 
-1. Create a new test class in `src/test/java/org/openhitls/sdf4j/examples/`
-2. Use JUnit annotations:
-   ```java
-   @Before
-   public void setUp() throws SDFException {
-       sdf = new SDF();
-       deviceHandle = sdf.SDF_OpenDevice();
-       sessionHandle = sdf.SDF_OpenSession(deviceHandle);
-   }
+每个示例测试类遵循以下结构：
 
-   @After
-   public void tearDown() {
-       // Clean up resources
-   }
+```java
+public class Example {
+    private SDF sdf;
+    private long deviceHandle;
+    private long sessionHandle;
 
-   @Test
-   public void testSomeFeature() throws SDFException {
-       // Your test code with assertions
-   }
-   ```
-3. Handle optional functions gracefully:
-   ```java
-   try {
-       sdf.SDF_SomeOptionalFunction(...);
-   } catch (SDFException e) {
-       if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-           System.out.println("⚠ Function not implemented");
-       } else {
-           throw e;
-       }
-   }
-   ```
+    @Before
+    public void setUp() throws SDFException {
+        sdf = new SDF();
+        deviceHandle = sdf.SDF_OpenDevice();
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+    }
 
-## Device-Specific Notes
+    @After
+    public void tearDown() throws SDFException {
+        // 清理资源
+        sdf.SDF_CloseSession(sessionHandle);
+        sdf.SDF_CloseDevice(deviceHandle);
+    }
 
-Edit `test-config.properties` with your device-specific settings:
-- Update `sm2.internal.key.index` to match keys provisioned in your device
-- Update `sm2.key.access.password` to match your device's password
-- If your device doesn't require passwords, errors will be gracefully handled
+    @Test
+    public void testSomething() throws SDFException {
+        // 测试实现
+    }
+}
+```
 
-## Troubleshooting
+## 设备特定说明
 
-**Configuration file not found**:
+根据您的设备设置编辑 `test-config.properties`：
+- 更新 `sm2.internal.key.index` 以匹配设备中预置的密钥
+- 更新 `sm2.key.access.password` 以匹配您的设备密码
+
+## 故障排查
+
+**配置文件未找到**：
 ```
 Warning: Configuration file not found: test-config-xxx.properties
 ```
-Solution: Check that the config file exists in `src/test/resources/`
+解决方案：检查 `src/test/resources/` 中是否存在配置文件
 
-**Invalid key index**:
+**无效的密钥索引**：
 ```
 SDFException: SDR_KEYNOTEXIST (0x01000104)
 ```
-Solution: Update `sm2.internal.key.index` to match a key in your device
+解决方案：更新 `sm2.internal.key.index` 以匹配设备中的密钥
 
-**Wrong password**:
+**密码错误**：
 ```
 SDFException: Authentication failed
 ```
-Solution: Update `sm2.key.access.password` to match your device's password
+解决方案：更新 `sm2.key.access.password` 以匹配您的设备密码
 
-## Security Considerations
+## 安全注意事项
 
-- **DO NOT** commit sensitive passwords to version control
-- Consider adding `test-config.properties` to `.gitignore` if it contains sensitive data:
+- **不要**将敏感密码提交到版本控制
+- 如果 `test-config.properties` 包含敏感数据，考虑将其添加到 `.gitignore`：
   ```bash
   echo "examples/src/test/resources/test-config.properties" >> .gitignore
   ```
-- Use strong passwords for production environments
-- Consider using environment variables or secure vaults for sensitive data in production
+- 生产环境使用强密码
+- 生产环境中考虑使用环境变量或安全密钥库存储敏感数据
 
-## Notes
+## 注意事项
 
-- Examples require a working SDF library configured in `sdf4j-core`
-- Tests will gracefully handle `SDR_NOTSUPPORT` errors for optional functions
-- Some tests require pre-configured keys in the SDF device
-- All examples include proper resource cleanup in `@After` methods
-- Configuration-based approach makes examples portable across different devices
+- 示例需要在 `sdf4j-core` 中配置可用的 SDF 库
+- 测试需要合理处理可选函数的 `SDR_NOTSUPPORT` 错误
+- 某些测试需要在 SDF 设备中预配置密钥
+- 所有示例都在 `@After` 方法中包含适当的资源清理
+- 基于配置的方法使示例可以跨不同设备移植

@@ -6,7 +6,7 @@
 
 **SDF4J** 是 [openHiTLS](https://github.com/openhitls/openhitls) 项目的子项目，提供符合 **GM/T 0018-2023《密码设备应用接口规范》** 的 Java 语言封装。
 
-## 📋 目录
+## 目录
 
 - [特性](#特性)
 - [快速开始](#快速开始)
@@ -19,20 +19,18 @@
 - [贡献](#贡献)
 - [许可证](#许可证)
 
-## ✨ 特性
+## 特性
 
-- ✅ **完整的SDF接口** - 覆盖设备管理、密钥管理、加解密、签名验签等核心功能
-- ✅ **国密算法支持** - SM2、SM3、SM4、SM9 等国密算法
-- ✅ **部分实现支持** - 优雅处理未完整实现GM/T 0018-2023的SDF库，可选函数返回 `SDR_NOTSUPPORT` 错误码
-- ✅ **编译时配置** - 编译时指定 SDF 库，生成的 JAR 包开箱即用，无需运行时配置
-- ✅ **动态库加载** - 支持灵活配置密码设备库路径，多厂商兼容
-- ✅ **类型安全** - 完整的 Java 类型定义和参数校验
-- ✅ **异常处理** - 统一的异常体系和错误码映射
-- ✅ **跨平台** - 支持 Linux x86_64 和 aarch64
+- **完整的SDF接口** - 覆盖设备管理、密钥管理、加解密、签名验签等核心功能
+- **国密算法支持** - SM2、SM3、SM4、SM9 等国密算法
+- **部分实现支持** - 合理处理未完整实现GM/T 0018-2023的SDF库，可选函数返回 `SDR_NOTSUPPORT` 错误码
+- **编译时配置** - 编译时指定 SDF 库，生成的 JAR 包开箱即用，无需运行时配置
+- **动态库加载** - 支持灵活配置密码设备库路径，多厂商兼容
+- **类型安全** - 完整的 Java 类型定义和参数校验
+- **异常处理** - 统一的异常体系和错误码映射
+- **跨平台** - 支持 Linux x86_64 和 aarch64
 
-## 🚀 快速开始
-
-> 💡 **首次使用？** 请查看 [SDF 动态库配置指南](LIBRARY_CONFIG_GUIDE.md) 了解如何配置您的 SDF 库
+## 快速开始
 
 ### 前置要求
 
@@ -103,7 +101,7 @@ public class Example {
 }
 ```
 
-## 📦 安装
+## 安装
 
 ### 从源码构建
 
@@ -141,14 +139,14 @@ java -cp target/sdf4j-1.0.0-SNAPSHOT.jar \
      YourApp
 ```
 
-## 🔨 编译
+## 编译
 
-### 📌 编译时配置 SDF 库（推荐）
+### 编译时配置 SDF 库（推荐）
 
 **为什么在编译时配置？**
-- ✅ 编译出的 JAR 包已包含库配置，使用更方便
-- ✅ 不同环境可编译不同配置的 JAR 包
-- ✅ 默认配置：`libsdf.so`，从系统路径查找
+- 编译出的 JAR 包已包含库配置，使用更方便
+- 不同环境可编译不同配置的 JAR 包
+- 默认配置：`libsdf.so`，从系统路径查找
 
 **基本编译（使用默认配置）：**
 ```bash
@@ -160,13 +158,12 @@ mvn clean package
 **编译时指定 SDF 库：**
 ```bash
 # 指定库名称（可选）和路径（可选）
-mvn clean package \
-    -Dsdf.library.name=adf \
+mvn clean package -DskipTests \
+    -Dsdf.library.name=name_of_sdf \
     -Dsdf.library.path=/opt/sdf/lib
 
 # 仅指定库名称，从系统路径查找
 mvn clean package -Dsdf.library.name=sdf
-
 ```
 
 **编译时配置的好处**：编译后的 JAR 包可直接使用，无需运行时配置：
@@ -195,7 +192,7 @@ mvn clean package -DskipTests
 
 # 组合：Release模式 + 自定义库
 mvn clean package -Prelease \
-    -Dsdf.library.name=gmapi \
+    -Dsdf.library.name=adf \
     -Dsdf.library.path=/opt/vendor/lib
 ```
 
@@ -289,67 +286,56 @@ nm -D target/native/libsdf4j-jni.so | grep Java
 mvn test -Dtest=ErrorCodeTest,AlgorithmIDTest
 ```
 
-## 💡 使用示例
+## 使用示例
 
 项目包含三个完整的示例程序：
 
-### 1. BasicExample - 基础操作
+### 运行示例测试
 
 ```bash
-# 编译示例
-javac -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar examples/BasicExample.java
+# 进入 examples 目录
+cd examples
 
-# 运行示例
-java -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar \
-     -Djava.library.path=target/native \
-     BasicExample
+# 运行所有示例测试
+mvn test
+
+# 运行特定测试类
+mvn test -Dtest=SM2Example
+mvn test -Dtest=SM3Example
+mvn test -Dtest=SM4Example
+
+# 运行特定测试方法
+mvn test -Dtest=SM2Example#testExternalSign
+mvn test -Dtest=SM3Example#testSM3Hash
+mvn test -Dtest=SM4Example#testSM4ECB
 ```
 
-演示内容：
-- 设备打开和关闭
-- 会话管理
-- 获取设备信息
-- 生成随机数
-- 多会话操作
+### SM2Example.java
 
-### 2. SM4Example - 对称加密
+SM2 非对称加密算法测试：
+- `testExternalSign()` - 外部密钥签名和验签
+- `testExternalEncrypt()` - 外部密钥加密和解密
 
-```bash
-javac -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar examples/SM4Example.java
-java -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar \
-     -Djava.library.path=target/native \
-     SM4Example
-```
+### SM3Example.java
 
-演示内容：
-- SM4-ECB 加解密
-- SM4-CBC 加解密
-- SM4-MAC 计算
+SM3 哈希算法测试：
+- `testSM3Hash()` - SM3 哈希计算
 
-### 3. SM2Example - 非对称加密
+### SM4Example.java
 
-```bash
-javac -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar examples/SM2Example.java
-java -cp .:target/sdf4j-1.0.0-SNAPSHOT.jar \
-     -Djava.library.path=target/native \
-     SM2Example
-```
+SM4 对称加密算法测试：
+- `testSM4ECB()` - ECB 模式加密解密
+- `testSM4CBC()` - CBC 模式加密解密
 
-演示内容：
-- 导出 SM2 公钥
-- SM2 内部签名和验签
-- SM2 外部公钥验签
-- SM2 公钥加密
-- 验签失败测试
+**配置要求**：需要配置密钥索引和密码（见 examples/README.md）
 
-## 📚 文档
+## 文档
 
 ### 用户指南
 
-- **🔧 SDF 动态库配置指南**: [LIBRARY_CONFIG_GUIDE.md](LIBRARY_CONFIG_GUIDE.md) - **必读！** 如何配置您的 SDF 库进行编译和运行
-- **📖 API 使用指南**: [docs/API_GUIDE.md](docs/API_GUIDE.md) - 详细的 API 使用说明
-- **🧩 部分实现测试**: [docs/PARTIAL_IMPLEMENTATION_TEST.md](docs/PARTIAL_IMPLEMENTATION_TEST.md) - 如何处理未完整实现标准的SDF库
-- **📚 API 参考**: [在线 Javadoc](https://openhitls.github.io/sdf4j/apidocs/) 或运行 `mvn javadoc:javadoc` 生成本地文档
+- **API 使用指南**: [docs/API_GUIDE.md](docs/API_GUIDE.md) - 详细的 API 使用说明
+- **部分实现测试**: [docs/PARTIAL_IMPLEMENTATION_TEST.md](docs/PARTIAL_IMPLEMENTATION_TEST.md) - 如何处理未完整实现标准的 SDF 库
+
 
 ### 特性说明
 
@@ -367,18 +353,16 @@ SDF4J 支持未完整实现 GM/T 0018-2023 标准的 SDF 库。详见 [部分实
 ```java
 try {
     ECCPublicKey key = sdf.SDF_ExportSignPublicKey_ECC(session, 1);
-    System.out.println("✓ SM2签名公钥导出功能可用");
+    System.out.println("SM2签名公钥导出功能可用");
 } catch (SDFException e) {
     if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
-        System.out.println("⚠ 此SDF库不支持SM2签名公钥导出");
+        System.out.println("此SDF库不支持SM2签名公钥导出");
         // 使用替代方案
     }
 }
 ```
 
 ### SDF 库配置
-
-> 📖 **详细配置指南**: 请查看 [LIBRARY_CONFIG_GUIDE.md](LIBRARY_CONFIG_GUIDE.md) 获取完整的配置说明和故障排查
 
 SDF4J 支持灵活配置不同厂商的 SDF 库。配置包含两个参数：
 
@@ -406,12 +390,12 @@ library.name=sdf
 java -Dsdf4j.library.name=sdf -Djava.library.path=target/native YourApp
 
 # 方式3：自定义路径
-java -Dsdf4j.library.name=gmapi -Dsdf4j.library.path=/opt/vendor/lib YourApp
+java -Dsdf4j.library.name=sdf -Dsdf4j.library.path=/opt/sdf/lib YourApp
 ```
 
-> ⚠️ **重要**: 编译时不需要 SDF 库，只在运行时需要。构建始终成功。
+> **重要**: 编译时不需要 SDF 库，只在运行时需要。构建始终成功。
 
-## 🧪 测试
+## 测试
 
 ### 测试环境配置
 
@@ -503,16 +487,6 @@ open target/site/jacoco/index.html  # macOS
 xdg-open target/site/jacoco/index.html  # Linux
 ```
 
-### 测试分类
-
-| 测试类 | 需要设备 | 说明 |
-|--------|---------|------|
-| `ErrorCodeTest` | ❌ | 测试错误码常量定义 |
-| `AlgorithmIDTest` | ❌ | 测试算法ID常量定义 |
-| `SDFExceptionTest` | ❌ | 测试异常处理机制 |
-| `DeviceInfoTest` | ❌ | 测试数据类型结构 |
-| `DeviceManagementTest` | ✅ | 测试设备打开/关闭等操作 |
-
 ### 测试部分实现的SDF库
 
 参见 [docs/PARTIAL_IMPLEMENTATION_TEST.md](docs/PARTIAL_IMPLEMENTATION_TEST.md) 获取完整的测试指南。
@@ -528,7 +502,7 @@ public void testPartialImplementation() {
     } catch (SDFException e) {
         if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
             // 预期行为：功能未实现
-            System.out.println("⚠ 随机数生成功能未实现（这是正常的）");
+            System.out.println("随机数生成功能未实现");
         } else {
             throw e;  // 其他错误应该失败
         }
@@ -538,9 +512,7 @@ public void testPartialImplementation() {
 
 **注意**: 部分测试需要真实的密码设备。如果没有设备，相关测试将自动跳过或使用Mock库。
 
-## ❓ 常见问题
-
-> 💡 **完整的故障排查指南**: 请查看 [LIBRARY_CONFIG_GUIDE.md](LIBRARY_CONFIG_GUIDE.md) 的「常见问题排查」章节
+## 常见问题
 
 ### Q: UnsatisfiedLinkError: no sdf4j-jni in java.library.path
 
@@ -628,15 +600,15 @@ try {
 }
 ```
 
-完整的功能探测器示例见 [docs/PARTIAL_IMPLEMENTATION_TEST.md](docs/PARTIAL_IMPLEMENTATION_TEST.md)。
+完整的功能规格示例见 [docs/PARTIAL_IMPLEMENTATION_TEST.md](docs/PARTIAL_IMPLEMENTATION_TEST.md)。
 
 ### Q: 库加载时看到 "Warning: Optional SDF function 'XXX' not available"
 
 **A**: 这是**正常警告**。表示您的SDF库没有实现某些可选函数。
 
-- ✅ 只要核心4个函数存在（OpenDevice/CloseDevice/OpenSession/CloseSession），库就能正常加载
-- ✅ 可以使用已实现的功能
-- ⚠️ 调用未实现的函数时会抛出 `SDR_NOTSUPPORT` 异常
+- 只要核心4个函数存在（OpenDevice/CloseDevice/OpenSession/CloseSession），库就能正常加载
+- 可以使用已实现的功能
+- 调用未实现的函数时会抛出 `SDR_NOTSUPPORT` 异常
 
 ### Q: 如何在没有设备的情况下测试？
 
@@ -681,9 +653,9 @@ library.path=/opt/sdf/lib
 java -Dsdf4j.library.name=swsds -Dsdf4j.library.path=/opt/sdf/lib ...
 ```
 
-## 🤝 贡献
+## 贡献
 
-欢迎贡献代码！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
+欢迎贡献代码！
 
 ### 开发流程
 
@@ -700,7 +672,7 @@ java -Dsdf4j.library.name=swsds -Dsdf4j.library.path=/opt/sdf/lib ...
 - 确保所有测试通过
 - 更新相关文档
 
-## 📄 许可证
+## 许可证
 
 本项目采用 [木兰宽松许可证第2版（Mulan PSL v2）](LICENSE)
 
@@ -716,13 +688,13 @@ MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details.
 ```
 
-## 🔗 相关链接
+## 相关链接
 
 - [openHiTLS 项目](https://gitcode.com/openhitls/openhitls)
 - [GM/T 0018-2023 标准](http://www.gmbz.org.cn/)
 - [问题反馈](https://gitcode.com/openhitls/sdf4j/issues)
 
-## 📧 联系方式
+## 联系方式
 
 - 项目主页: https://gitcode.com/openhitls/sdf4j
 - 问题反馈: https://gitcode.com/openhitls/sdf4j/issues
