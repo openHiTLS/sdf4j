@@ -37,11 +37,15 @@ static bool load_function(void *handle, void **func_ptr, const char *func_name, 
         if (required) {
             /* 必需函数加载失败，返回错误 */
             const char *error = dlerror();
+            if (error == NULL) {
+                error = "unknown error";
+            }
             snprintf(g_load_error, sizeof(g_load_error),
                     "Failed to load required function '%s': %s", func_name, error);
             return false;
         } else {
-            /* 可选函数加载失败，忽略 */
+            /* 可选函数加载失败，忽略并清空错误 */
+            dlerror();
             return true;
         }
     }

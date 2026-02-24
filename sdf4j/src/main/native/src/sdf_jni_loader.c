@@ -43,7 +43,7 @@ JNI_NativeLibraryLoader_loadSDFLibrary(JNIEnv *env, jclass cls, jstring library_
     if (!result) {
         // 获取详细错误信息并抛出异常
         const char *error = sdf_get_load_error();
-        THROW_SDF_EXCEPTION(env, 0x01000005, "%s", error ? error : "Failed to load SDF library"); /* SDR_OPENDEVICE */
+        throw_sdf_exception_with_format(env, SDR_OPENDEVICE, "%s", error ? error : "Failed to load SDF library");
         return JNI_FALSE;
     }
     return JNI_TRUE;
