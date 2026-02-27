@@ -152,9 +152,7 @@ JNIEXPORT void JNICALL JNI_SDF_DestroyKey(JNIEnv *env, jobject obj, jlong sessio
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return;
     }
-
     LONG ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)keyHandle);
-
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to destroy key operation");
     }

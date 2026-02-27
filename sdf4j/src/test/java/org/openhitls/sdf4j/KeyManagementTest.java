@@ -209,7 +209,7 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -371,7 +371,7 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -457,33 +457,34 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
                 }
             }
 
-            // 导出内部 ECC 加密公钥作为发起方公钥
-            ECCPublicKey sponsorPublicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
-            assertNotNull("ECC 加密公钥不应为空", sponsorPublicKey);
-            assertTrue("ECC 密钥位数应大于 0", sponsorPublicKey.getBits() > 0);
-            assertNotNull("公钥 X不应为空", sponsorPublicKey.getX());
-            assertNotNull("公钥 Y不应为空", sponsorPublicKey.getY());
-            // 生成临时密钥对作为发起方临时公钥
-            Object[] tmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
-            assertNotNull("临时密钥对不应为空", tmpKeyPair);
-            ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) tmpKeyPair[0];
-
             // 发起方 ID
             byte[] sponsorID = "1234567812345678".getBytes();
 
-            // 生成密钥协商参数
-            agreementHandle = sdf.SDF_GenerateAgreementDataWithECC(
-                    sessionHandle, keyIndex, SESSION_KEY_BITS_128,
-                    sponsorID, sponsorPublicKey, sponsorTmpPublicKey);
+            // 生成密钥协商参数 - 底层会生成发起方公钥和临时公钥
+            KeyAgreementResult result = sdf.SDF_GenerateAgreementDataWithECC(
+                    sessionHandle, keyIndex, SESSION_KEY_BITS_128, sponsorID);
 
+            assertNotNull("协商结果不应为空", result);
+            agreementHandle = result.getAgreementHandle();
             assertTrue("协商句柄应大于 0", agreementHandle > 0);
+
+            // 验证返回的公钥数据
+            ECCPublicKey publicKey = result.getPublicKey();
+            assertNotNull("发起方公钥不应为空", publicKey);
+            assertNotNull("发起方公钥 X 不应为空", publicKey.getX());
+            assertNotNull("发起方公钥 Y 不应为空", publicKey.getY());
+
+            ECCPublicKey tmpPublicKey = result.getTmpPublicKey();
+            assertNotNull("发起方临时公钥不应为空", tmpPublicKey);
+            assertNotNull("发起方临时公钥 X 不应为空", tmpPublicKey.getX());
+            assertNotNull("发起方临时公钥 Y 不应为空", tmpPublicKey.getY());
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 生成密钥协商参数功能未实现");
@@ -522,24 +523,24 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
                 }
             }
 
-            // 步骤1: 发起方生成协商数据
-            ECCPublicKey sponsorPublicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
-            assertNotNull("ECC 加密公钥不应为空", sponsorPublicKey);
-            Object[] sponsorTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
-            assertNotNull("发起方临时密钥对不应为空", sponsorTmpKeyPair);
-            ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) sponsorTmpKeyPair[0];
+            // 步骤1: 发起方生成协商数据 - 底层自动生成公钥和临时公钥
             byte[] sponsorID = "1234567812345678".getBytes();
 
-            agreementHandle = sdf.SDF_GenerateAgreementDataWithECC(
-                    sessionHandle, keyIndex, SESSION_KEY_BITS_128,
-                    sponsorID, sponsorPublicKey, sponsorTmpPublicKey);
+            KeyAgreementResult agreementResult = sdf.SDF_GenerateAgreementDataWithECC(
+                    sessionHandle, keyIndex, SESSION_KEY_BITS_128, sponsorID);
+            assertNotNull("协商结果不应为空", agreementResult);
+            agreementHandle = agreementResult.getAgreementHandle();
+            ECCPublicKey publicKey = agreementResult.getPublicKey();
+            ECCPublicKey tmpPublicKey = agreementResult.getTmpPublicKey();
+            assertNotNull("发起方公钥不应为空", publicKey);
+            assertNotNull("发起方临时公钥不应为空", tmpPublicKey);
 
             // 步骤2: 响应方生成密钥对（模拟响应方）
             Object[] responseKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
@@ -624,38 +625,45 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
                 }
             }
 
-            // 准备发起方数据
-            ECCPublicKey sponsorPublicKey = sdf.SDF_ExportEncPublicKey_ECC(sessionHandle, keyIndex);
-            assertNotNull("ECC 加密公钥不应为空", sponsorPublicKey);
-            Object[] sponsorTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
-            assertNotNull("发起方临时密钥对不应为空", sponsorTmpKeyPair);
-            ECCPublicKey sponsorTmpPublicKey = (ECCPublicKey) sponsorTmpKeyPair[0];
+            // 步骤1: 发起方先生成协商数据，获取发起方公钥和临时公钥
             byte[] sponsorID = "1234567812345678".getBytes();
+            KeyAgreementResult sponsorResult = sdf.SDF_GenerateAgreementDataWithECC(
+                    sessionHandle, keyIndex, SESSION_KEY_BITS_128, sponsorID);
+            assertNotNull("发起方协商结果不应为空", sponsorResult);
+            ECCPublicKey publicKey = sponsorResult.getPublicKey();
+            ECCPublicKey tmpPublicKey = sponsorResult.getTmpPublicKey();
+            assertNotNull("发起方公钥不应为空", publicKey);
+            assertNotNull("发起方临时公钥不应为空", tmpPublicKey);
 
-            // 准备响应方数据
-            Object[] responseKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
-            assertNotNull("响应方密钥对不应为空", responseKeyPair);
-            ECCPublicKey responsePublicKey = (ECCPublicKey) responseKeyPair[0];
-            Object[] responseTmpKeyPair = sdf.SDF_GenerateKeyPair_ECC(sessionHandle, AlgorithmID.SGD_SM2_1, ECC_KEY_BITS);
-            assertNotNull("响应方临时密钥对不应为空", responseTmpKeyPair);
-            ECCPublicKey responseTmpPublicKey = (ECCPublicKey) responseTmpKeyPair[0];
+            // 步骤2: 响应方 - 产生协商数据并计算会话密钥（底层自动生成响应方公钥和临时公钥）
             byte[] responseID = "8765432187654321".getBytes();
 
-            // 产生协商数据并计算会话密钥
-            keyHandle = sdf.SDF_GenerateAgreementDataAndKeyWithECC(
+            KeyAgreementResult responseResult = sdf.SDF_GenerateAgreementDataAndKeyWithECC(
                     sessionHandle, keyIndex, SESSION_KEY_BITS_128,
                     responseID, sponsorID,
-                    sponsorPublicKey, sponsorTmpPublicKey,
-                    responsePublicKey, responseTmpPublicKey);
+                    publicKey, tmpPublicKey);
 
+            assertNotNull("响应方协商结果不应为空", responseResult);
+            keyHandle = responseResult.getAgreementHandle();
             assertTrue("密钥句柄应大于 0", keyHandle > 0);
+
+            // 验证返回的响应方公钥数据
+            ECCPublicKey responsePublicKey = responseResult.getPublicKey();
+            assertNotNull("响应方公钥不应为空", responsePublicKey);
+            assertNotNull("响应方公钥 X 不应为空", responsePublicKey.getX());
+            assertNotNull("响应方公钥 Y 不应为空", responsePublicKey.getY());
+
+            ECCPublicKey responseTmpPublicKey = responseResult.getTmpPublicKey();
+            assertNotNull("响应方临时公钥不应为空", responseTmpPublicKey);
+            assertNotNull("响应方临时公钥 X 不应为空", responseTmpPublicKey.getX());
+            assertNotNull("响应方临时公钥 Y 不应为空", responseTmpPublicKey.getY());
         } catch (SDFException e) {
             if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                 System.out.println("[跳过] 产生协商数据并计算会话密钥功能未实现");
@@ -672,6 +680,99 @@ public class KeyManagementTest {
                     System.err.println("销毁密钥失败: " + e.getMessage());
                 }
             }
+            if (accessRightObtained) {
+                try {
+                    sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
+                } catch (SDFException e) {
+                    System.err.println("释放私钥访问权限失败: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testFullKeyAgreementWithECC() throws SDFException, java.io.UnsupportedEncodingException {
+        deviceHandle = sdf.SDF_OpenDevice();
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+
+        long keyHandle1 = 0;  // 发起方会话密钥
+        long keyHandle2 = 0;  // 响应方会话密钥
+        boolean accessRightObtained = false;
+        try {
+            // 获取私钥访问权限
+            try {
+                sdf.SDF_GetPrivateKeyAccessRight(sessionHandle, keyIndex, keyPassword);
+                accessRightObtained = true;
+            } catch (SDFException e) {
+                if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                    System.out.println("[跳过] 获取私钥权限不支持");
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
+                } else {
+                    System.out.println(e.getMessage());
+                    throw e;
+                }
+            }
+
+            byte[] sponsorID = "1234567812345678".getBytes();
+            KeyAgreementResult sponsorResult = sdf.SDF_GenerateAgreementDataWithECC(
+                    sessionHandle, keyIndex, SESSION_KEY_BITS_128, sponsorID);
+            assertNotNull("发起方协商结果不应为空", sponsorResult);
+            long agreementHandle = sponsorResult.getAgreementHandle();
+            ECCPublicKey publicKey = sponsorResult.getPublicKey();
+            ECCPublicKey tmpPublicKey = sponsorResult.getTmpPublicKey();
+            assertTrue("协商句柄应大于 0", agreementHandle > 0);
+            assertNotNull("发起方公钥不应为空", publicKey);
+            assertNotNull("发起方临时公钥不应为空", tmpPublicKey);
+
+            byte[] responseID = "8765432187654321".getBytes();
+            KeyAgreementResult responseResult = sdf.SDF_GenerateAgreementDataAndKeyWithECC(
+                    sessionHandle, keyIndex, SESSION_KEY_BITS_128,
+                    responseID, sponsorID,
+                    publicKey, tmpPublicKey);
+            assertNotNull("响应方协商结果不应为空", responseResult);
+            keyHandle2 = responseResult.getAgreementHandle();
+            ECCPublicKey responsePublicKey = responseResult.getPublicKey();
+            ECCPublicKey responseTmpPublicKey = responseResult.getTmpPublicKey();
+            assertTrue("响应方密钥句柄应大于 0", keyHandle2 > 0);
+            assertNotNull("响应方公钥不应为空", responsePublicKey);
+            assertNotNull("响应方临时公钥不应为空", responseTmpPublicKey);
+
+            keyHandle1 = sdf.SDF_GenerateKeyWithECC(
+                    sessionHandle, responseID,
+                    responsePublicKey, responseTmpPublicKey,
+                    agreementHandle);
+            assertTrue("发起方密钥句柄应大于 0", keyHandle1 > 0);
+
+            byte[] plainText = "TestKeyAgreement".getBytes("UTF-8");  // 16 bytes for SM4
+
+            byte[] cipherText1 = sdf.SDF_Encrypt(
+                    sessionHandle, keyHandle1, AlgorithmID.SGD_SM4_ECB, null, plainText);
+            assertNotNull("发起方加密结果不应为空", cipherText1);
+
+            byte[] cipherText2 = sdf.SDF_Encrypt(
+                    sessionHandle, keyHandle2, AlgorithmID.SGD_SM4_ECB, null, plainText);
+            assertNotNull("响应方加密结果不应为空", cipherText2);
+
+            assertArrayEquals("双方加密密文应完全一致，证明协商出相同密钥", cipherText1, cipherText2);
+
+            byte[] decrypted1 = sdf.SDF_Decrypt(
+                    sessionHandle, keyHandle1, AlgorithmID.SGD_SM4_ECB, null, cipherText2);
+            assertArrayEquals("发起方解密响应方密文应得到原文", plainText, decrypted1);
+
+            byte[] decrypted2 = sdf.SDF_Decrypt(
+                    sessionHandle, keyHandle2, AlgorithmID.SGD_SM4_ECB, null, cipherText1);
+            assertArrayEquals("响应方解密发起方密文应得到原文", plainText, decrypted2);
+
+        } catch (SDFException e) {
+            if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
+                System.out.println("[跳过] 完整密钥协商功能未实现");
+                Assume.assumeTrue("完整密钥协商功能未实现", false);
+            } else {
+                System.out.println(e.getMessage());
+                throw e;
+            }
+        } finally {
+            // 此处不显式调用keyHandle1，keyHandle2的destroy，通过session关闭释放
             if (accessRightObtained) {
                 try {
                     sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle, keyIndex);
@@ -705,7 +806,7 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取 KEK 权限不支持");
-                    Assume.assumeTrue("获取 KEK 权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取 KEK 权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -777,7 +878,7 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取 KEK 权限不支持");
-                    Assume.assumeTrue("获取 KEK 权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取 KEK 权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -980,7 +1081,7 @@ public class KeyManagementTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;

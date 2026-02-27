@@ -313,41 +313,32 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_ECC(JNIEnv *env, jobject obj, j
 
 /**
  * 6.3.12 生成密钥协商参数并输出
- * Pattern: Returns agreement handle (long)
- * Note: Java API signature differs from C - sponsorTmpPublicKey is output parameter in C, input in Java
+ * Pattern: Returns KeyAgreementResult
  */
-JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jint keyBits, jbyteArray sponsorID,
-    jobject sponsorPublicKey, jobject sponsorTmpPublicKey) {
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex, jint keyBits, jbyteArray sponsorID)
+{
     UNUSED(obj);
-    UNUSED(sponsorTmpPublicKey);  /* Output parameter, handled by device */
 
     if (g_sdf_functions.SDF_GenerateAgreementDataWithECC == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
-        return 0;
+        return NULL;
     }
-    if (sponsorPublicKey == NULL) {
+    if (sponsorID == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
-        return 0;
+        return NULL;
     }
-
     /* 转换sponsorID */
     jsize sponsor_id_len = (*env)->GetArrayLength(env, sponsorID);
     jbyte *sponsor_id_buf = (*env)->GetPrimitiveArrayCritical(env, sponsorID, NULL);
     if (sponsor_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return 0;
+        return NULL;
     }
 
-    /* 转换sponsorPublicKey */
-    ECCrefPublicKey sponsor_pub_key;
-    if (!java_to_native_ECCPublicKey(env, sponsorPublicKey, &sponsor_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
-        return 0;
-    }
-
-    /* 临时公钥由设备生成 */
-    ECCrefPublicKey sponsor_tmp_pub_key;
-    memset(&sponsor_tmp_pub_key, 0, sizeof(ECCrefPublicKey));
+    /* 公钥和临时公钥由设备生成 */
+    ECCrefPublicKey sponsor_pub_key = {0};
+    ECCrefPublicKey sponsor_tmp_pub_key = {0};
 
     HANDLE agreement_handle = 0;
 
@@ -365,26 +356,33 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobjec
     (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
-        THROW_SDF_EXCEPTION(env, ret, "Failed to generate key");
-        return 0;
+        THROW_SDF_EXCEPTION(env, ret, "Failed to generate agreement data");
+        return NULL;
     }
 
-    return (jlong)agreement_handle;
+    /* 创建 KeyAgreementResult 对象 */
+    jobject result = native_to_java_KeyAgreementResult (env, agreement_handle,
+                                                 &sponsor_pub_key, &sponsor_tmp_pub_key);
+    if (result == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to create KeyAgreementResult");
+        return NULL;
+    }
+    return result;
 }
 
 /**
  * 6.3.13 计算会话密钥
  * Pattern: Returns key handle (long)
  */
-JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray responseID, jobject responsePublicKey,
-    jobject responseTmpPublicKey, jlong agreementHandle) {
+JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlong sessionHandle, jbyteArray responseID,
+    jobject responsePublicKey, jobject responseTmpPublicKey, jlong agreementHandle) {
     UNUSED(obj);
 
     if (g_sdf_functions.SDF_GenerateKeyWithECC == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return 0;
     }
-    if (responsePublicKey == NULL || responseTmpPublicKey == NULL) {
+    if (responsePublicKey == NULL || responseTmpPublicKey == NULL || responseID == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return 0;
     }
@@ -436,27 +434,28 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
 
 /**
  * 6.3.14 产生协商数据并计算会话密钥
- * Pattern: Returns key handle (long)
+ * Pattern: Returns KeyAgreementResult
  */
-JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, jobject obj, jlong sessionHandle, jint keyIndex, jint keyBits, jbyteArray responseID, jbyteArray sponsorID,
-    jobject sponsorPublicKey, jobject sponsorTmpPublicKey, jobject responsePublicKey, jobject responseTmpPublicKey) {
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, jobject obj, jlong sessionHandle,
+    jint keyIndex, jint keyBits, jbyteArray responseID, jbyteArray sponsorID, jobject sponsorPublicKey,
+    jobject sponsorTmpPublicKey)
+{
     UNUSED(obj);
 
-    if (g_sdf_functions.SDF_GenerateAgreementDataAndKeyWithECC == NULL) {
+    if (g_sdf_functions.SDF_GenerateAgreementDataAndKeyWithECC == NULL || g_sdf_functions.SDF_DestroyKey == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
-        return 0;
+        return NULL;
     }
-    if (sponsorPublicKey == NULL || sponsorTmpPublicKey == NULL || responsePublicKey == NULL ||
-        responseTmpPublicKey == NULL) {
+    if (sponsorPublicKey == NULL || sponsorTmpPublicKey == NULL || responseID == NULL || sponsorID == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
-        return 0;
+        return NULL;
     }
     /* 转换responseID */
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
     jbyte *response_id_buf = (*env)->GetPrimitiveArrayCritical(env, responseID, NULL);
     if (response_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return 0;
+        return NULL;
     }
 
     /* 转换sponsorID */
@@ -465,36 +464,28 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, 
     if (sponsor_id_buf == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return 0;
+        return NULL;
     }
 
-    /* 转换所有ECC公钥 */
-    ECCrefPublicKey sponsor_pub_key, sponsor_tmp_pub_key, response_pub_key, response_tmp_pub_key;
+    /* 转换发起方ECC公钥 */
+    ECCrefPublicKey sponsor_pub_key, sponsor_tmp_pub_key;
 
     if (!java_to_native_ECCPublicKey(env, sponsorPublicKey, &sponsor_pub_key)) {
         (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
         (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return 0;
+        return NULL;
     }
     if (!java_to_native_ECCPublicKey(env, sponsorTmpPublicKey, &sponsor_tmp_pub_key)) {
         (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
         (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return 0;
+        return NULL;
     }
-    if (!java_to_native_ECCPublicKey(env, responsePublicKey, &response_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return 0;
-    }
-    if (!java_to_native_ECCPublicKey(env, responseTmpPublicKey, &response_tmp_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return 0;
-    }
+
+    /* 响应方的公钥和临时公钥由设备生成 */
+    ECCrefPublicKey response_pub_key = {0};
+    ECCrefPublicKey response_tmp_pub_key = {0};
 
     HANDLE key_handle = 0;
 
@@ -518,10 +509,18 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, 
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to generate key");
-        return 0;
+        return NULL;
     }
 
-    return (jlong)key_handle;
+    /* 创建 KeyAgreementResult 对象，使用 key_handle 和响应方的公钥 */
+    jobject result = native_to_java_KeyAgreementResult (env, key_handle,
+                                                 &response_pub_key, &response_tmp_pub_key);
+    if (result == NULL) {
+        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to create KeyAgreementResult");
+        return NULL;
+    }
+    return result;
 }
 
 /**

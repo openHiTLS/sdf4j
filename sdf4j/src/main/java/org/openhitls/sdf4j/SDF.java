@@ -383,12 +383,7 @@ public class SDF {
      */
     public KeyEncryptionResult SDF_GenerateKeyWithIPK_RSA(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException {
-        KeyEncryptionResult result;
-        try {
-            result = SDF_GenerateKeyWithIPK_RSA_Native(sessionHandle, keyIndex, keyBits);
-        } catch (SDFException e) {
-            throw e;
-        }
+        KeyEncryptionResult result = SDF_GenerateKeyWithIPK_RSA_Native(sessionHandle, keyIndex, keyBits);
         SessionResource sessionResource = gSessResource.get(sessionHandle);
         if (sessionResource != null) {
             sessionResource.addKey(result.getKeyHandle());
@@ -411,12 +406,7 @@ public class SDF {
      */
     public KeyEncryptionResult SDF_GenerateKeyWithEPK_RSA(
             long sessionHandle, int keyBits, RSAPublicKey publicKey) throws SDFException {
-        KeyEncryptionResult result;
-        try {
-            result = SDF_GenerateKeyWithEPK_RSA_Native(sessionHandle, keyBits, publicKey);
-        } catch (SDFException e) {
-            throw e;
-        }
+        KeyEncryptionResult result = SDF_GenerateKeyWithEPK_RSA_Native(sessionHandle, keyBits, publicKey);
         // 如果 keyHandle 存在，注册到对应的 SessionResource
         SessionResource sessionResource = gSessResource.get(sessionHandle);
         if (sessionResource != null) {
@@ -453,12 +443,7 @@ public class SDF {
      */
     public ECCKeyEncryptionResult SDF_GenerateKeyWithIPK_ECC(
             long sessionHandle, int keyIndex, int keyBits) throws SDFException {
-        ECCKeyEncryptionResult result;
-        try {
-            result = SDF_GenerateKeyWithIPK_ECC_Native(sessionHandle, keyIndex, keyBits);
-        } catch (SDFException e) {
-            throw e;
-        }
+        ECCKeyEncryptionResult result = SDF_GenerateKeyWithIPK_ECC_Native(sessionHandle, keyIndex, keyBits);
         // 如果 keyHandle 存在，注册到对应的 SessionResource
         SessionResource sessionResource = gSessResource.get(sessionHandle);
         if (sessionResource != null) {
@@ -483,12 +468,7 @@ public class SDF {
      */
     public ECCKeyEncryptionResult SDF_GenerateKeyWithEPK_ECC(
             long sessionHandle, int keyBits, int algID, ECCPublicKey publicKey) throws SDFException {
-        ECCKeyEncryptionResult result;
-        try {
-            result = SDF_GenerateKeyWithEPK_ECC_Native(sessionHandle, keyBits, algID, publicKey);
-        } catch (SDFException e) {
-            throw e;
-        }
+        ECCKeyEncryptionResult result = SDF_GenerateKeyWithEPK_ECC_Native(sessionHandle, keyBits, algID, publicKey);
         // 如果 keyHandle 存在，注册到对应的 SessionResource
         SessionResource sessionResource = gSessResource.get(sessionHandle);
         if (sessionResource != null) {
@@ -521,15 +501,11 @@ public class SDF {
      * @param keyIndex          内部私钥索引 / Internal private key index
      * @param keyBits           密钥长度（位）/ Key length in bits
      * @param sponsorID         发起方ID / Sponsor ID
-     * @param sponsorPublicKey  发起方公钥 / Sponsor public key
-     * @param sponsorTmpPublicKey 发起方临时公钥 / Sponsor temporary public key
-     * @return 协商句柄 / Agreement handle
+     * @return KeyAgreementResult 包含协商句柄、发起方公钥和发起方临时公钥
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_GenerateAgreementDataWithECC(
-            long sessionHandle, int keyIndex, int keyBits,
-            byte[] sponsorID, ECCPublicKey sponsorPublicKey,
-            ECCPublicKey sponsorTmpPublicKey) throws SDFException;
+    public native KeyAgreementResult SDF_GenerateAgreementDataWithECC(long sessionHandle, int keyIndex, int keyBits,
+            byte[] sponsorID) throws SDFException;
 
     /**
      * 6.3.13 计算会话密钥
@@ -543,7 +519,18 @@ public class SDF {
      * @return 密钥句柄 / Key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_GenerateKeyWithECC(
+    public long SDF_GenerateKeyWithECC(long sessionHandle, byte[] responseID, ECCPublicKey responsePublicKey,
+            ECCPublicKey responseTmpPublicKey, long agreementHandle) throws SDFException {
+        long keyHandle = SDF_GenerateKeyWithECC_Native(sessionHandle, responseID,
+                    responsePublicKey, responseTmpPublicKey, agreementHandle);
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(keyHandle);
+        }
+        return keyHandle;
+    }
+
+    private native long SDF_GenerateKeyWithECC_Native(
             long sessionHandle, byte[] responseID,
             ECCPublicKey responsePublicKey, ECCPublicKey responseTmpPublicKey,
             long agreementHandle) throws SDFException;
@@ -559,16 +546,26 @@ public class SDF {
      * @param sponsorID           发起方ID / Sponsor ID
      * @param sponsorPublicKey    发起方公钥 / Sponsor public key
      * @param sponsorTmpPublicKey 发起方临时公钥 / Sponsor temporary public key
-     * @param responsePublicKey   响应方公钥 / Response public key
-     * @param responseTmpPublicKey 响应方临时公钥 / Response temporary public key
-     * @return 密钥句柄 / Key handle
+     * @return KeyAgreementResult 包含协商句柄、响应方公钥和响应方临时公钥
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_GenerateAgreementDataAndKeyWithECC(
+    public KeyAgreementResult SDF_GenerateAgreementDataAndKeyWithECC(
             long sessionHandle, int keyIndex, int keyBits,
             byte[] responseID, byte[] sponsorID,
-            ECCPublicKey sponsorPublicKey, ECCPublicKey sponsorTmpPublicKey,
-            ECCPublicKey responsePublicKey, ECCPublicKey responseTmpPublicKey) throws SDFException;
+            ECCPublicKey sponsorPublicKey, ECCPublicKey sponsorTmpPublicKey) throws SDFException {
+        KeyAgreementResult result = SDF_GenerateAgreementDataAndKeyWithECC_Native(sessionHandle, keyIndex, keyBits,
+                    responseID, sponsorID, sponsorPublicKey, sponsorTmpPublicKey);
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(result.getAgreementHandle());
+        }
+        return result;
+    }
+
+    private native KeyAgreementResult SDF_GenerateAgreementDataAndKeyWithECC_Native(
+            long sessionHandle, int keyIndex, int keyBits,
+            byte[] responseID, byte[] sponsorID,
+            ECCPublicKey sponsorPublicKey, ECCPublicKey sponsorTmpPublicKey) throws SDFException;
 
     /**
      * 6.3.15 生成会话密钥并用密钥加密密钥加密输出
@@ -583,12 +580,7 @@ public class SDF {
      */
     public KeyEncryptionResult SDF_GenerateKeyWithKEK(
             long sessionHandle, int keyBits, int algID, int kekIndex) throws SDFException {
-        KeyEncryptionResult result;
-        try {
-            result = SDF_GenerateKeyWithKEK_Native(sessionHandle, keyBits, algID, kekIndex);
-        } catch (SDFException e) {
-            throw e;
-        }
+        KeyEncryptionResult result = SDF_GenerateKeyWithKEK_Native(sessionHandle, keyBits, algID, kekIndex);
         // 如果 keyHandle 存在，注册到对应的 SessionResource
         SessionResource sessionResource = gSessResource.get(sessionHandle);
         if (sessionResource != null) {
@@ -644,11 +636,7 @@ public class SDF {
             sessionResource.removeKey(keyHandle);
         }
         // 调用 native 方法销毁密钥
-        try {
-            SDF_DestroyKey_Native(sessionHandle, keyHandle);
-        } catch (SDFException e) {
-            throw e;
-        }
+        SDF_DestroyKey_Native(sessionHandle, keyHandle);
     }
 
     /**

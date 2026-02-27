@@ -629,3 +629,26 @@ bool java_to_native_ECCPrivateKey(JNIEnv *env, jobject java_key, ECCrefPrivateKe
 
     return true;
 }
+
+jobject native_to_java_KeyAgreementResult (JNIEnv *env, HANDLE agreement_handle,
+                                    const ECCrefPublicKey *pub_key,
+                                    const ECCrefPublicKey *tmp_pub_key)
+{
+    /* Convert ECCrefPublicKey to Java ECCPublicKey objects */
+    jobject java_pub_key = native_to_java_ECCPublicKey(env, pub_key);
+    if (java_pub_key == NULL) {
+        return NULL;
+    }
+
+    jobject java_tmp_pub_key = native_to_java_ECCPublicKey(env, tmp_pub_key);
+    if (java_tmp_pub_key == NULL) {
+        return NULL;
+    }
+
+    /* Create KeyAgreementResult object */
+    jobject obj = (*env)->NewObject(env, g_jni_cache.keyAgreementResult.cls,
+                                    g_jni_cache.keyAgreementResult.ctor,
+                                    (jlong)agreement_handle,
+                                    java_pub_key, java_tmp_pub_key);
+    return obj;
+}

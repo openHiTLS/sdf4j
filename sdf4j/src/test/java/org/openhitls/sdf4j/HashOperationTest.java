@@ -515,7 +515,7 @@ public class HashOperationTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -595,7 +595,7 @@ public class HashOperationTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;
@@ -679,7 +679,7 @@ public class HashOperationTest {
             } catch (SDFException e) {
                 if (e.getErrorCode() == ErrorCode.SDR_NOTSUPPORT) {
                     System.out.println("[跳过] 获取私钥权限不支持");
-                    Assume.assumeTrue("获取私钥权限不需要或不支持，继续测试...", false);
+                    Assume.assumeTrue("获取私钥权限不需要或不支持，跳过测试", false);
                 } else {
                     System.out.println(e.getMessage());
                     throw e;

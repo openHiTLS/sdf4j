@@ -155,4 +155,18 @@ jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
 jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
                                      ULONG key_length, HANDLE key_handle);
 
+/**
+ * 创建KeyAgreementResult对象
+ * Create KeyAgreementResult object
+ *
+ * @param env JNI环境
+ * @param agreement_handle 协商句柄或密钥句柄
+ * @param pub_key 公钥
+ * @param tmp_pub_key 临时公钥
+ * @return KeyAgreementResult对象
+ */
+jobject native_to_java_KeyAgreementResult (JNIEnv *env, HANDLE agreement_handle,
+                                    const ECCrefPublicKey *pub_key,
+                                    const ECCrefPublicKey *tmp_pub_key);
+
 #endif /* SDF4J_TYPE_CONVERSION_H */

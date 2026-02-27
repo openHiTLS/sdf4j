@@ -67,16 +67,14 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
     jlong sessionHandle, jint keyBits, jint algID, jobject publicKey);
 JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_ECC(JNIEnv *env, jobject obj, jlong sessionHandle,
     jint keyIndex, jobject cipher);
-JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobject obj,
-    jlong sessionHandle, jint keyIndex, jint keyBits, jbyteArray sponsorID,
-    jobject sponsorPublicKey, jobject sponsorTmpPublicKey);
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint keyBits, jbyteArray sponsorID);
 JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlong sessionHandle,
     jbyteArray responseID, jobject responsePublicKey, jobject responseTmpPublicKey,
     jlong agreementHandle);
-JNIEXPORT jlong JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, jobject obj,
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env, jobject obj,
     jlong sessionHandle, jint keyIndex, jint keyBits, jbyteArray responseID, jbyteArray sponsorID,
-    jobject sponsorPublicKey, jobject sponsorTmpPublicKey, jobject responsePublicKey,
-    jobject responseTmpPublicKey);
+    jobject sponsorPublicKey, jobject sponsorTmpPublicKey);
 JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithKEK(JNIEnv *env, jobject obj, jlong sessionHandle,
     jint keyBits, jint algID, jint kekIndex);
 JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong sessionHandle,

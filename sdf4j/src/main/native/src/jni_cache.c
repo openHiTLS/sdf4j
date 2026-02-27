@@ -191,6 +191,17 @@ static jint init_ecc_key_encryption_result_cache(JNIEnv *env) {
     return JNI_TRUE;
 }
 
+/* Initialize KeyAgreementResult cache */
+static jint init_key_agreement_result_cache(JNIEnv *env)
+{
+    CACHE_CLASS(env, g_jni_cache.keyAgreementResult.cls,
+                "org/openhitls/sdf4j/types/KeyAgreementResult");
+    CACHE_METHOD(env, g_jni_cache.keyAgreementResult.ctor,
+                 g_jni_cache.keyAgreementResult.cls, "<init>",
+                 "(JLorg/openhitls/sdf4j/types/ECCPublicKey;Lorg/openhitls/sdf4j/types/ECCPublicKey;)V");
+    return JNI_TRUE;
+}
+
 /* Initialize common class cache */
 static jint init_common_class_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.common.objectClass, "java/lang/Object");
@@ -264,11 +275,15 @@ jint jni_cache_init(JNIEnv *env) {
         return JNI_FALSE;
     }
 
-    if (init_common_class_cache(env) != JNI_TRUE) {
+    if (init_key_agreement_result_cache(env) != JNI_TRUE) {
         jni_cache_cleanup(env);
         return JNI_FALSE;
     }
 
+    if (init_common_class_cache(env) != JNI_TRUE) {
+        jni_cache_cleanup(env);
+        return JNI_FALSE;
+    }
     g_jni_cache.initialized = true;
     return JNI_TRUE;
 }
@@ -284,9 +299,10 @@ void jni_cache_cleanup(JNIEnv *env) {
     delete_global_ref_safe(env, &g_jni_cache.eccSignature.cls);
     delete_global_ref_safe(env, &g_jni_cache.eccCipher.cls);
     delete_global_ref_safe(env, &g_jni_cache.keyEncryptionResult.cls);
+    delete_global_ref_safe(env, &g_jni_cache.eccKeyEncryptionResult.cls);
+    delete_global_ref_safe(env, &g_jni_cache.keyAgreementResult.cls);
     delete_global_ref_safe(env, &g_jni_cache.common.objectClass);
     delete_global_ref_safe(env, &g_jni_cache.common.byteArrayClass);
-
     g_jni_cache.initialized = false;
 }
 
