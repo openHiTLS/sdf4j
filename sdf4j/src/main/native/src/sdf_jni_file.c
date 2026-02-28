@@ -16,7 +16,6 @@
  * File Operation Functions
  * ======================================================================== */
 
-
 /**
  * 6.7.2 创建文件
  * SDF_CreateFile(hSessionHandle, pucFileName, uiNameLen, uiFileSize)

@@ -14,13 +14,10 @@ package org.openhitls.sdf4j.types;
 
 
 /**
- * 密钥加密结果
  * Key Encryption Result
  *
- * <p>包含加密后的密钥数据和密钥句柄
  * <p>Contains encrypted key data and key handle
  *
- * <p>用于密钥生成和导入操作的返回结果
  * <p>Used as return value for key generation and import operations
  *
  * @author OpenHitls Team
@@ -31,18 +28,16 @@ public class KeyEncryptionResult {
     private long keyHandle;
 
     /**
-     * 构造函数
      * Constructor
      */
     public KeyEncryptionResult() {
     }
 
     /**
-     * 构造函数
      * Constructor
      *
-     * @param encryptedKey 加密的密钥数据 / Encrypted key data
-     * @param keyHandle 密钥句柄 / Key handle
+     * @param encryptedKey Encrypted key data
+     * @param keyHandle Key handle
      */
     public KeyEncryptionResult(byte[] encryptedKey, long keyHandle) {
         this.encryptedKey = encryptedKey;
@@ -50,20 +45,18 @@ public class KeyEncryptionResult {
     }
 
     /**
-     * 获取加密的密钥数据
      * Get encrypted key data
      *
-     * @return 加密的密钥数据 / Encrypted key data
+     * @return Encrypted key data
      */
     public byte[] getEncryptedKey() {
         return encryptedKey;
     }
 
     /**
-     * 获取密钥句柄
      * Get key handle
      *
-     * @return 密钥句柄 / Key handle
+     * @return Key handle
      */
     public long getKeyHandle() {
         return keyHandle;

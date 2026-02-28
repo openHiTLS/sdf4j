@@ -15,12 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * RSA公钥
  * RSA Public Key (RSArefPublicKey)
  *
- * <p>对应C结构体: RSArefPublicKey_st
- * <p>定义于GM/T 0018-2023 5.5节
- * <p>最大支持4096位密钥
+ * <p>Corresponds to C struct: RSArefPublicKey_st
+ * <p>Defined in GM/T 0018-2023 Section 5.5
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -28,57 +26,43 @@ import java.util.Arrays;
 public class RSAPublicKey {
 
     /**
-     * 最大位数
-     */
-    public static final int RSA_MAX_BITS = 4096;
-
-    /**
-     * 最大字节数
-     */
-    public static final int RSA_MAX_LEN = (RSA_MAX_BITS + 7) / 8;
-
-    /**
-     * 模数位数
+     * Modulus bit length
      */
     private int bits;
 
     /**
-     * 模数 m (最大512字节)
-     * Modulus
+     * Modulus m
      */
     private byte[] m;
 
     /**
-     * 公钥指数 e (最大512字节)
-     * Public exponent
+     * Public exponent e
      */
     private byte[] e;
 
     /**
-     * 默认构造函数
+     * Default constructor.
      */
     public RSAPublicKey() {
-        this.m = new byte[RSA_MAX_LEN];
-        this.e = new byte[RSA_MAX_LEN];
     }
 
     /**
-     * 构造函数
+     * Parameterized constructor.
      *
-     * @param bits 模数位数
-     * @param m    模数
-     * @param e    公钥指数
+     * @param bits modulus bit length
+     * @param m    modulus
+     * @param e    public exponent
      */
     public RSAPublicKey(int bits, byte[] m, byte[] e) {
-        if (bits <= 0 || bits > RSA_MAX_BITS) {
-            throw new IllegalArgumentException("Invalid bits: " + bits + ", must be in (0, " + RSA_MAX_BITS + "]");
+        if (bits <= 0) {
+            throw new IllegalArgumentException("Invalid bits: " + bits);
         }
         if (m == null || e == null) {
             throw new IllegalArgumentException("Modulus and exponent cannot be null");
         }
         this.bits = bits;
-        this.m = Arrays.copyOf(m, RSA_MAX_LEN);
-        this.e = Arrays.copyOf(e, RSA_MAX_LEN);
+        this.m = m;
+        this.e = e;
     }
 
     // ========================================================================
@@ -90,32 +74,38 @@ public class RSAPublicKey {
     }
 
     public void setBits(int bits) {
-        if (bits <= 0 || bits > RSA_MAX_BITS) {
+        if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
         this.bits = bits;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getM() {
-        return m != null ? Arrays.copyOf(m, m.length) : null;
+        return m;
     }
 
     public void setM(byte[] m) {
         if (m == null) {
             throw new IllegalArgumentException("Modulus cannot be null");
         }
-        this.m = Arrays.copyOf(m, RSA_MAX_LEN);
+        this.m = m;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getE() {
-        return e != null ? Arrays.copyOf(e, e.length) : null;
+        return e;
     }
 
     public void setE(byte[] e) {
         if (e == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
         }
-        this.e = Arrays.copyOf(e, RSA_MAX_LEN);
+        this.e = e;
     }
 
     // ========================================================================
@@ -123,9 +113,9 @@ public class RSAPublicKey {
     // ========================================================================
 
     /**
-     * 获取有效的模数数据（去除前导零）
+     * Get effective modulus data (trimmed by bit length).
      *
-     * @return 有效的模数数据
+     * @return effective modulus data
      */
     public byte[] getEffectiveM() {
         if (m == null) {
@@ -136,15 +126,15 @@ public class RSAPublicKey {
     }
 
     /**
-     * 获取有效的公钥指数数据（去除前导零）
+     * Get effective public exponent data (stripped of leading zeros).
      *
-     * @return 有效的公钥指数数据
+     * @return effective public exponent data
      */
     public byte[] getEffectiveE() {
         if (e == null) {
             return null;
         }
-        // 查找第一个非零字节
+        // Find first non-zero byte
         int start = 0;
         while (start < e.length && e[start] == 0) {
             start++;
@@ -168,21 +158,10 @@ public class RSAPublicKey {
         if (bytes == null || bytes.length == 0) {
             return "";
         }
-        if (bytes.length > 32) {
-            // 只显示前32字节
-            byte[] preview = Arrays.copyOf(bytes, 32);
-            StringBuilder sb = new StringBuilder();
-            for (byte b : preview) {
-                sb.append(String.format("%02X", b));
-            }
-            sb.append("...(").append(bytes.length).append(" bytes)");
-            return sb.toString();
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (byte b : bytes) {
-                sb.append(String.format("%02X", b));
-            }
-            return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
         }
+        return sb.toString();
     }
 }

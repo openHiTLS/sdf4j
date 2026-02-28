@@ -51,27 +51,6 @@ public class ECCSignatureTest {
     }
 
     @Test
-    public void testConstructorWithLargerSignature() {
-        // 测试超过最大长度的情况
-        byte[] r = new byte[80]; // 超过 ECC_MAX_LEN (64)
-        byte[] s = new byte[80];
-
-        for (int i = 0; i < 80; i++) {
-            r[i] = (byte)i;
-            s[i] = (byte)(i + 80);
-        }
-
-        ECCSignature signature = new ECCSignature(r, s);
-
-        // 应该截断到最大长度
-        byte[] rResult = signature.getR();
-        byte[] sResult = signature.getS();
-
-        assertEquals("R should be truncated to ECC_MAX_LEN", ECCSignature.ECC_MAX_LEN, rResult.length);
-        assertEquals("S should be truncated to ECC_MAX_LEN", ECCSignature.ECC_MAX_LEN, sResult.length);
-    }
-
-    @Test
     public void testSettersWithSM2Length() {
         ECCSignature signature = new ECCSignature();
 
@@ -98,19 +77,5 @@ public class ECCSignatureTest {
             assertEquals((byte)(0x10 + i), rResult[i]);
             assertEquals((byte)(0x50 + i), sResult[i]);
         }
-    }
-
-    @Test
-    public void testDefaultConstructor() {
-        ECCSignature signature = new ECCSignature();
-
-        // 默认构造函数现在创建空数组
-        byte[] r = signature.getR();
-        byte[] s = signature.getS();
-
-        assertNotNull("R should not be null", r);
-        assertNotNull("S should not be null", s);
-        assertEquals("Default R should be empty", 0, r.length);
-        assertEquals("Default S should be empty", 0, s.length);
     }
 }

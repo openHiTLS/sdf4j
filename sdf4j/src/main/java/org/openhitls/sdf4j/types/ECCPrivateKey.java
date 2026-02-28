@@ -15,11 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * ECC私钥
  * ECC Private Key (ECCrefPrivateKey)
  *
- * <p>对应C结构体: ECCrefPrivateKey_st
- * <p>定义于GM/T 0018-2023 5.6节
+ * <p>Corresponds to C struct: ECCrefPrivateKey_st
+ * <p>Defined in GM/T 0018-2023 Section 5.6
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -27,48 +26,36 @@ import java.util.Arrays;
 public class ECCPrivateKey {
 
     /**
-     * 最大位数
-     */
-    public static final int ECC_MAX_BITS = 512;
-
-    /**
-     * 最大字节数
-     */
-    public static final int ECC_MAX_LEN = (ECC_MAX_BITS + 7) / 8;
-
-    /**
-     * 密钥位数
+     * Key bit length
      */
     private int bits;
 
     /**
-     * 私钥值 K (最大64字节)
-     * Private key value
+     * Private key value K
      */
     private byte[] k;
 
     /**
-     * 默认构造函数
+     * Default constructor.
      */
     public ECCPrivateKey() {
-        this.k = new byte[ECC_MAX_LEN];
     }
 
     /**
-     * 构造函数
+     * Parameterized constructor.
      *
-     * @param bits 密钥位数
-     * @param k    私钥值
+     * @param bits key bit length
+     * @param k    private key value
      */
     public ECCPrivateKey(int bits, byte[] k) {
-        if (bits <= 0 || bits > ECC_MAX_BITS) {
+        if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
         if (k == null) {
             throw new IllegalArgumentException("Private key value cannot be null");
         }
         this.bits = bits;
-        this.k = Arrays.copyOf(k, ECC_MAX_LEN);
+        this.k = k;
     }
 
     // ========================================================================
@@ -80,27 +67,30 @@ public class ECCPrivateKey {
     }
 
     public void setBits(int bits) {
-        if (bits <= 0 || bits > ECC_MAX_BITS) {
+        if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
         this.bits = bits;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getK() {
-        return k != null ? Arrays.copyOf(k, k.length) : null;
+        return k;
     }
 
     public void setK(byte[] k) {
         if (k == null) {
             throw new IllegalArgumentException("Private key value cannot be null");
         }
-        this.k = Arrays.copyOf(k, ECC_MAX_LEN);
+        this.k = k;
     }
 
     /**
-     * 获取有效的私钥数据
+     * Get effective private key data (trimmed by bit length).
      *
-     * @return 有效的私钥数据
+     * @return effective private key data
      */
     public byte[] getEffectiveK() {
         if (k == null) {

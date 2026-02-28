@@ -85,7 +85,7 @@ static jint init_device_info_cache(JNIEnv *env) {
 static jint init_rsa_public_key_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.rsaPublicKey.cls, "org/openhitls/sdf4j/types/RSAPublicKey");
     CACHE_METHOD(env, g_jni_cache.rsaPublicKey.ctor,
-                 g_jni_cache.rsaPublicKey.cls, "<init>", "()V");
+                 g_jni_cache.rsaPublicKey.cls, "<init>", "(I[B[B)V");
     CACHE_FIELD(env, g_jni_cache.rsaPublicKey.bits,
                 g_jni_cache.rsaPublicKey.cls, "bits", "I");
     CACHE_FIELD(env, g_jni_cache.rsaPublicKey.m,
@@ -121,7 +121,7 @@ static jint init_rsa_private_key_cache(JNIEnv *env) {
 static jint init_ecc_public_key_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.eccPublicKey.cls, "org/openhitls/sdf4j/types/ECCPublicKey");
     CACHE_METHOD(env, g_jni_cache.eccPublicKey.ctor,
-                 g_jni_cache.eccPublicKey.cls, "<init>", "()V");
+                 g_jni_cache.eccPublicKey.cls, "<init>", "(I[B[B)V");
     CACHE_FIELD(env, g_jni_cache.eccPublicKey.bits,
                 g_jni_cache.eccPublicKey.cls, "bits", "I");
     CACHE_FIELD(env, g_jni_cache.eccPublicKey.x,
@@ -135,7 +135,7 @@ static jint init_ecc_public_key_cache(JNIEnv *env) {
 static jint init_ecc_private_key_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.eccPrivateKey.cls, "org/openhitls/sdf4j/types/ECCPrivateKey");
     CACHE_METHOD(env, g_jni_cache.eccPrivateKey.ctor,
-                 g_jni_cache.eccPrivateKey.cls, "<init>", "()V");
+                 g_jni_cache.eccPrivateKey.cls, "<init>", "(I[B)V");
     CACHE_FIELD(env, g_jni_cache.eccPrivateKey.bits,
                 g_jni_cache.eccPrivateKey.cls, "bits", "I");
     CACHE_FIELD(env, g_jni_cache.eccPrivateKey.k,
@@ -147,7 +147,7 @@ static jint init_ecc_private_key_cache(JNIEnv *env) {
 static jint init_ecc_signature_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.eccSignature.cls, "org/openhitls/sdf4j/types/ECCSignature");
     CACHE_METHOD(env, g_jni_cache.eccSignature.ctor,
-                 g_jni_cache.eccSignature.cls, "<init>", "()V");
+                 g_jni_cache.eccSignature.cls, "<init>", "([B[B)V");
     CACHE_FIELD(env, g_jni_cache.eccSignature.r,
                 g_jni_cache.eccSignature.cls, "r", "[B");
     CACHE_FIELD(env, g_jni_cache.eccSignature.s,
@@ -159,7 +159,7 @@ static jint init_ecc_signature_cache(JNIEnv *env) {
 static jint init_ecc_cipher_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.eccCipher.cls, "org/openhitls/sdf4j/types/ECCCipher");
     CACHE_METHOD(env, g_jni_cache.eccCipher.ctor,
-                 g_jni_cache.eccCipher.cls, "<init>", "()V");
+                 g_jni_cache.eccCipher.cls, "<init>", "([B[B[BJ[B)V");
     CACHE_FIELD(env, g_jni_cache.eccCipher.x,
                 g_jni_cache.eccCipher.cls, "x", "[B");
     CACHE_FIELD(env, g_jni_cache.eccCipher.y,
@@ -206,7 +206,7 @@ static jint init_key_agreement_result_cache(JNIEnv *env)
 static jint init_hybrid_cipher_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.hybridCipher.cls, "org/openhitls/sdf4j/types/HybridCipher");
     CACHE_METHOD(env, g_jni_cache.hybridCipher.ctor,
-                 g_jni_cache.hybridCipher.cls, "<init>", "()V");
+                 g_jni_cache.hybridCipher.cls, "<init>", "(J[BJLorg/openhitls/sdf4j/types/ECCCipher;J)V");
     CACHE_FIELD(env, g_jni_cache.hybridCipher.l1,
                 g_jni_cache.hybridCipher.cls, "l1", "J");
     CACHE_FIELD(env, g_jni_cache.hybridCipher.ctM,
@@ -224,7 +224,7 @@ static jint init_hybrid_cipher_cache(JNIEnv *env) {
 static jint init_hybrid_signature_cache(JNIEnv *env) {
     CACHE_CLASS(env, g_jni_cache.hybridSignature.cls, "org/openhitls/sdf4j/types/HybridSignature");
     CACHE_METHOD(env, g_jni_cache.hybridSignature.ctor,
-                 g_jni_cache.hybridSignature.cls, "<init>", "()V");
+                 g_jni_cache.hybridSignature.cls, "<init>", "(Lorg/openhitls/sdf4j/types/ECCSignature;I[B)V");
     CACHE_FIELD(env, g_jni_cache.hybridSignature.sigS,
                 g_jni_cache.hybridSignature.cls, "sigS", "Lorg/openhitls/sdf4j/types/ECCSignature;");
     CACHE_FIELD(env, g_jni_cache.hybridSignature.l,

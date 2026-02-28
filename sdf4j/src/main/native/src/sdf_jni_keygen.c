@@ -81,6 +81,10 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_RSA(JNIEnv *env, jobject ob
     }
 
     /* 转换Java RSAPublicKey到C结构 */
+    if (publicKey == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        return NULL;
+    }
     RSArefPublicKey rsa_pub_key;
     if (!java_to_native_RSAPublicKey(env, publicKey, &rsa_pub_key)) {
         return NULL;  /* Exception already thrown */
@@ -136,6 +140,10 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_RSA(JNIEnv *env, jobject obj, j
     }
 
     /* 转换加密密钥数据 */
+    if (encryptedKey == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        return 0;
+    }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     BYTE *key_buf = (BYTE*)malloc(key_len);
     if (key_buf == NULL) {
@@ -227,10 +235,14 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
     }
 
     /* 转换Java ECCPublicKey到C结构 */
+    if (publicKey == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        return NULL;
+    }
+
     ECCrefPublicKey ecc_pub_key;
     if (!java_to_native_ECCPublicKey(env, publicKey, &ecc_pub_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return NULL;  /* Exception already thrown */
+        return NULL;
     }
 
     /* 分配ECCCipher结构 */
@@ -361,13 +373,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobj
     }
 
     /* 创建 KeyAgreementResult 对象 */
-    jobject result = native_to_java_KeyAgreementResult (env, agreement_handle,
-                                                 &sponsor_pub_key, &sponsor_tmp_pub_key);
-    if (result == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to create KeyAgreementResult");
-        return NULL;
-    }
-    return result;
+    return native_to_java_KeyAgreementResult(env, agreement_handle, &sponsor_pub_key, &sponsor_tmp_pub_key);
 }
 
 /**
@@ -386,27 +392,22 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return 0;
     }
+
+    ECCrefPublicKey response_pub_key;
+    if (!java_to_native_ECCPublicKey(env, responsePublicKey, &response_pub_key)) {
+        return 0;
+    }
+
+    ECCrefPublicKey response_tmp_pub_key;
+    if (!java_to_native_ECCPublicKey(env, responseTmpPublicKey, &response_tmp_pub_key)) {
+        return 0;
+    }
+
     /* 转换responseID */
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
     jbyte *response_id_buf = (*env)->GetPrimitiveArrayCritical(env, responseID, NULL);
     if (response_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return 0;
-    }
-
-    /* 转换responsePublicKey */
-    ECCrefPublicKey response_pub_key;
-    if (!java_to_native_ECCPublicKey(env, responsePublicKey, &response_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return 0;
-    }
-
-    /* 转换responseTmpPublicKey */
-    ECCrefPublicKey response_tmp_pub_key;
-    if (!java_to_native_ECCPublicKey(env, responseTmpPublicKey, &response_tmp_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
         return 0;
     }
 
@@ -450,6 +451,15 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return NULL;
     }
+
+    ECCrefPublicKey sponsor_pub_key, sponsor_tmp_pub_key;
+    if (!java_to_native_ECCPublicKey(env, sponsorPublicKey, &sponsor_pub_key)) {
+        return NULL;
+    }
+    if (!java_to_native_ECCPublicKey(env, sponsorTmpPublicKey, &sponsor_tmp_pub_key)) {
+        return NULL;
+    }
+
     /* 转换responseID */
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
     jbyte *response_id_buf = (*env)->GetPrimitiveArrayCritical(env, responseID, NULL);
@@ -464,22 +474,6 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
     if (sponsor_id_buf == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return NULL;
-    }
-
-    /* 转换发起方ECC公钥 */
-    ECCrefPublicKey sponsor_pub_key, sponsor_tmp_pub_key;
-
-    if (!java_to_native_ECCPublicKey(env, sponsorPublicKey, &sponsor_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
-        return NULL;
-    }
-    if (!java_to_native_ECCPublicKey(env, sponsorTmpPublicKey, &sponsor_tmp_pub_key)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-        (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
         return NULL;
     }
 
@@ -513,11 +507,10 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
     }
 
     /* 创建 KeyAgreementResult 对象，使用 key_handle 和响应方的公钥 */
-    jobject result = native_to_java_KeyAgreementResult (env, key_handle,
+    jobject result = native_to_java_KeyAgreementResult(env, key_handle,
                                                  &response_pub_key, &response_tmp_pub_key);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to create KeyAgreementResult");
         return NULL;
     }
     return result;
@@ -591,6 +584,10 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong
     }
 
     /* 转换加密密钥数据 */
+    if (encryptedKey == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        return 0;
+    }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, encryptedKey, NULL);
     if (key_buf == NULL) {

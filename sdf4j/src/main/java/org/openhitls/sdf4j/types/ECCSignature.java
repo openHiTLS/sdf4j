@@ -15,11 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * ECC签名
  * ECC Signature (ECCSignature)
  *
- * <p>对应C结构体: ECCSignature_st
- * <p>定义于GM/T 0018-2023 5.8节
+ * <p>Corresponds to C struct: ECCSignature_st
+ * <p>Defined in GM/T 0018-2023 Section 5.8
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -27,95 +26,82 @@ import java.util.Arrays;
 public class ECCSignature {
 
     /**
-     * 最大字节数
-     */
-    public static final int ECC_MAX_LEN = 64;
-
-    /**
-     * 签名r值 (最大64字节)
      * Signature r value
      */
     private byte[] r;
 
     /**
-     * 签名s值 (最大64字节)
      * Signature s value
      */
     private byte[] s;
 
     /**
-     * 默认构造函数
-     * 注意：创建空数组，实际长度由使用时决定
+     * Default constructor.
      */
     public ECCSignature() {
-        this.r = new byte[0];
-        this.s = new byte[0];
     }
 
     /**
-     * 构造函数
+     * Parameterized constructor.
      *
-     * @param r 签名r值
-     * @param s 签名s值
+     * @param r signature r value
+     * @param s signature s value
      */
     public ECCSignature(byte[] r, byte[] s) {
         if (r == null || s == null) {
             throw new IllegalArgumentException("Signature r and s cannot be null");
         }
-        // 保持原始长度，不强制填充到ECC_MAX_LEN
-        // 只在长度超过最大值时截断
-        this.r = r.length > ECC_MAX_LEN ? Arrays.copyOf(r, ECC_MAX_LEN) : r.clone();
-        this.s = s.length > ECC_MAX_LEN ? Arrays.copyOf(s, ECC_MAX_LEN) : s.clone();
+        this.r = r;
+        this.s = s;
     }
 
     // ========================================================================
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getR() {
-        return r != null ? Arrays.copyOf(r, r.length) : null;
+        return r;
     }
 
     public void setR(byte[] r) {
         if (r == null) {
             throw new IllegalArgumentException("Signature r cannot be null");
         }
-        // 保持原始长度，不强制填充到ECC_MAX_LEN
-        // 只在长度超过最大值时截断
-        this.r = r.length > ECC_MAX_LEN ? Arrays.copyOf(r, ECC_MAX_LEN) : r.clone();
+        this.r = r;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getS() {
-        return s != null ? Arrays.copyOf(s, s.length) : null;
+        return s;
     }
 
     public void setS(byte[] s) {
         if (s == null) {
             throw new IllegalArgumentException("Signature s cannot be null");
         }
-        // 保持原始长度，不强制填充到ECC_MAX_LEN
-        // 只在长度超过最大值时截断
-        this.s = s.length > ECC_MAX_LEN ? Arrays.copyOf(s, ECC_MAX_LEN) : s.clone();
+        this.s = s;
     }
 
     @Override
     public String toString() {
         return "ECCSignature{" +
-                "r=" + bytesToHex(r, 16) +
-                ", s=" + bytesToHex(s, 16) +
+                "r=" + bytesToHex(r) +
+                ", s=" + bytesToHex(s) +
                 '}';
     }
 
-    private static String bytesToHex(byte[] bytes, int limit) {
+    private static String bytesToHex(byte[] bytes) {
         if (bytes == null || bytes.length == 0) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Math.min(bytes.length, limit); i++) {
+        for (int i = 0; i < bytes.length; i++) {
             sb.append(String.format("%02X", bytes[i]));
-        }
-        if (bytes.length > limit) {
-            sb.append("...");
         }
         return sb.toString();
     }

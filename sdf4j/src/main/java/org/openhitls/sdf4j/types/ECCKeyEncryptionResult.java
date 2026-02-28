@@ -18,19 +18,16 @@ public class ECCKeyEncryptionResult {
     private long keyHandle;
 
     /**
-     * 构造函数
      * Constructor
      */
     public ECCKeyEncryptionResult() {
     }
 
-    
     /**
-     * 构造函数
      * Constructor
      *
-     * @param eccCipher ECC加密的密钥数据 / ECC encrypted key data
-     * @param keyHandle 密钥句柄 / Key handle
+     * @param eccCipher ECC encrypted key data
+     * @param keyHandle Key handle
      */
     public ECCKeyEncryptionResult(ECCCipher eccCipher, long keyHandle) {
         this.eccCipher = eccCipher;
@@ -38,20 +35,18 @@ public class ECCKeyEncryptionResult {
     }
 
     /**
-     * 获取ECC加密的密钥数据
      * Get encrypted key data
      *
-     * @return ECC加密的密钥数据 / ECC encrypted key data
+     * @return ECC encrypted key data
      */
     public ECCCipher getEccCipher() {
         return eccCipher;
     }
 
     /**
-     * 获取密钥句柄
      * Get key handle
      *
-     * @return 密钥句柄 / Key handle
+     * @return Key handle
      */
     public long getKeyHandle() {
         return keyHandle;

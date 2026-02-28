@@ -65,18 +65,15 @@ JNIEXPORT void JNICALL JNI_SDF_InternalVerify_ECC(JNIEnv *env, jobject obj, jlon
         return;
     }
 
-    jsize data_len = (*env)->GetArrayLength(env, data);
-
-    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
-    if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");  /* SDR_NOBUFFER */
+    ECCSignature native_sig = {0};
+    if(!java_to_native_ECCSignature(env, signature, &native_sig)) {
         return;
     }
 
-    ECCSignature native_sig = {0};
-    if (!java_to_native_ECCSignature(env, signature, &native_sig)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert signature"); /* SDR_INARGERR */
+    jsize data_len = (*env)->GetArrayLength(env, data);
+    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+    if (data_buf == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");  /* SDR_NOBUFFER */
         return;
     }
 
@@ -106,7 +103,11 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_ECC(JNIEnv *env, jobject obj, jlon
 
     ECCrefPublicKey native_key;
     if (!java_to_native_ECCPublicKey(env, publicKey, &native_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
+        return;
+    }
+
+    ECCSignature native_sig = {0};
+    if(!java_to_native_ECCSignature(env, signature, &native_sig)) {
         return;
     }
 
@@ -114,13 +115,6 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_ECC(JNIEnv *env, jobject obj, jlon
     jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
-        return;
-    }
-
-    ECCSignature native_sig = {0};
-    if (!java_to_native_ECCSignature(env, signature, &native_sig)) {
-        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert signature");
         return;
     }
 
@@ -151,7 +145,6 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalEncrypt_ECC(JNIEnv *env, jobject obj, 
 
     ECCrefPublicKey native_key;
     if (!java_to_native_ECCPublicKey(env, publicKey, &native_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
         return NULL;
     }
 
@@ -259,7 +252,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_InternalDecrypt_ECC(JNIEnv *env, jobject ob
     /* 转换Java ECCCipher到C结构 (使用动态分配以支持柔性数组成员) */
     ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
     if (ecc_cipher == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Memory allocation failed"); /* SDR_INARGERR */
         return NULL;
     }
 
@@ -286,7 +278,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_InternalDecrypt_ECC(JNIEnv *env, jobject ob
     jbyteArray result = native_to_java_byte_array(env, data_buf, data_len);
     free(ecc_cipher);
     free(data_buf);
-
     return result;
 }
 
@@ -306,13 +297,11 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnECC(JNIEnv *env, jo
 
     ECCrefPublicKey native_pub;
     if (!java_to_native_ECCPublicKey(env, publicKey, &native_pub)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
         return NULL;
     }
 
     ECCCipher *in_cipher = java_to_native_ECCCipher_alloc(env, encDataIn);
     if (in_cipher == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Memory allocation failed");
         return NULL;
     }
 
@@ -365,7 +354,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnRSA(JNIEnv *env,
 
     RSArefPublicKey native_key;
     if (!java_to_native_RSAPublicKey(env, pucPublicKey, &native_key)) {
-        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to convert public key");
         return NULL;
     }
 
@@ -430,7 +418,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPublicKeyOperation_RSA(JNIEnv *env,
     /* 转换公钥 */
     RSArefPublicKey native_key = {0};
     if (!java_to_native_RSAPublicKey(env, publicKey, &native_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
         return NULL;
     }
 

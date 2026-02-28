@@ -26,6 +26,25 @@ public class HybridSignature {
     public HybridSignature() {
     }
 
+    /**
+     * Parameterized constructor used by JNI layer for efficient object creation.
+     *
+     * @param sigS ECC signature
+     * @param l    signature M length
+     * @param sigM signature M data
+     */
+    public HybridSignature(ECCSignature sigS, int l, byte[] sigM) {
+        if (sigM == null || sigS == null) {
+            throw new IllegalArgumentException("input cannot be null");
+        }
+        if (l < 0 || l > sigM.length) {
+            throw new IllegalArgumentException("pqc signature value is invalid");
+        }
+        this.sigS = sigS;
+        this.l = l;
+        this.sigM = sigM;
+    }
+
     public ECCSignature getSigS() {
         return sigS;
     }
@@ -42,8 +61,8 @@ public class HybridSignature {
     }
 
     public void setSigM(byte[] sigM) {
-        if (sigM == null) {
-            throw new IllegalArgumentException("signature value cannot be null");
+        if (sigM == null || this.l > sigM.length) {
+            throw new IllegalArgumentException("signature value is invalid");
         }
         this.sigM = sigM;
     }

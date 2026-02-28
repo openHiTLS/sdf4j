@@ -116,7 +116,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
-
+    if (privateKey == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        return NULL;
+    }
     /* Convert private key */
     RSArefPrivateKey priv_key;
     if (!java_to_native_RSAPrivateKey(env, privateKey, &priv_key)) {
@@ -181,17 +184,15 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalSign_ECC(JNIEnv *env, jobject obj, jlo
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
-    if (privateKey == NULL) {
+    if (privateKey == NULL || data == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return NULL;
     }
     /* Convert private key */
     ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert private key");
         return NULL;
     }
-
     /* Convert data */
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
@@ -240,10 +241,8 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalDecrypt_ECC(JNIEnv *env, jobject ob
     /* Convert private key */
     ECCrefPrivateKey priv_key = {0};
     if (!java_to_native_ECCPrivateKey(env, privateKey, &priv_key)) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert private key");
         return NULL;
     }
-    
     /* Convert cipher (使用动态分配以支持柔性数组成员) */
     ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
     if (ecc_cipher == NULL) {
@@ -293,6 +292,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyEncrypt(JNIEnv *env, jobject obj
 
     if (g_sdf_functions.SDF_ExternalKeyEncrypt == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
+        return NULL;
+    }
+
+    if (key == NULL || data == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return NULL;
     }
 
@@ -386,6 +390,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalKeyDecrypt(JNIEnv *env, jobject obj
         return NULL;
     }
 
+    if (key == NULL || encData == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        return NULL;
+    }
+
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
@@ -476,6 +485,11 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyEncryptInit(JNIEnv *env, jobject obj, 
         return;
     }
 
+    if (key == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        return;
+    }
+
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
@@ -529,6 +543,11 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyDecryptInit(JNIEnv *env, jobject obj, 
         return;
     }
 
+    if (key == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        return;
+    }
+
     /* Convert key */
     jsize key_len = (*env)->GetArrayLength(env, key);
     jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, key, NULL);
@@ -579,6 +598,11 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalKeyHMACInit(JNIEnv *env, jobject obj, jlo
 
     if (g_sdf_functions.SDF_ExternalKeyHMACInit == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
+        return;
+    }
+
+    if (key == NULL) {
+        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
         return;
     }
 

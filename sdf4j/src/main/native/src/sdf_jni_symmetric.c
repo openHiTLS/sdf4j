@@ -184,7 +184,6 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
 
     /* 获取输入数据 */
     jsize data_len = (*env)->GetArrayLength(env, data);
-
     jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
     if (data_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
@@ -1305,7 +1304,6 @@ JNIEXPORT void JNICALL JNI_SDF_HashInit(JNIEnv *env, jobject obj, jlong sessionH
     ECCrefPublicKey native_key;
     if (publicKey != NULL) {
         if (!java_to_native_ECCPublicKey(env, publicKey, &native_key)) {
-            THROW_SDF_EXCEPTION(env, 0x0100001D, "Failed to convert public key");
             return;
         }
         native_key_ptr = &native_key;

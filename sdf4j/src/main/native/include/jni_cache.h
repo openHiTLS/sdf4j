@@ -51,7 +51,7 @@ typedef struct {
 /* RSAPublicKey cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/RSAPublicKey */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>(I[B[B)V */
     jfieldID bits;                  /* I */
     jfieldID m;                     /* [B */
     jfieldID e;                     /* [B */
@@ -73,7 +73,7 @@ typedef struct {
 /* ECCPublicKey cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCPublicKey */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>(I[B[B)V */
     jfieldID bits;                  /* I */
     jfieldID x;                     /* [B */
     jfieldID y;                     /* [B */
@@ -82,7 +82,7 @@ typedef struct {
 /* ECCPrivateKey cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCPrivateKey */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>(I[B)V */
     jfieldID bits;                  /* I */
     jfieldID k;                     /* [B */
 } ECCPrivateKeyCache;
@@ -90,7 +90,7 @@ typedef struct {
 /* ECCSignature cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCSignature */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>([B[B)V */
     jfieldID r;                     /* [B */
     jfieldID s;                     /* [B */
 } ECCSignatureCache;
@@ -98,7 +98,7 @@ typedef struct {
 /* ECCCipher cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCCipher */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>([B[B[BJ[B)V */
     jfieldID x;                     /* [B */
     jfieldID y;                     /* [B */
     jfieldID m;                     /* [B */
@@ -127,7 +127,7 @@ typedef struct {
 /* HybridCipher cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/HybridCipher */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>(J[BJLorg/openhitls/sdf4j/types/ECCCipher;J)V */
     jfieldID l1;                    /* J */
     jfieldID ctM;                   /* [B */
     jfieldID uiAlgID;               /* J */
@@ -138,7 +138,7 @@ typedef struct {
 /* HybridSignature cache */
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/HybridSignature */
-    jmethodID ctor;                 /* <init>()V */
+    jmethodID ctor;                 /* <init>(Lorg/openhitls/sdf4j/types/ECCSignature;I[B)V */
     jfieldID sigS;                  /* Lorg/openhitls/sdf4j/types/ECCSignature; */
     jfieldID l;                     /* I */
     jfieldID sigM;                  /* [B */

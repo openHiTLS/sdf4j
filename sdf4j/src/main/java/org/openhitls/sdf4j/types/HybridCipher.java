@@ -15,12 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * 混合加密数据结构
  * Hybrid Cipher Structure (HybridCipher)
  */
 public class HybridCipher {
 
-    public static final int HYBRIDENCref_MAX_LEN = 1576;
     private long l1;
     private byte[] ctM;
     private long uiAlgID;
@@ -30,11 +28,40 @@ public class HybridCipher {
     public HybridCipher() {
     }
 
+    /**
+     * Parameterized constructor used by JNI layer for efficient object creation.
+     *
+     * @param l1        ciphertext M length
+     * @param ctM       ciphertext M data
+     * @param uiAlgID   algorithm ID
+     * @param ctS       ECC cipher structure
+     * @param keyHandle key handle
+     */
+    public HybridCipher(long l1, byte[] ctM, long uiAlgID, ECCCipher ctS, long keyHandle) {
+        if (ctM == null || ctS == null) {
+            throw new IllegalArgumentException("input cannot be null");
+        }
+        if (l1 < 0 || l1 > ctM.length) {
+            throw new IllegalArgumentException("pqc cipher is invalid");
+        }
+        this.l1 = l1;
+        this.ctM = ctM;
+        this.uiAlgID = uiAlgID;
+        this.ctS = ctS;
+        this.keyHandle = keyHandle;
+    }
+
     public long getL1() {
         return l1;
     }
 
     public void setL1(long l1) {
+        if (l1 < 0) {
+            throw new IllegalArgumentException("Ciphertext length cannot be negative");
+        }
+        if (ctM != null && l1 > ctM.length) {
+            throw new IllegalArgumentException("len cannot exceed data length");
+        }
         this.l1 = l1;
     }
 
@@ -43,8 +70,8 @@ public class HybridCipher {
     }
 
     public void setCtM(byte[] ctM) {
-        if (ctM == null) {
-            throw new IllegalArgumentException("cipher value cannot be null");
+        if (ctM == null || this.l1 > ctM.length) {
+            throw new IllegalArgumentException("cipher value is invalid");
         }
         this.ctM = ctM;
     }
@@ -62,6 +89,9 @@ public class HybridCipher {
     }
 
     public void setCtS(ECCCipher ctS) {
+        if (ctS == null) {
+            throw new IllegalArgumentException("cipher value cannot be null");
+        }
         this.ctS = ctS;
     }
 

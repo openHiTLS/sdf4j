@@ -15,12 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * RSA私钥
  * RSA Private Key (RSArefPrivateKey)
  *
- * <p>对应C结构体: RSArefPrivateKey_st
- * <p>定义于GM/T 0018-2023 5.5节
- * <p>最大支持4096位密钥
+ * <p>Corresponds to C struct: RSArefPrivateKey_st
+ * <p>Defined in GM/T 0018-2023 Section 5.5
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -28,109 +26,72 @@ import java.util.Arrays;
 public class RSAPrivateKey {
 
     /**
-     * 最大位数
-     */
-    public static final int RSA_MAX_BITS = 4096;
-
-    /**
-     * 最大字节数
-     */
-    public static final int RSA_MAX_LEN = (RSA_MAX_BITS + 7) / 8;
-
-    /**
-     * 最大素数位数
-     */
-    public static final int RSA_MAX_PBITS = (RSA_MAX_BITS + 1) / 2;
-
-    /**
-     * 最大素数字节数
-     */
-    public static final int RSA_MAX_PLEN = (RSA_MAX_PBITS + 7) / 8;
-
-    /**
-     * 模数位数
+     * Modulus bit length
      */
     private int bits;
 
     /**
-     * 模数 m (最大512字节)
-     * Modulus
+     * Modulus m
      */
     private byte[] m;
 
     /**
-     * 公钥指数 e (最大512字节)
-     * Public exponent
+     * Public exponent e
      */
     private byte[] e;
 
     /**
-     * 私钥指数 d (最大512字节)
-     * Private exponent
+     * Private exponent d
      */
     private byte[] d;
 
     /**
-     * 素数 p 和 q (2个，每个最大256字节)
-     * Prime factors [p, q]
+     * Prime factors p and q
      */
     private byte[][] prime;
 
     /**
-     * CRT指数 dp 和 dq (2个，每个最大256字节)
-     * CRT exponents [dp, dq]
+     * CRT exponents dp and dq
      */
     private byte[][] pexp;
 
     /**
-     * CRT系数 coef (最大256字节)
      * CRT coefficient
      */
     private byte[] coef;
 
     /**
-     * 默认构造函数
+     * Default constructor.
      */
     public RSAPrivateKey() {
-        this.m = new byte[RSA_MAX_LEN];
-        this.e = new byte[RSA_MAX_LEN];
-        this.d = new byte[RSA_MAX_LEN];
-        this.prime = new byte[2][RSA_MAX_PLEN];
-        this.pexp = new byte[2][RSA_MAX_PLEN];
-        this.coef = new byte[RSA_MAX_PLEN];
     }
 
     /**
-     * 构造函数
+     * Parameterized constructor.
      *
-     * @param bits  模数位数
-     * @param m     模数
-     * @param e     公钥指数
-     * @param d     私钥指数
-     * @param prime 素数[p, q]
-     * @param pexp  CRT指数[dp, dq]
-     * @param coef  CRT系数
+     * @param bits  modulus bit length
+     * @param m     modulus
+     * @param e     public exponent
+     * @param d     private exponent
+     * @param prime prime factors [p, q]
+     * @param pexp  CRT exponents [dp, dq]
+     * @param coef  CRT coefficient
      */
     public RSAPrivateKey(int bits, byte[] m, byte[] e, byte[] d,
                          byte[][] prime, byte[][] pexp, byte[] coef) {
-        if (bits <= 0 || bits > RSA_MAX_BITS) {
+        if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
+        if (m == null || e == null || d == null || prime == null || pexp == null || coef == null) {
+            throw new IllegalArgumentException("Invalid parameters");
+        }
         this.bits = bits;
-        this.m = Arrays.copyOf(m, RSA_MAX_LEN);
-        this.e = Arrays.copyOf(e, RSA_MAX_LEN);
-        this.d = Arrays.copyOf(d, RSA_MAX_LEN);
-        this.prime = new byte[2][RSA_MAX_PLEN];
-        this.pexp = new byte[2][RSA_MAX_PLEN];
-        if (prime != null && prime.length >= 2) {
-            System.arraycopy(prime[0], 0, this.prime[0], 0, Math.min(prime[0].length, RSA_MAX_PLEN));
-            System.arraycopy(prime[1], 0, this.prime[1], 0, Math.min(prime[1].length, RSA_MAX_PLEN));
-        }
-        if (pexp != null && pexp.length >= 2) {
-            System.arraycopy(pexp[0], 0, this.pexp[0], 0, Math.min(pexp[0].length, RSA_MAX_PLEN));
-            System.arraycopy(pexp[1], 0, this.pexp[1], 0, Math.min(pexp[1].length, RSA_MAX_PLEN));
-        }
-        this.coef = Arrays.copyOf(coef, RSA_MAX_PLEN);
+        this.m = m;
+        this.e = e;
+        this.d = d;
+        this.prime = prime;
+        this.pexp = pexp;
+        this.coef = coef;
     }
 
     // ========================================================================
@@ -142,87 +103,87 @@ public class RSAPrivateKey {
     }
 
     public void setBits(int bits) {
-        if (bits <= 0 || bits > RSA_MAX_BITS) {
+        if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
         this.bits = bits;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getM() {
-        return m != null ? Arrays.copyOf(m, m.length) : null;
+        return m;
     }
 
     public void setM(byte[] m) {
-        this.m = Arrays.copyOf(m, RSA_MAX_LEN);
+        if (m == null) {
+            throw new IllegalArgumentException("Modulus cannot be null");
+        }
+        this.m = m;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getE() {
-        return e != null ? Arrays.copyOf(e, e.length) : null;
+        return e;
     }
 
     public void setE(byte[] e) {
-        this.e = Arrays.copyOf(e, RSA_MAX_LEN);
+        if (e == null) {
+            throw new IllegalArgumentException("Exponent cannot be null");
+        }
+        this.e = e;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getD() {
-        return d != null ? Arrays.copyOf(d, d.length) : null;
+        return d;
     }
 
     public void setD(byte[] d) {
-        this.d = Arrays.copyOf(d, RSA_MAX_LEN);
+        if (d == null) {
+            throw new IllegalArgumentException("Exponent cannot be null");
+        }
+        this.d = d;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[][] getPrime() {
-        if (prime == null) {
-            return null;
-        }
-        byte[][] copy = new byte[2][];
-        copy[0] = Arrays.copyOf(prime[0], prime[0].length);
-        copy[1] = Arrays.copyOf(prime[1], prime[1].length);
-        return copy;
+        return prime;
     }
 
     public void setPrime(byte[][] prime) {
-        if (prime != null && prime.length >= 2) {
-            this.prime = new byte[2][RSA_MAX_PLEN];
-            System.arraycopy(prime[0], 0, this.prime[0], 0, Math.min(prime[0].length, RSA_MAX_PLEN));
-            System.arraycopy(prime[1], 0, this.prime[1], 0, Math.min(prime[1].length, RSA_MAX_PLEN));
+        if (prime == null) {
+            throw new IllegalArgumentException("Prime cannot be null");
         }
+        this.prime = prime;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[][] getPexp() {
-        if (pexp == null) {
-            return null;
-        }
-        byte[][] copy = new byte[2][];
-        copy[0] = Arrays.copyOf(pexp[0], pexp[0].length);
-        copy[1] = Arrays.copyOf(pexp[1], pexp[1].length);
-        return copy;
+        return pexp;
     }
 
     public void setPexp(byte[][] pexp) {
-        if (pexp != null && pexp.length >= 2) {
-            this.pexp = new byte[2][RSA_MAX_PLEN];
-            System.arraycopy(pexp[0], 0, this.pexp[0], 0, Math.min(pexp[0].length, RSA_MAX_PLEN));
-            System.arraycopy(pexp[1], 0, this.pexp[1], 0, Math.min(pexp[1].length, RSA_MAX_PLEN));
-        }
+        this.pexp = pexp;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public byte[] getCoef() {
-        return coef != null ? Arrays.copyOf(coef, coef.length) : null;
+        return coef;
     }
 
     public void setCoef(byte[] coef) {
-        this.coef = Arrays.copyOf(coef, RSA_MAX_PLEN);
-    }
-
-    @Override
-    public String toString() {
-        return "RSAPrivateKey{" +
-                "bits=" + bits +
-                ", m=[REDACTED]" +
-                ", e=[REDACTED]" +
-                ", d=[REDACTED]" +
-                '}';
+        this.coef = coef;
     }
 }

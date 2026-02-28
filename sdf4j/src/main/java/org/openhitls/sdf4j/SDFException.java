@@ -15,11 +15,9 @@ package org.openhitls.sdf4j;
 import org.openhitls.sdf4j.constants.ErrorCode;
 
 /**
- * SDF异常类
  * SDF Exception
  *
- * <p>封装SDF接口调用过程中产生的错误，包含错误码和详细错误信息。
- * This exception wraps errors that occur during SDF interface calls,
+ * <p> This exception wraps errors that occur during SDF interface calls,
  * including error code and detailed error message.
  *
  * @author OpenHitls Team

@@ -189,7 +189,6 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_Composite(JNIEnv *env, jobject obj
 
     HybridSignature *native_sig = java_to_native_HybridSignature_alloc(env, signature);
     if (native_sig == NULL) {
-        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to convert HybridSignature");
         return;
     }
 

@@ -15,11 +15,10 @@ package org.openhitls.sdf4j.types;
 import java.util.Arrays;
 
 /**
- * 设备信息
  * Device Information (DEVICEINFO)
  *
- * <p>对应C结构体: DeviceInfo_st
- * <p>定义于GM/T 0018-2023 5.3节
+ * <p>Corresponds to C struct: DeviceInfo_st
+ * <p>Defined in GM/T 0018-2023 Section 5.3
  *
  * @author OpenHitls Team
  * @since 1.0.0
@@ -27,88 +26,81 @@ import java.util.Arrays;
 public class DeviceInfo {
 
     /**
-     * 设备生产厂商名称 (40字节)
      * Issuer name (40 bytes)
      */
     private String issuerName;
 
     /**
-     * 设备型号 (16字节)
      * Device name (16 bytes)
      */
     private String deviceName;
 
     /**
-     * 设备序列号 (16字节)
      * Device serial number (16 bytes)
      */
     private String deviceSerial;
 
     /**
-     * 设备版本号
      * Device version
      */
     private long deviceVersion;
 
     /**
-     * 设备支持的接口规范版本号
      * Standard version supported by device
      */
     private long standardVersion;
 
     /**
-     * 设备支持的非对称算法能力 (2个元素)
      * Asymmetric algorithm abilities (2 elements)
      */
     private long[] asymAlgAbility;
 
     /**
-     * 设备支持的对称算法能力
      * Symmetric algorithm ability
      */
     private long symAlgAbility;
 
     /**
-     * 设备支持的杂凑算法能力
      * Hash algorithm ability
      */
     private long hashAlgAbility;
 
     /**
-     * 设备数据缓冲区大小
      * Device buffer size
      */
     private long bufferSize;
 
     /**
-     * 默认构造函数
+     * Default constructor.
      */
     public DeviceInfo() {
-        this.asymAlgAbility = new long[2];
     }
 
     /**
-     * 完整构造函数
+     * Parameterized constructor.
      *
-     * @param issuerName      厂商名称
-     * @param deviceName      设备型号
-     * @param deviceSerial    设备序列号
-     * @param deviceVersion   设备版本
-     * @param standardVersion 标准版本
-     * @param asymAlgAbility  非对称算法能力
-     * @param symAlgAbility   对称算法能力
-     * @param hashAlgAbility  杂凑算法能力
-     * @param bufferSize      缓冲区大小
+     * @param issuerName      issuer name
+     * @param deviceName      device name
+     * @param deviceSerial    device serial number
+     * @param deviceVersion   device version
+     * @param standardVersion standard version
+     * @param asymAlgAbility  asymmetric algorithm abilities
+     * @param symAlgAbility   symmetric algorithm ability
+     * @param hashAlgAbility  hash algorithm ability
+     * @param bufferSize      buffer size
      */
     public DeviceInfo(String issuerName, String deviceName, String deviceSerial,
                       long deviceVersion, long standardVersion, long[] asymAlgAbility,
                       long symAlgAbility, long hashAlgAbility, long bufferSize) {
+        if (issuerName == null || deviceName == null || deviceSerial == null || asymAlgAbility == null) {
+            throw new IllegalArgumentException("null input");
+        }
         this.issuerName = issuerName;
         this.deviceName = deviceName;
         this.deviceSerial = deviceSerial;
         this.deviceVersion = deviceVersion;
         this.standardVersion = standardVersion;
-        this.asymAlgAbility = asymAlgAbility != null ? Arrays.copyOf(asymAlgAbility, 2) : new long[2];
+        this.asymAlgAbility = asymAlgAbility;
         this.symAlgAbility = symAlgAbility;
         this.hashAlgAbility = hashAlgAbility;
         this.bufferSize = bufferSize;
@@ -158,12 +150,18 @@ public class DeviceInfo {
         this.standardVersion = standardVersion;
     }
 
+    /**
+     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     */
     public long[] getAsymAlgAbility() {
-        return asymAlgAbility != null ? Arrays.copyOf(asymAlgAbility, asymAlgAbility.length) : null;
+        return asymAlgAbility;
     }
 
     public void setAsymAlgAbility(long[] asymAlgAbility) {
-        this.asymAlgAbility = asymAlgAbility != null ? Arrays.copyOf(asymAlgAbility, 2) : new long[2];
+        if (asymAlgAbility == null) {
+            throw new IllegalArgumentException("asymAlgAbility cannot be null");
+        }
+        this.asymAlgAbility = asymAlgAbility;
     }
 
     public long getSymAlgAbility() {

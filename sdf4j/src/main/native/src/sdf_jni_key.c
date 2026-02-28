@@ -50,7 +50,6 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_RSA(JNIEnv *env, jobject ob
     LONG ret = g_sdf_functions.SDF_ExportEncPublicKey_RSA((HANDLE)sessionHandle,
                                                           keyIndex, &publicKey);
 
-    
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to handle key operation");
         return NULL;
@@ -67,9 +66,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportSignPublicKey_ECC(JNIEnv *env, jobject o
         return NULL;
     }
 
-    ECCrefPublicKey publicKey;
-    memset(&publicKey, 0, sizeof(publicKey));
-
+    ECCrefPublicKey publicKey = {0};
     LONG ret = g_sdf_functions.SDF_ExportSignPublicKey_ECC((HANDLE)sessionHandle,
                                                            keyIndex, &publicKey);
 
@@ -89,9 +86,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExportEncPublicKey_ECC(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    ECCrefPublicKey publicKey;
-    memset(&publicKey, 0, sizeof(publicKey));
-
+    ECCrefPublicKey publicKey = {0};
     LONG ret = g_sdf_functions.SDF_ExportEncPublicKey_ECC((HANDLE)sessionHandle,
                                                           keyIndex, &publicKey);
 

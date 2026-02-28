@@ -177,7 +177,17 @@ public class DeviceAndSessionManageTest {
         assertNotNull("设备信息不应为空", info);
 
         assertNotNull("厂商名称不应为空", info.getIssuerName());
+        assertNotEquals("厂商名称长度不应为0", 0, info.getIssuerName().length());
         assertNotNull("设备名称不应为空", info.getDeviceName());
+        assertNotEquals("设备名称长度不应为0", 0, info.getDeviceName().length());
+        assertNotNull("设备序列号不应为空", info.getDeviceSerial());
+        assertNotEquals("设备序列号长度不应为0", 0, info.getDeviceSerial().length());
+        assertNotEquals("设备版本不应为空", 0, info.getDeviceVersion());
+        assertNotEquals("标准版本不应为空", 0, info.getStandardVersion());
+        assertNotNull("非对称算法能力不应为空", info.getAsymAlgAbility());
+        assertNotEquals("对称算法能力不应为0", 0, info.getSymAlgAbility());
+        assertNotEquals("哈希算法能力不应为0", 0, info.getHashAlgAbility());
+        assertNotEquals("缓冲区大小不应为0", 0, info.getBufferSize());
     }
 
     /**

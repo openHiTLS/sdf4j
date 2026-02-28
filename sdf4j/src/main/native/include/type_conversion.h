@@ -165,7 +165,7 @@ jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
  * @param tmp_pub_key 临时公钥
  * @return KeyAgreementResult对象
  */
-jobject native_to_java_KeyAgreementResult (JNIEnv *env, HANDLE agreement_handle,
+jobject native_to_java_KeyAgreementResult(JNIEnv *env, HANDLE agreement_handle,
                                     const ECCrefPublicKey *pub_key,
                                     const ECCrefPublicKey *tmp_pub_key);
 
