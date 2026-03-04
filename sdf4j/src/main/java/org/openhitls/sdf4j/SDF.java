@@ -49,6 +49,14 @@ import org.openhitls.sdf4j.types.*;
  */
 public class SDF {
 
+    /**
+     * 构造SDF实例。
+     * Constructs a new SDF instance.
+     */
+    public SDF() {
+        // Default constructor
+    }
+
     static {
         // 加载本地库
         NativeLibraryLoader.loadLibrary();

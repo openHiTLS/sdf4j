@@ -69,10 +69,21 @@ public class ECCPublicKey {
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Get key bit length.
+     *
+     * @return key bit length (e.g., 256 for SM2)
+     */
     public int getBits() {
         return bits;
     }
 
+    /**
+     * Set key bit length.
+     *
+     * @param bits key bit length
+     * @throws IllegalArgumentException if bits is not positive
+     */
     public void setBits(int bits) {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
@@ -81,12 +92,22 @@ public class ECCPublicKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get X coordinate of the elliptic curve point.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return X coordinate byte array
      */
     public byte[] getX() {
         return x;
     }
 
+    /**
+     * Set X coordinate.
+     *
+     * @param x X coordinate byte array
+     * @throws IllegalArgumentException if x is null
+     */
     public void setX(byte[] x) {
         if (x == null) {
             throw new IllegalArgumentException("X coordinate cannot be null");
@@ -95,12 +116,22 @@ public class ECCPublicKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get Y coordinate of the elliptic curve point.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return Y coordinate byte array
      */
     public byte[] getY() {
         return y;
     }
 
+    /**
+     * Set Y coordinate.
+     *
+     * @param y Y coordinate byte array
+     * @throws IllegalArgumentException if y is null
+     */
     public void setY(byte[] y) {
         if (y == null) {
             throw new IllegalArgumentException("Y coordinate cannot be null");

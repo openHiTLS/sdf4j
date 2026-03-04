@@ -84,12 +84,22 @@ public class ECCCipher {
     // ========================================================================
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get X coordinate.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return X coordinate byte array
      */
     public byte[] getX() {
         return x;
     }
 
+    /**
+     * Set X coordinate.
+     *
+     * @param x X coordinate byte array
+     * @throws IllegalArgumentException if x is null
+     */
     public void setX(byte[] x) {
         if (x == null) {
             throw new IllegalArgumentException("X coordinate cannot be null");
@@ -98,12 +108,22 @@ public class ECCCipher {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get Y coordinate.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return Y coordinate byte array
      */
     public byte[] getY() {
         return y;
     }
 
+    /**
+     * Set Y coordinate.
+     *
+     * @param y Y coordinate byte array
+     * @throws IllegalArgumentException if y is null
+     */
     public void setY(byte[] y) {
         if (y == null) {
             throw new IllegalArgumentException("Y coordinate cannot be null");
@@ -112,12 +132,22 @@ public class ECCCipher {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get hash value M.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return hash value M byte array
      */
     public byte[] getM() {
         return m;
     }
 
+    /**
+     * Set hash value M.
+     *
+     * @param m hash value M byte array
+     * @throws IllegalArgumentException if m is null
+     */
     public void setM(byte[] m) {
         if (m == null) {
             throw new IllegalArgumentException("Hash value M cannot be null");
@@ -126,12 +156,22 @@ public class ECCCipher {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get ciphertext data C.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return ciphertext byte array
      */
     public byte[] getC() {
         return c;
     }
 
+    /**
+     * Set ciphertext data C.
+     *
+     * @param c ciphertext byte array
+     * @throws IllegalArgumentException if c is null or length is inconsistent with L
+     */
     public void setC(byte[] c) {
         if (c == null || this.l > c.length) {
             throw new IllegalArgumentException("cipher value is invalid");

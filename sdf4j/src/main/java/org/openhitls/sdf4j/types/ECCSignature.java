@@ -60,12 +60,22 @@ public class ECCSignature {
     // ========================================================================
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get signature r value.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return signature r component byte array
      */
     public byte[] getR() {
         return r;
     }
 
+    /**
+     * Set signature r value.
+     *
+     * @param r signature r component byte array
+     * @throws IllegalArgumentException if r is null
+     */
     public void setR(byte[] r) {
         if (r == null) {
             throw new IllegalArgumentException("Signature r cannot be null");
@@ -74,12 +84,22 @@ public class ECCSignature {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get signature s value.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return signature s component byte array
      */
     public byte[] getS() {
         return s;
     }
 
+    /**
+     * Set signature s value.
+     *
+     * @param s signature s component byte array
+     * @throws IllegalArgumentException if s is null
+     */
     public void setS(byte[] s) {
         if (s == null) {
             throw new IllegalArgumentException("Signature s cannot be null");

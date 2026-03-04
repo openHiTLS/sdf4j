@@ -69,10 +69,21 @@ public class RSAPublicKey {
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Get modulus bit length.
+     *
+     * @return modulus bit length (e.g., 2048)
+     */
     public int getBits() {
         return bits;
     }
 
+    /**
+     * Set modulus bit length.
+     *
+     * @param bits modulus bit length
+     * @throws IllegalArgumentException if bits is not positive
+     */
     public void setBits(int bits) {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
@@ -81,12 +92,22 @@ public class RSAPublicKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get modulus m.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return modulus byte array
      */
     public byte[] getM() {
         return m;
     }
 
+    /**
+     * Set modulus m.
+     *
+     * @param m modulus byte array
+     * @throws IllegalArgumentException if m is null
+     */
     public void setM(byte[] m) {
         if (m == null) {
             throw new IllegalArgumentException("Modulus cannot be null");
@@ -95,12 +116,22 @@ public class RSAPublicKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get public exponent e.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return public exponent byte array
      */
     public byte[] getE() {
         return e;
     }
 
+    /**
+     * Set public exponent e.
+     *
+     * @param e public exponent byte array
+     * @throws IllegalArgumentException if e is null
+     */
     public void setE(byte[] e) {
         if (e == null) {
             throw new IllegalArgumentException("Exponent cannot be null");

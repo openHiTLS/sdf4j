@@ -38,7 +38,7 @@
  *     <li>{@link org.openhitls.sdf4j.types.RSAPrivateKey} - RSA私钥（模数n、公钥指数e、私钥指数d）</li>
  * </ul>
  * <p>
- * RSA密钥支持最大2048位密钥长度。
+ * RSA密钥支持最大4096位密钥长度。
  * </p>
  *
  * <h3>ECC密钥类型 / ECC Key Types</h3>
@@ -52,7 +52,20 @@
  * ECC类型支持最大512位密钥长度，适用于SM2等国密算法。
  * </p>
  *
- * <h2>使用示例 / Usage Examples</h2>
+ * <h3>混合后量子类型 / Hybrid Post-Quantum Types</h3>
+ * <ul>
+ *     <li>{@link org.openhitls.sdf4j.types.HybridCipher} - Hybrid cipher combining PQC (ML-KEM) and classical (SM2) ciphertext</li>
+ *     <li>{@link org.openhitls.sdf4j.types.HybridSignature} - Composite signature combining PQC (ML-DSA) and classical (SM2) signatures</li>
+ * </ul>
+ *
+ * <h3>计算返回结果类型 / Operation Result Types</h3>
+ * <ul>
+ *     <li>{@link org.openhitls.sdf4j.types.KeyEncryptionResult} - RSA-based session key generation result (encrypted key + handle)</li>
+ *     <li>{@link org.openhitls.sdf4j.types.ECCKeyEncryptionResult} - ECC-based session key generation result (cipher + handle)</li>
+ *     <li>{@link org.openhitls.sdf4j.types.KeyAgreementResult} - Key agreement result (handle + public keys)</li>
+ * </ul>
+ *
+ * <h2>Usage Examples</h2>
  *
  * <h3>获取并显示设备信息</h3>
  * <pre>{@code

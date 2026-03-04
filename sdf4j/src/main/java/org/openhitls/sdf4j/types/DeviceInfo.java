@@ -51,7 +51,7 @@ public class DeviceInfo {
     private long standardVersion;
 
     /**
-     * Asymmetric algorithm abilities (2 elements)
+     * Asymmetric algorithm abilities
      */
     private long[] asymAlgAbility;
 
@@ -110,53 +110,113 @@ public class DeviceInfo {
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Get issuer name.
+     *
+     * @return issuer name
+     */
     public String getIssuerName() {
         return issuerName;
     }
 
+    /**
+     * Set issuer name.
+     *
+     * @param issuerName issuer name
+     */
     public void setIssuerName(String issuerName) {
         this.issuerName = issuerName;
     }
 
+    /**
+     * Get device name.
+     *
+     * @return device name
+     */
     public String getDeviceName() {
         return deviceName;
     }
 
+    /**
+     * Set device name.
+     *
+     * @param deviceName device name
+     */
     public void setDeviceName(String deviceName) {
         this.deviceName = deviceName;
     }
 
+    /**
+     * Get device serial number.
+     *
+     * @return device serial number
+     */
     public String getDeviceSerial() {
         return deviceSerial;
     }
 
+    /**
+     * Set device serial number.
+     *
+     * @param deviceSerial device serial number
+     */
     public void setDeviceSerial(String deviceSerial) {
         this.deviceSerial = deviceSerial;
     }
 
+    /**
+     * Get device version.
+     *
+     * @return device version number
+     */
     public long getDeviceVersion() {
         return deviceVersion;
     }
 
+    /**
+     * Set device version.
+     *
+     * @param deviceVersion device version number
+     */
     public void setDeviceVersion(long deviceVersion) {
         this.deviceVersion = deviceVersion;
     }
 
+    /**
+     * Get standard version supported by this device.
+     *
+     * @return standard version number
+     */
     public long getStandardVersion() {
         return standardVersion;
     }
 
+    /**
+     * Set standard version.
+     *
+     * @param standardVersion standard version number
+     */
     public void setStandardVersion(long standardVersion) {
         this.standardVersion = standardVersion;
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get asymmetric algorithm abilities.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return asymmetric algorithm ability flags
      */
     public long[] getAsymAlgAbility() {
         return asymAlgAbility;
     }
 
+    /**
+     * Set asymmetric algorithm abilities.
+     *
+     * @param asymAlgAbility asymmetric algorithm ability flags
+     * @throws IllegalArgumentException if asymAlgAbility is null
+     */
     public void setAsymAlgAbility(long[] asymAlgAbility) {
         if (asymAlgAbility == null) {
             throw new IllegalArgumentException("asymAlgAbility cannot be null");
@@ -164,26 +224,56 @@ public class DeviceInfo {
         this.asymAlgAbility = asymAlgAbility;
     }
 
+    /**
+     * Get symmetric algorithm ability flags.
+     *
+     * @return symmetric algorithm ability bitmask
+     */
     public long getSymAlgAbility() {
         return symAlgAbility;
     }
 
+    /**
+     * Set symmetric algorithm ability flags.
+     *
+     * @param symAlgAbility symmetric algorithm ability bitmask
+     */
     public void setSymAlgAbility(long symAlgAbility) {
         this.symAlgAbility = symAlgAbility;
     }
 
+    /**
+     * Get hash algorithm ability flags.
+     *
+     * @return hash algorithm ability bitmask
+     */
     public long getHashAlgAbility() {
         return hashAlgAbility;
     }
 
+    /**
+     * Set hash algorithm ability flags.
+     *
+     * @param hashAlgAbility hash algorithm ability bitmask
+     */
     public void setHashAlgAbility(long hashAlgAbility) {
         this.hashAlgAbility = hashAlgAbility;
     }
 
+    /**
+     * Get device buffer size.
+     *
+     * @return buffer size in bytes
+     */
     public long getBufferSize() {
         return bufferSize;
     }
 
+    /**
+     * Set device buffer size.
+     *
+     * @param bufferSize buffer size in bytes
+     */
     public void setBufferSize(long bufferSize) {
         this.bufferSize = bufferSize;
     }

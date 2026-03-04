@@ -31,6 +31,13 @@ import java.util.Properties;
  */
 public class NativeLibraryLoader {
 
+    /**
+     * 私有构造函数，防止实例化工具类。
+     */
+    private NativeLibraryLoader() {
+        // Utility class, do not instantiate
+    }
+
     private static final String SDF4J_LIBRARY_NAME = "sdf4j-jni";
     private static final String PROPERTIES_FILE = "sdf4j.properties";
 
@@ -39,7 +46,7 @@ public class NativeLibraryLoader {
 
     /**
      * 加载本地库
-     * 优先级: 系统属性 > 配置文件 > 环境变量
+     * 优先级: 系统属性 大于 配置文件 大于 环境变量
      *
      * @throws UnsatisfiedLinkError 如果加载失败
      */
