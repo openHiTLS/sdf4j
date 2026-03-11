@@ -10,11 +10,12 @@
  * See the Mulan PSL v2 for more details.
  */
 
-#include "type_conversion.h"
-#include "jni_cache.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include "type_conversion.h"
+#include "jni_cache.h"
+#include "sdf_types.h"
 
 /* ========================================================================
  * 异常处理
@@ -782,22 +783,22 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
     jobject cts_obj = (*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctS);
 
     ECCCipher *temp_cts = NULL;
-    jsize c_len = 0;
     if (cts_obj != NULL) {
         temp_cts = java_to_native_ECCCipher_alloc(env, cts_obj);
-        if (temp_cts != NULL) {
-            c_len = (jsize)temp_cts->L;
+        if (temp_cts == NULL) {
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "convert to ecc cipher failed");
+            return NULL;
         }
     }
 
-    size_t alloc_size = sizeof(HybridCipher) + c_len;
+    size_t alloc_size = sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN + HYBRIDENCref_MAX_LEN;
     HybridCipher *native_cipher = (HybridCipher*)calloc(1, alloc_size);
     if (native_cipher == NULL) {
         free(temp_cts);
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "calloc failed");
         return NULL;
     }
-
+    native_cipher->ct_m = (BYTE*)(native_cipher) + sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN;
     /* L1 */
     native_cipher->L1 = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
 
@@ -820,7 +821,7 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
 
     /* ct_s */
     if (temp_cts != NULL) {
-        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + c_len);
+        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + HYBRIDENCref_ECC_FIXED_LEN);
         free(temp_cts);
     }
 
@@ -865,11 +866,12 @@ HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_
     jint l_value = (*env)->GetIntField(env, java_sig, g_jni_cache.hybridSignature.l);
 
     /* Allocate memory for HybridSignature struct */
-    HybridSignature *native_sig = (HybridSignature*)calloc(1, sizeof(HybridSignature));
+    HybridSignature *native_sig = (HybridSignature*)calloc(1, sizeof(HybridSignature) + HYBRIDSIGref_MAX_LEN);
     if (native_sig == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "calloc failed");
         return NULL;
     }
+    native_sig->sig_m = (BYTE*)(native_sig) + sizeof(HybridSignature);
 
     /* Get ECC signature part */
     jobject ecc_sig_obj = (jobject)(*env)->GetObjectField(env, java_sig,

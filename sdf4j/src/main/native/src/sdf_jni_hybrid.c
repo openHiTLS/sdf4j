@@ -11,8 +11,8 @@
  */
 
 #include "sdf_jni_common.h"
+#include "sdf_types.h"
 
-#define HYBRIDENCref_ECC_MAX_LEN 141
 #define HYBRID_PUBKEY_MAX_BYTES 2660
 
 JNIEXPORT jbyteArray JNICALL JNI_SDF_ExportPublicKey_Hybrid(JNIEnv *env, jobject obj,
@@ -101,7 +101,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
         return NULL;
     }
 
-    HybridCipher *cipher = (HybridCipher*)malloc(sizeof(HybridCipher) + HYBRIDENCref_ECC_MAX_LEN);
+    HybridCipher *cipher = (HybridCipher*)malloc(sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN + 
+        HYBRIDENCref_MAX_LEN);
     if (cipher == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, publicKey, pub_key_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for cipher");
@@ -148,7 +149,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    HybridSignature *signature = (HybridSignature*)malloc(sizeof(HybridSignature));
+    HybridSignature *signature = (HybridSignature*)malloc(sizeof(HybridSignature) + HYBRIDSIGref_MAX_LEN);
     if (signature == NULL) {
         (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for signature");
