@@ -13,6 +13,7 @@
 package org.openhitls;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.openhitls.sdf4j.*;
@@ -26,7 +27,7 @@ import static org.junit.Assert.*;
 /**
  * SM2 数字签名与加密测试
  */
-public class SM2Example {
+public class SM2ExampleTest {
 
     private static final int ECC_KEY_BITS = 256;
 
@@ -36,9 +37,13 @@ public class SM2Example {
 
     @Before
     public void setUp() throws SDFException {
-        sdf = new SDF();
-        deviceHandle = sdf.SDF_OpenDevice();
-        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+        try {
+            sdf = new SDF();
+            deviceHandle = sdf.SDF_OpenDevice();
+            sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+        } catch (SDFException e) {
+            Assume.assumeNoException("Require configured sdf device", e);
+        }
     }
 
     @After

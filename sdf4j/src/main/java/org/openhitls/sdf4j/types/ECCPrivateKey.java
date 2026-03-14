@@ -62,10 +62,21 @@ public class ECCPrivateKey {
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Get key bit length.
+     *
+     * @return key bit length (e.g., 256 for SM2)
+     */
     public int getBits() {
         return bits;
     }
 
+    /**
+     * Set key bit length.
+     *
+     * @param bits key bit length
+     * @throws IllegalArgumentException if bits is not positive
+     */
     public void setBits(int bits) {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
@@ -74,12 +85,22 @@ public class ECCPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get private key value K.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return private key value byte array
      */
     public byte[] getK() {
         return k;
     }
 
+    /**
+     * Set private key value K.
+     *
+     * @param k private key value byte array
+     * @throws IllegalArgumentException if k is null
+     */
     public void setK(byte[] k) {
         if (k == null) {
             throw new IllegalArgumentException("Private key value cannot be null");

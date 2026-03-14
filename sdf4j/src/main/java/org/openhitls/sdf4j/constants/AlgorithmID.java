@@ -271,17 +271,64 @@ public final class AlgorithmID {
     public static final int SGD_SM3_HMAC = 0x00100001;
 
     /**
-     * 后量子算法id
+     * Post-quantum hybrid algorithm
      */
     public static final int SGD_HYBRID = 0x00000FFF;
 
+    /**
+     * Hybrid envelope: SM2 + ML-KEM-512
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with ML-KEM-512
+     * post-quantum key encapsulation mechanism.
+     */
     public static final int SGD_HYBRID_ENV_SM2_MLKEM_512 = 0x80000000;
+
+    /**
+     * Hybrid envelope: SM2 + ML-KEM-768
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with ML-KEM-768
+     * post-quantum key encapsulation mechanism.
+     */
     public static final int SGD_HYBRID_ENV_SM2_MLKEM_768 = 0x80000001;
+
+    /**
+     * Hybrid envelope: SM2 + ML-KEM-1024
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with ML-KEM-1024
+     * post-quantum key encapsulation mechanism.
+     */
     public static final int SGD_HYBRID_ENV_SM2_MLKEM_1024 = 0x80000002;
+
+    /**
+     * Hybrid envelope: SM2 + POLAR-LAC-LIGHT
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with POLAR-LAC-LIGHT
+     * lattice-based post-quantum key encapsulation mechanism.
+     */
     public static final int SGD_HYBRID_ENV_SM2_POLAR_LAC_LIGHT = 0x80000003;
 
+    /**
+     * Composite signature: ML-DSA-44 + SM2
+     *
+     * <p>Combines ML-DSA-44 (NIST security level 2) post-quantum digital
+     * signature with SM2 elliptic curve digital signature.
+     */
     public static final int SGD_COMPOSITE_MLDSA44_SM2 = 0x80000004;
+
+    /**
+     * Composite signature: ML-DSA-65 + SM2
+     *
+     * <p>Combines ML-DSA-65 (NIST security level 3) post-quantum digital
+     * signature with SM2 elliptic curve digital signature.
+     */
     public static final int SGD_COMPOSITE_MLDSA65_SM2 = 0x80000005;
+
+    /**
+     * Composite signature: ML-DSA-87 + SM2
+     *
+     * <p>Combines ML-DSA-87 (NIST security level 5) post-quantum digital
+     * signature with SM2 elliptic curve digital signature.
+     */
     public static final int SGD_COMPOSITE_MLDSA87_SM2 = 0x80000006;
 
     // ========================================================================

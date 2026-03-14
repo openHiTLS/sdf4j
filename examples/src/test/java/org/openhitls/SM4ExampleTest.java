@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
 /**
  * SM4 对称加密测试
  */
-public class SM4Example {
+public class SM4ExampleTest {
 
     private static int KEY_INDEX = 4;
     private static String KEY_PASSWORD = "123abc!@";
@@ -41,7 +41,7 @@ public class SM4Example {
 
     public static void loadConfig() {
         Properties testConfig = new Properties();
-        try (InputStream is = SM4Example.class.getClassLoader()
+        try (InputStream is = SM4ExampleTest.class.getClassLoader()
                 .getResourceAsStream("test-config.properties")) {
             if (is != null) {
                 testConfig.load(is);
@@ -57,14 +57,18 @@ public class SM4Example {
 
     @Before
     public void setUp() throws SDFException {
-        sdf = new SDF();
-        deviceHandle = sdf.SDF_OpenDevice();
-        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
-        loadConfig();
-        // 获取KEK访问权限并生成密钥
-        sdf.SDF_GetKEKAccessRight(sessionHandle, KEY_INDEX, KEY_PASSWORD);
-        KeyEncryptionResult result = sdf.SDF_GenerateKeyWithKEK(sessionHandle, SM4_KEY_BITS, AlgorithmID.SGD_SM4_ECB, KEY_INDEX);
-        ecbKeyHandle = result.getKeyHandle();
+        try {
+            sdf = new SDF();
+            deviceHandle = sdf.SDF_OpenDevice();
+            sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+            loadConfig();
+            // 获取KEK访问权限并生成密钥
+            sdf.SDF_GetKEKAccessRight(sessionHandle, KEY_INDEX, KEY_PASSWORD);
+            KeyEncryptionResult result = sdf.SDF_GenerateKeyWithKEK(sessionHandle, SM4_KEY_BITS, AlgorithmID.SGD_SM4_ECB, KEY_INDEX);
+            ecbKeyHandle = result.getKeyHandle();
+        } catch (SDFException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     @After

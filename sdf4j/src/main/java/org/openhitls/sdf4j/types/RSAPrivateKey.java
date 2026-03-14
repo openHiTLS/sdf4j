@@ -98,10 +98,21 @@ public class RSAPrivateKey {
     // Getters and Setters
     // ========================================================================
 
+    /**
+     * Get modulus bit length.
+     *
+     * @return modulus bit length (e.g., 2048)
+     */
     public int getBits() {
         return bits;
     }
 
+    /**
+     * Set modulus bit length.
+     *
+     * @param bits modulus bit length
+     * @throws IllegalArgumentException if bits is not positive
+     */
     public void setBits(int bits) {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
@@ -110,12 +121,22 @@ public class RSAPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get modulus m.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return modulus byte array
      */
     public byte[] getM() {
         return m;
     }
 
+    /**
+     * Set modulus m.
+     *
+     * @param m modulus byte array
+     * @throws IllegalArgumentException if m is null
+     */
     public void setM(byte[] m) {
         if (m == null) {
             throw new IllegalArgumentException("Modulus cannot be null");
@@ -124,12 +145,22 @@ public class RSAPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get public exponent e.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return public exponent byte array
      */
     public byte[] getE() {
         return e;
     }
 
+    /**
+     * Set public exponent e.
+     *
+     * @param e public exponent byte array
+     * @throws IllegalArgumentException if e is null
+     */
     public void setE(byte[] e) {
         if (e == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
@@ -138,12 +169,22 @@ public class RSAPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get private exponent d.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return private exponent byte array
      */
     public byte[] getD() {
         return d;
     }
 
+    /**
+     * Set private exponent d.
+     *
+     * @param d private exponent byte array
+     * @throws IllegalArgumentException if d is null
+     */
     public void setD(byte[] d) {
         if (d == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
@@ -152,12 +193,22 @@ public class RSAPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get prime factors [p, q].
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return prime factors array, where index 0 is p and index 1 is q
      */
     public byte[][] getPrime() {
         return prime;
     }
 
+    /**
+     * Set prime factors [p, q].
+     *
+     * @param prime prime factors array
+     * @throws IllegalArgumentException if prime is null
+     */
     public void setPrime(byte[][] prime) {
         if (prime == null) {
             throw new IllegalArgumentException("Prime cannot be null");
@@ -166,23 +217,41 @@ public class RSAPrivateKey {
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get CRT exponents.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return CRT exponents array, where index 0 is dp and index 1 is dq
      */
     public byte[][] getPexp() {
         return pexp;
     }
 
+    /**
+     * Set CRT exponents.
+     *
+     * @param pexp CRT exponents array
+     */
     public void setPexp(byte[][] pexp) {
         this.pexp = pexp;
     }
 
     /**
-     * Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * Get CRT coefficient.
+     *
+     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     *
+     * @return CRT coefficient byte array
      */
     public byte[] getCoef() {
         return coef;
     }
 
+    /**
+     * Set CRT coefficient.
+     *
+     * @param coef CRT coefficient byte array
+     */
     public void setCoef(byte[] coef) {
         this.coef = coef;
     }
