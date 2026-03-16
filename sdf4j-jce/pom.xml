@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.openhitls</groupId>
+        <artifactId>sdf4j-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>sdf4j-jce</artifactId>
+    <packaging>jar</packaging>
+
+    <name>SDF4J JCE Provider</name>
+    <description>openHiTLS SDF4J JCE Provider - Java Cryptography Extension Provider based on GM/T 0018-2023 SDF</description>
+
+    <dependencies>
+        <!-- JUnit for testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- CMake构建JNI库 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>cmake-build-jce-jni</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>bash</executable>
+                            <workingDirectory>${project.basedir}/src/main/native</workingDirectory>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                                    mkdir -p build &amp;&amp; \
+                                    cd build &amp;&amp; \
+                                    cmake .. \
+                                        -DCMAKE_BUILD_TYPE=${cmake.build.type} \
+                                        -DSDF4J_NATIVE_DIR=${project.basedir}/../sdf4j/src/main/native &amp;&amp; \
+                                    cmake --build . --config ${cmake.build.type} -j
+                                </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 验证JNI库并复制到resources目录 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-jce-jni-library</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="========================================="/>
+                                <echo message="Verifying JCE JNI library..."/>
+                                <echo message="========================================="/>
+                                <condition property="jce.jni.lib.exists">
+                                    <available file="${project.basedir}/target/native/libsdf4j-jce.so"/>
+                                </condition>
+                                <fail unless="jce.jni.lib.exists"
+                                      message="ERROR: JCE JNI library not found at ${project.basedir}/target/native/libsdf4j-jce.so. CMake build may have failed."/>
+                                <echo message="JCE JNI library verified successfully"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jce-jni-to-jar</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="========================================="/>
+                                <echo message="Packaging JCE JNI library into JAR..."/>
+                                <echo message="========================================="/>
+
+                                <!-- 检测当前平台 -->
+                                <condition property="platform" value="linux-x86_64">
+                                    <and>
+                                        <os family="unix"/>
+                                        <not><os family="mac"/></not>
+                                        <or>
+                                            <os arch="amd64"/>
+                                            <os arch="x86_64"/>
+                                            <os arch="x64"/>
+                                        </or>
+                                    </and>
+                                </condition>
+
+                                <condition property="platform" value="linux-aarch64">
+                                    <and>
+                                        <os family="unix"/>
+                                        <not><os family="mac"/></not>
+                                        <or>
+                                            <os arch="aarch64"/>
+                                            <os arch="arm64"/>
+                                        </or>
+                                    </and>
+                                </condition>
+
+                                <property name="platform" value="linux-x86_64"/>
+
+                                <mkdir dir="${project.build.outputDirectory}/native/${platform}"/>
+                                <copy file="${project.basedir}/target/native/libsdf4j-jce.so"
+                                      tofile="${project.build.outputDirectory}/native/${platform}/libsdf4j-jce.so"
+                                      failonerror="true"/>
+
+                                <echo message="JCE JNI library copied to: native/${platform}/libsdf4j-jce.so"/>
+                                <echo message="========================================="/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 测试插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.build.directory}/native</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- JAR打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

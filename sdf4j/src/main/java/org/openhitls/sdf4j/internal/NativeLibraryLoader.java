@@ -206,6 +206,14 @@ public class NativeLibraryLoader {
             return getLibraryFileName(libraryName);
         }
 
+        // 检查 libraryDir 是否已经是一个完整的库文件路径
+        // (以 .so, .dll, .dylib 结尾)
+        if (libraryDir.endsWith(".so") || libraryDir.endsWith(".dll") ||
+            libraryDir.endsWith(".dylib")) {
+            // libraryDir 已经是完整的库文件路径，直接返回
+            return libraryDir;
+        }
+
         // 指定了目录，构造完整路径
         String separator = File.separator;
         String libraryFileName = getLibraryFileName(libraryName);
