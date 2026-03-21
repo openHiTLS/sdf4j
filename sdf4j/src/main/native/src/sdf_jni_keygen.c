@@ -145,13 +145,11 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_RSA(JNIEnv *env, jobject obj, j
         return 0;
     }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
-    BYTE *key_buf = (BYTE*)malloc(key_len);
+    BYTE *key_buf = (BYTE*)(*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return 0;
     }
-
-    (*env)->GetByteArrayRegion(env, encryptedKey, 0, key_len, (jbyte*)key_buf);
 
     HANDLE key_handle = 0;
 
@@ -163,7 +161,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_RSA(JNIEnv *env, jobject obj, j
         &key_handle
     );
 
-    free(key_buf);
+    (*env)->ReleaseByteArrayElements(env, encryptedKey, (jbyte*)key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to import key");
@@ -342,7 +340,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobj
     }
     /* 转换sponsorID */
     jsize sponsor_id_len = (*env)->GetArrayLength(env, sponsorID);
-    jbyte *sponsor_id_buf = (*env)->GetPrimitiveArrayCritical(env, sponsorID, NULL);
+    jbyte *sponsor_id_buf = (*env)->GetByteArrayElements(env, sponsorID, NULL);
     if (sponsor_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
@@ -365,7 +363,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobj
         &agreement_handle
     );
 
-    (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, sponsorID, sponsor_id_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to generate agreement data");
@@ -405,7 +403,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
 
     /* 转换responseID */
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
-    jbyte *response_id_buf = (*env)->GetPrimitiveArrayCritical(env, responseID, NULL);
+    jbyte *response_id_buf = (*env)->GetByteArrayElements(env, responseID, NULL);
     if (response_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return 0;
@@ -423,7 +421,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
         &key_handle
     );
 
-    (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, responseID, response_id_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to generate key");
@@ -462,7 +460,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
 
     /* 转换responseID */
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
-    jbyte *response_id_buf = (*env)->GetPrimitiveArrayCritical(env, responseID, NULL);
+    jbyte *response_id_buf = (*env)->GetByteArrayElements(env, responseID, NULL);
     if (response_id_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
@@ -470,9 +468,9 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
 
     /* 转换sponsorID */
     jsize sponsor_id_len = (*env)->GetArrayLength(env, sponsorID);
-    jbyte *sponsor_id_buf = (*env)->GetPrimitiveArrayCritical(env, sponsorID, NULL);
+    jbyte *sponsor_id_buf = (*env)->GetByteArrayElements(env, sponsorID, NULL);
     if (sponsor_id_buf == NULL) {
-        (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, responseID, response_id_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
@@ -498,8 +496,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
         &key_handle
     );
 
-    (*env)->ReleasePrimitiveArrayCritical(env, responseID, response_id_buf, JNI_ABORT);
-    (*env)->ReleasePrimitiveArrayCritical(env, sponsorID, sponsor_id_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, responseID, response_id_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, sponsorID, sponsor_id_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to generate key");
@@ -589,7 +587,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong
         return 0;
     }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
-    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, encryptedKey, NULL);
+    jbyte *key_buf = (*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return 0;
@@ -606,7 +604,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong
         &key_handle
     );
 
-    (*env)->ReleasePrimitiveArrayCritical(env, encryptedKey, key_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, encryptedKey, key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to import key");

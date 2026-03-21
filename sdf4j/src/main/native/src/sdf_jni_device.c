@@ -137,19 +137,19 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
     }
     jbyteArray result = (*env)->NewByteArray(env, length);
     if (result == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to allocate random array"); /* SDR_NOBUFFER */
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to allocate random buffer");
         return NULL;
     }
 
-    jbyte *random = (*env)->GetPrimitiveArrayCritical(env, result, NULL);
+    jbyte *random = (*env)->GetByteArrayElements(env, result, NULL);
     if (random == NULL) {
         (*env)->DeleteLocalRef(env, result);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to get random array buffer"); /* SDR_NOBUFFER */
+        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
         return NULL;
     }
 
     LONG ret = g_sdf_functions.SDF_GenerateRandom((HANDLE)sessionHandle, length, (BYTE*)random);
-    (*env)->ReleasePrimitiveArrayCritical(env, result, random, 0);
+    (*env)->ReleaseByteArrayElements(env, result, random, ret == SDR_OK ? 0 : JNI_ABORT);
 
     if (ret != SDR_OK) {
         (*env)->DeleteLocalRef(env, result);

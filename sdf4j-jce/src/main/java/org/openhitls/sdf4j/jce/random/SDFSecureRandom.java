@@ -22,7 +22,7 @@ import org.openhitls.sdf4j.jce.SDFJceNative;
 public final class SDFSecureRandom extends SecureRandomSpi {
 
     private static final long serialVersionUID = 1L;
-    private final long sessionHandle;
+    private long sessionHandle;
 
     public SDFSecureRandom() {
         this.sessionHandle = SDFJceNative.openSession();
@@ -42,6 +42,9 @@ public final class SDFSecureRandom extends SecureRandomSpi {
             return;
         }
         byte[] random = SDFJceNative.generateRandom(sessionHandle, bytes.length);
+        if (random == null) {
+            throw new IllegalStateException("Failed to generate random bytes: native call returned null");
+        }
         System.arraycopy(random, 0, bytes, 0, bytes.length);
     }
 
@@ -50,7 +53,11 @@ public final class SDFSecureRandom extends SecureRandomSpi {
         if (numBytes <= 0) {
             return new byte[0];
         }
-        return SDFJceNative.generateRandom(sessionHandle, numBytes);
+        byte[] seed = SDFJceNative.generateRandom(sessionHandle, numBytes);
+        if (seed == null) {
+            throw new IllegalStateException("Failed to generate seed: native call returned null");
+        }
+        return seed;
     }
 
     @Override

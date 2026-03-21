@@ -95,16 +95,16 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
 
     /* 获取公钥数据和长度 */
     ULONG pub_key_len = (ULONG)(*env)->GetArrayLength(env, publicKey);
-    jbyte *pub_key_buf = (*env)->GetPrimitiveArrayCritical(env, publicKey, NULL);
+    jbyte *pub_key_buf = (*env)->GetByteArrayElements(env, publicKey, NULL);
     if (pub_key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "GetPrimitiveArrayCritical failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
     HybridCipher *cipher = (HybridCipher*)malloc(sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN + 
         HYBRIDENCref_MAX_LEN);
     if (cipher == NULL) {
-        (*env)->ReleasePrimitiveArrayCritical(env, publicKey, pub_key_buf, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, publicKey, pub_key_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for cipher");
         return NULL;
     }
@@ -115,7 +115,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
         (BYTE*)pub_key_buf, &pub_key_len,
         cipher, &key_handle);
 
-    (*env)->ReleasePrimitiveArrayCritical(env, publicKey, pub_key_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, publicKey, pub_key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         free(cipher);
@@ -143,15 +143,15 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject ob
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
-    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+    jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "GetPrimitiveArrayCritical failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
     HybridSignature *signature = (HybridSignature*)malloc(sizeof(HybridSignature) + HYBRIDSIGref_MAX_LEN);
     if (signature == NULL) {
-        (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for signature");
         return NULL;
     }
@@ -160,7 +160,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject ob
         (HANDLE)sessionHandle, keyIndex,
         (BYTE*)data_buf, data_len, signature);
 
-    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         free(signature);
@@ -195,20 +195,20 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_Composite(JNIEnv *env, jobject obj
 
     /* 获取公钥数据 */
     ULONG pub_key_len = (ULONG)(*env)->GetArrayLength(env, publicKey);
-    jbyte *pub_key_buf = (*env)->GetPrimitiveArrayCritical(env, publicKey, NULL);
+    jbyte *pub_key_buf = (*env)->GetByteArrayElements(env, publicKey, NULL);
     if (pub_key_buf == NULL) {
         free(native_sig);
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "GetPrimitiveArrayCritical failed for publicKey");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for publicKey");
         return;
     }
 
     /* 获取待验签数据 */
     ULONG data_len = (ULONG)(*env)->GetArrayLength(env, data);
-    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+    jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
         free(native_sig);
-        (*env)->ReleasePrimitiveArrayCritical(env, publicKey, pub_key_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "GetPrimitiveArrayCritical failed for data");
+        (*env)->ReleaseByteArrayElements(env, publicKey, pub_key_buf, JNI_ABORT);
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed for data");
         return;
     }
 
@@ -217,8 +217,8 @@ JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_Composite(JNIEnv *env, jobject obj
         (BYTE*)pub_key_buf, &pub_key_len,
         (BYTE*)data_buf, data_len, native_sig);
 
-    (*env)->ReleasePrimitiveArrayCritical(env, publicKey, pub_key_buf, JNI_ABORT);
-    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, publicKey, pub_key_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
     free(native_sig);
 
     if (ret != SDR_OK) {

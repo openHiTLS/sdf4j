@@ -11,6 +11,7 @@
  */
 
 package org.openhitls.sdf4j.jce.keygen;
+import java.util.Arrays;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidParameterException;
@@ -27,7 +28,7 @@ import org.openhitls.sdf4j.jce.SDFJceNative;
  */
 public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private SecureRandom random;
 
     public SM2KeyPairGenerator() {
@@ -59,9 +60,14 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
         byte[] publicKeyX = new byte[32];
         byte[] publicKeyY = new byte[32];
 
-        System.arraycopy(keyData, 0, privateKeyBytes, 0, 32);
-        System.arraycopy(keyData, 32, publicKeyX, 0, 32);
-        System.arraycopy(keyData, 64, publicKeyY, 0, 32);
+        try {
+            System.arraycopy(keyData, 0, privateKeyBytes, 0, 32);
+            System.arraycopy(keyData, 32, publicKeyX, 0, 32);
+            System.arraycopy(keyData, 64, publicKeyY, 0, 32);
+        } finally {
+            // Zero out the raw key material immediately after copying
+            Arrays.fill(keyData, (byte) 0);
+        }
 
         SM2PrivateKey privateKey = new SM2PrivateKey(privateKeyBytes);
         SM2PublicKey publicKey = new SM2PublicKey(publicKeyX, publicKeyY);

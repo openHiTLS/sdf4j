@@ -35,7 +35,7 @@ import org.openhitls.sdf4j.jce.SDFJceNative;
  */
 public final class SM2Cipher extends CipherSpi {
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private SM2PublicKey publicKey;
     private SM2PrivateKey privateKey;
     private int opmode;
@@ -47,6 +47,14 @@ public final class SM2Cipher extends CipherSpi {
             throw new IllegalStateException("Failed to open SDF session");
         }
         this.buffer = new ByteArrayOutputStream();
+    }
+
+    private void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
+        }
     }
 
     @Override
@@ -126,6 +134,9 @@ public final class SM2Cipher extends CipherSpi {
     @Override
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
         if (input != null && inputLen > 0) {
+            if (inputOffset < 0 || inputLen < 0 || inputOffset + inputLen > input.length) {
+                throw new IllegalArgumentException("Invalid inputOffset/inputLen");
+            }
             buffer.write(input, inputOffset, inputLen);
         }
         return new byte[0];
@@ -141,6 +152,9 @@ public final class SM2Cipher extends CipherSpi {
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
         if (input != null && inputLen > 0) {
+            if (inputOffset < 0 || inputLen < 0 || inputOffset + inputLen > input.length) {
+                throw new IllegalArgumentException("Invalid inputOffset/inputLen");
+            }
             buffer.write(input, inputOffset, inputLen);
         }
 
@@ -204,9 +218,7 @@ public final class SM2Cipher extends CipherSpi {
     @Override
     protected void finalize() throws Throwable {
         try {
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }

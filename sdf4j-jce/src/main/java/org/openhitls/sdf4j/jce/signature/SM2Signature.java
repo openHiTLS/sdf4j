@@ -40,7 +40,7 @@ import org.openhitls.sdf4j.jce.util.DERCodec;
  */
 public final class SM2Signature extends SignatureSpi {
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private SM2PrivateKey privateKey;
     private SM2PublicKey publicKey;
     private ByteArrayOutputStream data;
@@ -53,6 +53,13 @@ public final class SM2Signature extends SignatureSpi {
             throw new IllegalStateException("Failed to open SDF session");
         }
         this.data = new ByteArrayOutputStream();
+    }
+    private void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
+        }
     }
 
     @Override
@@ -107,7 +114,6 @@ public final class SM2Signature extends SignatureSpi {
 
         byte[] dataBytes = data.toByteArray();
         data.reset();
-
         // Calculate Z value according to GM/T 0009-2012
         byte[] z = SM2Util.calculateZ(sessionHandle, userId, publicKey.getX(), publicKey.getY());
 
@@ -116,7 +122,6 @@ public final class SM2Signature extends SignatureSpi {
 
         // Sign the hash e (returns r||s format, 64 bytes)
         byte[] rawSignature = SDFJceNative.sm2Sign(sessionHandle, privateKey.getKeyBytes(), e);
-
         // Convert to DER format for compatibility with Bouncy Castle and other providers
         return DERCodec.rawToDer(rawSignature);
     }
@@ -174,9 +179,7 @@ public final class SM2Signature extends SignatureSpi {
     @Override
     protected void finalize() throws Throwable {
         try {
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }

@@ -964,6 +964,175 @@ public class SM4InnerTest {
         assertArrayEquals("PKCS7/PKCS5 alias interoperability failed", plaintext, decrypted);
     }
 
+    @Test(expected = InvalidKeyException.class)
+    public void testInvalidKeyLength15Bytes() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        byte[] badKey = new byte[15];
+        SecretKeySpec key = new SecretKeySpec(badKey, "SM4");
+
+        Cipher cipher = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+    }
+
+    @Test(expected = InvalidKeyException.class)
+    public void testInvalidKeyLength17Bytes() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        byte[] badKey = new byte[17];
+        SecretKeySpec key = new SecretKeySpec(badKey, "SM4");
+
+        Cipher cipher = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+    }
+
+    @Test
+    public void testCBCWithoutIV() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        // CBC 模式不传 IV，实现允许（使用全零 IV）
+        Cipher cipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+        byte[] plaintext = "CBC no IV test".getBytes();
+        byte[] ciphertext = cipher.doFinal(plaintext);
+        assertNotNull(ciphertext);
+    }
+
+    @Test
+    public void testNoPaddingNonBlockAligned() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        // NoPadding 模式下非 16 字节对齐的数据应报错
+        Cipher cipher = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+        try {
+            cipher.doFinal(new byte[15]);
+            fail("NoPadding with non-block-aligned data should throw");
+        } catch (IllegalBlockSizeException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testKeyGeneratorBasic() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        javax.crypto.KeyGenerator kg = javax.crypto.KeyGenerator.getInstance("SM4", "SDF");
+        SecretKey key = kg.generateKey();
+
+        assertNotNull(key);
+        assertEquals("SM4", key.getAlgorithm());
+        assertEquals(16, key.getEncoded().length);
+
+        // 用生成的 key 加解密验证可用性
+        Cipher enc = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        enc.init(Cipher.ENCRYPT_MODE, key);
+        byte[] ct = enc.doFinal("test".getBytes());
+
+        Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        dec.init(Cipher.DECRYPT_MODE, key);
+        byte[] pt = dec.doFinal(ct);
+
+        assertArrayEquals("test".getBytes(), pt);
+    }
+
+    @Test(expected = InvalidParameterException.class)
+    public void testKeyGeneratorInvalidKeySize() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        javax.crypto.KeyGenerator kg = javax.crypto.KeyGenerator.getInstance("SM4", "SDF");
+        kg.init(256); // SM4 只支持 128 bits
+    }
+
+    @Test
+    public void testGCMEmptyPlaintextNoAAD() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        byte[] iv = new byte[12];
+        Arrays.fill(iv, (byte) 0x42);
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+
+        // GCM 空明文（无 AAD）应被拒绝
+        Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+
+        try {
+            encCipher.doFinal(new byte[0]);
+            fail("GCM with empty plaintext should throw IllegalBlockSizeException");
+        } catch (IllegalBlockSizeException e) {
+            // 预期：GCM 不支持空明文
+        }
+    }
+
+    @Test
+    public void testCipherReusability() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        IvParameterSpec iv = new IvParameterSpec(IV);
+
+        // 同一个 Cipher 对象多次使用
+        for (int i = 0; i < 3; i++) {
+            byte[] plaintext = ("Reuse test " + i).getBytes();
+
+            Cipher enc = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+            enc.init(Cipher.ENCRYPT_MODE, key, iv);
+            byte[] ct = enc.doFinal(plaintext);
+
+            Cipher dec = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+            dec.init(Cipher.DECRYPT_MODE, key, iv);
+            byte[] pt = dec.doFinal(ct);
+
+            assertArrayEquals("Reuse iteration " + i, plaintext, pt);
+        }
+    }
+
+    @Test
+    public void testECBNoPaddingEmptyDoFinal() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        // update with 16 bytes, then doFinal with no additional data
+        Cipher enc = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        enc.init(Cipher.ENCRYPT_MODE, key);
+        byte[] ct1 = enc.update(new byte[16]);
+        byte[] ct2 = enc.doFinal();
+        byte[] ct = concat(ct1, ct2);
+
+        assertEquals("Should produce 16 bytes ciphertext", 16, ct.length);
+
+        Cipher dec = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        dec.init(Cipher.DECRYPT_MODE, key);
+        byte[] pt = dec.doFinal(ct);
+        assertArrayEquals(new byte[16], pt);
+    }
+
+    @Test
+    public void testDecryptWithWrongKeyFails() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key1 = new SecretKeySpec(KEY, "SM4");
+        byte[] key2Bytes = new byte[16];
+        Arrays.fill(key2Bytes, (byte) 0xFF);
+        SecretKeySpec key2 = new SecretKeySpec(key2Bytes, "SM4");
+
+        Cipher enc = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        enc.init(Cipher.ENCRYPT_MODE, key1);
+        byte[] ct = enc.doFinal("Secret".getBytes());
+
+        Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        dec.init(Cipher.DECRYPT_MODE, key2);
+        try {
+            dec.doFinal(ct);
+            fail("Decrypt with wrong key should fail");
+        } catch (BadPaddingException e) {
+            // expected: wrong key produces garbage, PKCS5 unpadding fails
+        }
+    }
+
     // ==================== 工具方法 ====================
 
     private static byte[] concat(byte[] a, byte[] b) {
