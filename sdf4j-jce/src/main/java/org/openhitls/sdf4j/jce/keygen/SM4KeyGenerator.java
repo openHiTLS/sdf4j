@@ -28,7 +28,7 @@ import java.security.spec.AlgorithmParameterSpec;
 public final class SM4KeyGenerator extends KeyGeneratorSpi {
 
     private static final int KEY_SIZE = 128; // 128 bits = 16 bytes
-    private final long sessionHandle;
+    private long sessionHandle;
     private SecureRandom random;
 
     public SM4KeyGenerator() {
@@ -59,6 +59,9 @@ public final class SM4KeyGenerator extends KeyGeneratorSpi {
     @Override
     protected SecretKey engineGenerateKey() {
         byte[] keyBytes = SDFJceNative.generateSm4Key(sessionHandle);
+        if (keyBytes == null) {
+            throw new IllegalStateException("Failed to generate SM4 key: native call returned null");
+        }
         return new SecretKeySpec(keyBytes, "SM4");
     }
 

@@ -147,7 +147,7 @@ JNIEXPORT void JNICALL JNI_SDF_WriteFile(JNIEnv *env, jobject obj, jlong session
 
     /* Get data buffer */
     jsize data_len = (*env)->GetArrayLength(env, data);
-    jbyte *data_buf = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+    jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
         free(file_name);
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
@@ -164,7 +164,7 @@ JNIEXPORT void JNICALL JNI_SDF_WriteFile(JNIEnv *env, jobject obj, jlong session
     );
 
     free(file_name);
-    (*env)->ReleasePrimitiveArrayCritical(env, data, data_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform file write operation");

@@ -14,6 +14,7 @@ package org.openhitls.sdf4j.jce;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Assume;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -167,4 +168,212 @@ public class SM2InnerTest {
         assertEquals("RAW encoded should be 32 bytes", 32, privKey.getEncoded().length);
         assertArrayEquals("Key bytes should match", keyBytes, privKey.getEncoded());
     }
+
+    @Test
+    public void testSignEmptyData() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SM2PublicKey sdfPubKey = (SM2PublicKey) sm2KeyPair.getPublic();
+        java.security.PrivateKey sdfPrivKey = sm2KeyPair.getPrivate();
+
+        // 签名空数据（不调用 update）
+        java.security.Signature signer = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        signer.initSign(sdfPrivKey);
+        signer.setParameter(new SM2ParameterSpec(sdfPubKey));
+        byte[] signature = signer.sign();
+        assertNotNull("Empty data should still produce a signature", signature);
+
+        // 验签空数据
+        java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        verifier.initVerify(sdfPubKey);
+        verifier.setParameter(new SM2ParameterSpec(sdfPubKey));
+        assertTrue("Empty data signature should verify", verifier.verify(signature));
+    }
+
+    @Test
+    public void testSignWithoutPublicKeyFails() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        java.security.PrivateKey sdfPrivKey = sm2KeyPair.getPrivate();
+
+        java.security.Signature signer = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        signer.initSign(sdfPrivKey);
+        // 不设置 SM2ParameterSpec（没有 publicKey）
+        signer.update("test data".getBytes());
+
+        try {
+            signer.sign();
+            fail("Sign without publicKey should throw SignatureException");
+        } catch (SignatureException e) {
+            assertTrue(e.getMessage().contains("Public key"));
+        }
+    }
+
+    @Test
+    public void testVerifyTamperedSignature() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SM2PublicKey sdfPubKey = (SM2PublicKey) sm2KeyPair.getPublic();
+        java.security.PrivateKey sdfPrivKey = sm2KeyPair.getPrivate();
+
+        byte[] data = "Tamper test data".getBytes();
+
+        java.security.Signature signer = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        signer.initSign(sdfPrivKey);
+        signer.setParameter(new SM2ParameterSpec(sdfPubKey));
+        signer.update(data);
+        byte[] signature = signer.sign();
+
+        // 篡改签名的 DER 内容中间的一个字节
+        signature[signature.length / 2] ^= 0xFF;
+
+        java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        verifier.initVerify(sdfPubKey);
+        verifier.setParameter(new SM2ParameterSpec(sdfPubKey));
+        verifier.update(data);
+        assertFalse("Tampered signature should not verify", verifier.verify(signature));
+    }
+
+    @Test
+    public void testVerifyWrongSignature() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SM2PublicKey sdfPubKey = (SM2PublicKey) sm2KeyPair.getPublic();
+
+        byte[] data = "Test data".getBytes();
+
+        java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        verifier.initVerify(sdfPubKey);
+        verifier.setParameter(new SM2ParameterSpec(sdfPubKey));
+        verifier.update(data);
+
+        try {
+            // 完全随机的数据作为签名
+            byte[] garbage = new byte[]{0x00, 0x01, 0x02, 0x03};
+            boolean result = verifier.verify(garbage);
+            // 如果没有抛异常，应返回 false
+            assertFalse("Garbage signature should not verify", result);
+        } catch (SignatureException | IllegalArgumentException e) {
+            // 预期行为：非法 DER 格式抛异常
+        }
+    }
+
+    @Test
+    public void testVerifyWrongData() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SM2PublicKey sdfPubKey = (SM2PublicKey) sm2KeyPair.getPublic();
+        java.security.PrivateKey sdfPrivKey = sm2KeyPair.getPrivate();
+
+        java.security.Signature signer = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        signer.initSign(sdfPrivKey);
+        signer.setParameter(new SM2ParameterSpec(sdfPubKey));
+        signer.update("original data".getBytes());
+        byte[] signature = signer.sign();
+
+        // 用不同的数据验签
+        java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        verifier.initVerify(sdfPubKey);
+        verifier.setParameter(new SM2ParameterSpec(sdfPubKey));
+        verifier.update("different data".getBytes());
+        assertFalse("Verify with wrong data should return false", verifier.verify(signature));
+    }
+
+    @Test
+    public void testInitVerifyWithWrongKeyType() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        // 使用非 SM2PublicKey 的 PublicKey 调用 initVerify 应报错
+        java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+        try {
+            PublicKey fakeKey = new PublicKey() {
+                public String getAlgorithm() { return "RSA"; }
+                public String getFormat() { return "RAW"; }
+                public byte[] getEncoded() { return new byte[64]; }
+            };
+            verifier.initVerify(fakeKey);
+            fail("initVerify with non-SM2 PublicKey should throw InvalidKeyException");
+        } catch (InvalidKeyException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testEncryptEmptyData() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        Cipher encCipher = Cipher.getInstance("SM2", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, sm2KeyPair.getPublic());
+
+        try {
+            encCipher.doFinal(new byte[0]);
+            fail("SM2 encrypt with empty plaintext should throw");
+        } catch (Exception e) {
+            // 预期：native 层拒绝空明文
+            assertTrue(e.getMessage().contains("plain") || e.getMessage().contains("invalid"));
+        }
+    }
+
+    @Test
+    public void testEncryptLargeData() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        byte[] plaintext = new byte[1024];
+        new java.util.Random(42).nextBytes(plaintext);
+
+        Cipher encCipher = Cipher.getInstance("SM2", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, sm2KeyPair.getPublic());
+        byte[] ciphertext = encCipher.doFinal(plaintext);
+
+        Cipher decCipher = Cipher.getInstance("SM2", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, sm2KeyPair.getPrivate());
+        byte[] decrypted = decCipher.doFinal(ciphertext);
+
+        assertArrayEquals("Large data roundtrip", plaintext, decrypted);
+    }
+
+    @Test
+    public void testDecryptWithWrongKeyFails() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        byte[] plaintext = "Secret message".getBytes();
+
+        Cipher encCipher = Cipher.getInstance("SM2", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, sm2KeyPair.getPublic());
+        byte[] ciphertext = encCipher.doFinal(plaintext);
+
+        // 生成另一个密钥对
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("SM2", "SDF");
+        KeyPair anotherKeyPair = kpg.generateKeyPair();
+
+        Cipher decCipher = Cipher.getInstance("SM2", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, anotherKeyPair.getPrivate());
+
+        try {
+            decCipher.doFinal(ciphertext);
+            fail("Decrypt with wrong key should fail");
+        } catch (Exception e) {
+            // Expected: BadPaddingException, IllegalBlockSizeException, or SDFJceException
+        }
+    }
+
+    @Test
+    public void testSignatureReusability() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SM2PublicKey sdfPubKey = (SM2PublicKey) sm2KeyPair.getPublic();
+        java.security.PrivateKey sdfPrivKey = sm2KeyPair.getPrivate();
+
+        java.security.Signature signer = java.security.Signature.getInstance("SM3withSM2", "SDF");
+
+        // 签两次不同的数据，验证 Signature 对象可复用
+        for (int i = 0; i < 3; i++) {
+            byte[] data = ("Message " + i).getBytes();
+            signer.initSign(sdfPrivKey);
+            signer.setParameter(new SM2ParameterSpec(sdfPubKey));
+            signer.update(data);
+            byte[] sig = signer.sign();
+
+            java.security.Signature verifier = java.security.Signature.getInstance("SM3withSM2", "SDF");
+            verifier.initVerify(sdfPubKey);
+            verifier.setParameter(new SM2ParameterSpec(sdfPubKey));
+            verifier.update(data);
+            assertTrue("Reuse iteration " + i + " failed", verifier.verify(sig));
+        }
+    }
 }
+

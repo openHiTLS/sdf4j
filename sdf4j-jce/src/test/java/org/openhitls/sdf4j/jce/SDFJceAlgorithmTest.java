@@ -76,7 +76,6 @@ public class SDFJceAlgorithmTest {
 
     @After
     public void cleanup() throws InterruptedException {
-        // Force garbage collection to release SDF sessions
         System.gc();
         System.runFinalization();
     }

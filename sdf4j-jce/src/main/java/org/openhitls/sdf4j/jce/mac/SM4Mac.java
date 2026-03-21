@@ -31,7 +31,7 @@ public final class SM4Mac extends MacSpi {
     private static final int KEY_LENGTH = 16;
     private static final int IV_LENGTH = 16;
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private byte[] key;
     private byte[] iv;
     private ByteArrayOutputStream buffer;
@@ -43,6 +43,14 @@ public final class SM4Mac extends MacSpi {
         }
         this.buffer = new ByteArrayOutputStream();
         this.iv = new byte[IV_LENGTH]; // Default zero IV
+    }
+
+    private void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
+        }
     }
 
     @Override
@@ -122,9 +130,7 @@ public final class SM4Mac extends MacSpi {
     protected void finalize() throws Throwable {
         try {
             cleanupKey();
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }

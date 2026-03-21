@@ -117,7 +117,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessio
         return 0;
     }
 
-    jbyte *key_buf = (*env)->GetPrimitiveArrayCritical(env, encryptedKey, NULL);
+    jbyte *key_buf = (*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
         THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed"); /* SDR_NOBUFFER */
         return 0;
@@ -131,7 +131,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessio
         &key_handle
     );
 
-    (*env)->ReleasePrimitiveArrayCritical(env, encryptedKey, key_buf, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, encryptedKey, key_buf, JNI_ABORT);
 
     if (ret != SDR_OK) {
         THROW_SDF_EXCEPTION(env, ret, "Failed to import key operation");

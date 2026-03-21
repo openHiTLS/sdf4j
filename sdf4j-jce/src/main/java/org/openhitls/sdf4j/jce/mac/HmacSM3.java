@@ -28,7 +28,7 @@ public final class HmacSM3 extends MacSpi {
 
     private static final int MAC_LENGTH = 32; // SM3 produces 256-bit hash
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private byte[] key;
     private ByteArrayOutputStream buffer;
 
@@ -40,6 +40,14 @@ public final class HmacSM3 extends MacSpi {
         this.buffer = new ByteArrayOutputStream();
     }
 
+    private void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
+        }
+    }
+
     @Override
     protected int engineGetMacLength() {
         return MAC_LENGTH;
@@ -49,7 +57,6 @@ public final class HmacSM3 extends MacSpi {
     protected void engineInit(Key key, AlgorithmParameterSpec params) throws InvalidKeyException, InvalidAlgorithmParameterException {
         // Clean up existing key before re-initializing
         cleanupKey();
-
         if (!(key instanceof SecretKey)) {
             throw new InvalidKeyException("Key must be a SecretKey");
         }
@@ -96,9 +103,7 @@ public final class HmacSM3 extends MacSpi {
     protected void finalize() throws Throwable {
         try {
             cleanupKey();
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }

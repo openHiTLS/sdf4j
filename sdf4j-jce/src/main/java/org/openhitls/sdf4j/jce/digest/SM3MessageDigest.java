@@ -23,7 +23,7 @@ public final class SM3MessageDigest extends MessageDigestSpi {
 
     private static final int DIGEST_LENGTH = 32;
 
-    private final long sessionHandle;
+    private long sessionHandle;
     private long ctx = 0;
     private boolean initialized = false;
 
@@ -31,6 +31,14 @@ public final class SM3MessageDigest extends MessageDigestSpi {
         this.sessionHandle = SDFJceNative.openSession();
         if (sessionHandle == 0) {
             throw new IllegalStateException("Failed to open SDF session");
+        }
+    }
+
+    private void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
         }
     }
 
@@ -107,9 +115,7 @@ public final class SM3MessageDigest extends MessageDigestSpi {
     protected void finalize() throws Throwable {
         try {
             cleanupContext();
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }

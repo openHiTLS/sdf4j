@@ -46,7 +46,7 @@ public class SM4Cipher extends CipherSpi {
     protected static final int PADDING_NONE = 0;
     protected static final int PADDING_PKCS5 = 1;
 
-    protected final long sessionHandle;
+    protected long sessionHandle;
     protected int cipherMode = MODE_CBC;
     protected int paddingMode = PADDING_NONE;
     protected int opmode;
@@ -75,6 +75,14 @@ public class SM4Cipher extends CipherSpi {
             throw new IllegalStateException("Failed to open SDF session");
         }
         this.cipherMode = mode;
+    }
+
+    protected void releaseSession() {
+        if (sessionHandle != 0) {
+            long h = sessionHandle;
+            sessionHandle = 0;
+            SDFJceNative.closeSession(h);
+        }
     }
 
     private boolean isAeadMode() {
@@ -395,7 +403,6 @@ public class SM4Cipher extends CipherSpi {
         }
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-
         try {
             byte[] remaining = buffer.toByteArray();
             buffer.reset();
@@ -526,9 +533,7 @@ public class SM4Cipher extends CipherSpi {
     protected void finalize() throws Throwable {
         try {
             cleanup();
-            if (sessionHandle != 0) {
-                SDFJceNative.closeSession(sessionHandle);
-            }
+            releaseSession();
         } finally {
             super.finalize();
         }
