@@ -104,6 +104,17 @@ public final class SM4Mac extends MacSpi {
     protected byte[] engineDoFinal() {
         byte[] data = buffer.toByteArray();
         buffer.reset();
+
+        // SDF_CalculateMAC (CBC-MAC) requires data to be a multiple of the block size.
+        // Apply zero-padding (ISO/IEC 9797-1 Method 1) to align to 16-byte boundary.
+        if (data.length % MAC_LENGTH != 0) {
+            int paddedLen = ((data.length / MAC_LENGTH) + 1) * MAC_LENGTH;
+            byte[] padded = new byte[paddedLen];
+            System.arraycopy(data, 0, padded, 0, data.length);
+            // remaining bytes are already 0 (Java default)
+            data = padded;
+        }
+
         return SDFJceNative.sm4Mac(sessionHandle, key, iv, data);
     }
 

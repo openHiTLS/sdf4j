@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "jce_common.h"
 #include "sdf_jce_functions.h"
+#include "dynamic_loader.h"
 
 /* 保存库路径用于初始化 */
 static char *g_library_path = NULL;
@@ -73,6 +74,27 @@ static const JNINativeMethod sdf_jce_methods[] = {
 
     /* ==================== Key Management ==================== */
     {"generateSm4Key", "(J)[B", (void*)JNI_SDFJceNative_generateSm4Key},
+
+    /* ==================== SM2 Internal Operations ==================== */
+    {"sm2InternalSign", "(JI[B)[B", (void*)JNI_SDFJceNative_sm2InternalSign},
+    {"sm2InternalVerify", "(JI[B[B)Z", (void*)JNI_SDFJceNative_sm2InternalVerify},
+    {"sm2InternalEncrypt", "(JI[B)[B", (void*)JNI_SDFJceNative_sm2InternalEncrypt},
+    {"sm2InternalDecrypt", "(JII[B)[B", (void*)JNI_SDFJceNative_sm2InternalDecrypt},
+    {"exportSignPublicKeyECC", "(JI)[B", (void*)JNI_SDFJceNative_exportSignPublicKeyECC},
+    {"exportEncPublicKeyECC", "(JI)[B", (void*)JNI_SDFJceNative_exportEncPublicKeyECC},
+
+    /* ==================== Access Right Management ==================== */
+    {"getPrivateKeyAccessRight", "(JI[B)V", (void*)JNI_SDFJceNative_getPrivateKeyAccessRight},
+    {"releasePrivateKeyAccessRight", "(JI)V", (void*)JNI_SDFJceNative_releasePrivateKeyAccessRight},
+    {"getKEKAccessRight", "(JI[B)V", (void*)JNI_SDFJceNative_getKEKAccessRight},
+    {"releaseKEKAccessRight", "(JI)V", (void*)JNI_SDFJceNative_releaseKEKAccessRight},
+
+    /* ==================== SM4 Internal (KEK) Operations ==================== */
+    {"sm4GenerateKeyWithKEK", "(JIII)[B", (void*)JNI_SDFJceNative_sm4GenerateKeyWithKEK},
+    {"sm4ImportKeyWithKEK", "(JII[B)J", (void*)JNI_SDFJceNative_sm4ImportKeyWithKEK},
+    {"sm4EncryptInitWithKeyHandle", "(JJI[B)J", (void*)JNI_SDFJceNative_sm4EncryptInitWithKeyHandle},
+    {"sm4DecryptInitWithKeyHandle", "(JJI[B)J", (void*)JNI_SDFJceNative_sm4DecryptInitWithKeyHandle},
+    {"destroyKey", "(JJ)V", (void*)JNI_SDFJceNative_destroyKey},
 };
 
 /* 注册标志 */
@@ -192,20 +214,20 @@ JNIEXPORT jboolean JNICALL Sdf4j_Jce_NativeLoader_Initialize(JNIEnv *env, jclass
                 return JNI_FALSE;
             }
         }
-
-        int ret = sdf_jce_initialize(g_library_path);
-        if (ret != SDR_OK) {
-            /* 初始化失败，抛出异常 */
-            throw_jce_exception(env, ret, "Failed to initialize SDF");
-            return JNI_FALSE;
-        }
-        return JNI_TRUE;
     }
 
-    /* 没有配置路径，无法初始化 */
-    throw_exception(env, "java/lang/IllegalStateException",
-                    "SDF library path not configured. Set sdf.library.path or SDF_LIBRARY_PATH environment variable.");
-    return JNI_FALSE;
+    /* 调用初始化（library_path 为 NULL 时会触发默认路径搜索） */
+    int ret = sdf_jce_initialize(g_library_path);
+    if (ret != SDR_OK) {
+        const char* load_error = sdf_get_load_error();
+        char err_msg[1024];
+        snprintf(err_msg, sizeof(err_msg), "Failed to initialize SDF: %s. "
+            "Set SDF_LIBRARY_PATH or SDF_LIBRARY_NAME to specify the SDF library.",
+            load_error ? load_error : "Unknown error");
+        throw_jce_exception(env, ret, err_msg);
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
 }
 
 /**

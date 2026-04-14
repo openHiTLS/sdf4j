@@ -27,7 +27,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4Mac(JNIEnv *env, jclass cls, jl
     (void)cls;
     CHECK_INIT_RET(env, NULL);
     CHECK_FUNCTION_RET(SDF_ImportKey, env, "SDF_ImportKey", NULL);
-    CHECK_FUNCTION_RET(SDF_CalculateMAC, env, "SDF_CalculateMAC", NULL);
+
+    CHECK_FUNCTION_RET(SDF_CalculateMACInit, env, "SDF_CalculateMACInit", NULL);
+    CHECK_FUNCTION_RET(SDF_CalculateMACUpdate, env, "SDF_CalculateMACUpdate", NULL);
+    CHECK_FUNCTION_RET(SDF_CalculateMACFinal, env, "SDF_CalculateMACFinal", NULL);
     CHECK_FUNCTION_RET(SDF_DestroyKey, env, "SDF_DestroyKey", NULL);
 
     if (key == NULL || data == NULL) {
@@ -48,7 +51,9 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4Mac(JNIEnv *env, jclass cls, jl
     }
 
     jbyte *ivBytes = NULL;
+    jsize ivLen = 0;
     if (iv != NULL) {
+        ivLen = (*env)->GetArrayLength(env, iv);
         ivBytes = (*env)->GetByteArrayElements(env, iv, NULL);
         if (ivBytes == NULL) {
             (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
@@ -78,11 +83,24 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4Mac(JNIEnv *env, jclass cls, jl
         goto ERR;
     }
 
-    /* 计算MAC */
-    ret = g_sdf_functions.SDF_CalculateMAC((HANDLE)sessionHandle, keyHandle, SGD_SM4_MAC,
-        (BYTE *)ivBytes, (BYTE *)dataBytes, (ULONG)dataLen, mac, &macLen);
+    BYTE *pIv = (BYTE *)ivBytes;
+    ULONG uIvLen = (ULONG)ivLen;
+
+    ret = g_sdf_functions.SDF_CalculateMACInit((HANDLE)sessionHandle, keyHandle, SGD_SM4_MAC, pIv, uIvLen);
     if (ret != SDR_OK) {
-        throw_jce_exception(env, (int)ret, "SM4 MAC calculation failed");
+        throw_jce_exception(env, (int)ret, "SM4 MAC init failed");
+        goto ERR;
+    }
+
+    ret = g_sdf_functions.SDF_CalculateMACUpdate((HANDLE)sessionHandle, (BYTE *)dataBytes, (ULONG)dataLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM4 MAC update failed");
+        goto ERR;
+    }
+
+    ret = g_sdf_functions.SDF_CalculateMACFinal((HANDLE)sessionHandle, mac, &macLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM4 MAC final failed");
         goto ERR;
     }
 

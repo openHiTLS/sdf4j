@@ -287,4 +287,164 @@ public final class SDFJceNative {
      * @return 16-byte key
      */
     public static native byte[] generateSm4Key(long sessionHandle);
+
+    // ==================== SM2 Internal Key Operations ====================
+
+    /**
+     * SM2 internal sign (key stored in device)
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Internal signing key index
+     * @param data          Data to sign (should be SM3 hash e-value)
+     * @return 64-byte signature (r||s)
+     */
+    public static native byte[] sm2InternalSign(long sessionHandle, int keyIndex, byte[] data);
+
+    /**
+     * SM2 internal verify (key stored in device)
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Internal signing key index
+     * @param data          Original data
+     * @param signature     64-byte signature (r||s)
+     * @return true if valid
+     */
+    public static native boolean sm2InternalVerify(long sessionHandle, int keyIndex,
+                                                    byte[] data, byte[] signature);
+
+    /**
+     * SM2 internal encrypt (key stored in device)
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Internal encryption key index
+     * @param plaintext     Data to encrypt
+     * @return Ciphertext (0x04 || C1 || C3 || C2 format)
+     */
+    public static native byte[] sm2InternalEncrypt(long sessionHandle, int keyIndex, byte[] plaintext);
+
+    /**
+     * SM2 internal decrypt (key stored in device)
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Internal encryption key index
+     * @param eccKeyType    ECC key type / algorithm ID (e.g., SGD_SM2_3)
+     * @param ciphertext    Ciphertext (0x04 || C1 || C3 || C2 format)
+     * @return Plaintext
+     */
+    public static native byte[] sm2InternalDecrypt(long sessionHandle, int keyIndex,
+                                                    int eccKeyType, byte[] ciphertext);
+
+    /**
+     * Export ECC sign public key from device
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Key index
+     * @return 64 bytes (X(32) || Y(32))
+     */
+    public static native byte[] exportSignPublicKeyECC(long sessionHandle, int keyIndex);
+
+    /**
+     * Export ECC encryption public key from device
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Key index
+     * @return 64 bytes (X(32) || Y(32))
+     */
+    public static native byte[] exportEncPublicKeyECC(long sessionHandle, int keyIndex);
+
+    // ==================== Access Right Management ====================
+
+    /**
+     * Get private key access right
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Key index
+     * @param password      Access password
+     */
+    public static native void getPrivateKeyAccessRight(long sessionHandle, int keyIndex,
+                                                        byte[] password);
+
+    /**
+     * Release private key access right
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      Key index
+     */
+    public static native void releasePrivateKeyAccessRight(long sessionHandle, int keyIndex);
+
+    /**
+     * Get KEK access right
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      KEK index
+     * @param password      Access password
+     */
+    public static native void getKEKAccessRight(long sessionHandle, int keyIndex,
+                                                 byte[] password);
+
+    /**
+     * Release KEK access right
+     *
+     * @param sessionHandle Session handle
+     * @param keyIndex      KEK index
+     */
+    public static native void releaseKEKAccessRight(long sessionHandle, int keyIndex);
+
+    // ==================== SM4 Internal (KEK) Operations ====================
+
+    /**
+     * Generate session key and encrypt with KEK, returns wrapped key + key handle
+     *
+     * @param sessionHandle Session handle
+     * @param keyBits       Key length in bits (128 for SM4)
+     * @param algID         Algorithm ID for wrapping
+     * @param kekIndex      KEK index
+     * @return byte array containing: wrappedKey(variable) || keyHandle(8 bytes, big-endian long)
+     */
+    public static native byte[] sm4GenerateKeyWithKEK(long sessionHandle, int keyBits,
+                                                       int algID, int kekIndex);
+
+    /**
+     * Import wrapped session key using KEK
+     *
+     * @param sessionHandle Session handle
+     * @param algID         Algorithm ID
+     * @param kekIndex      KEK index
+     * @param wrappedKey    Wrapped key data
+     * @return key handle
+     */
+    public static native long sm4ImportKeyWithKEK(long sessionHandle, int algID,
+                                                   int kekIndex, byte[] wrappedKey);
+
+    /**
+     * SM4 encrypt init with existing key handle (for KEK-based keys)
+     *
+     * @param sessionHandle Session handle
+     * @param keyHandle     Key handle from generateKeyWithKEK or importKeyWithKEK
+     * @param mode          Cipher mode
+     * @param iv            IV
+     * @return Context handle
+     */
+    public static native long sm4EncryptInitWithKeyHandle(long sessionHandle, long keyHandle,
+                                                           int mode, byte[] iv);
+
+    /**
+     * SM4 decrypt init with existing key handle (for KEK-based keys)
+     *
+     * @param sessionHandle Session handle
+     * @param keyHandle     Key handle from generateKeyWithKEK or importKeyWithKEK
+     * @param mode          Cipher mode
+     * @param iv            IV
+     * @return Context handle
+     */
+    public static native long sm4DecryptInitWithKeyHandle(long sessionHandle, long keyHandle,
+                                                           int mode, byte[] iv);
+
+    /**
+     * Destroy a key handle
+     *
+     * @param sessionHandle Session handle
+     * @param keyHandle     Key handle to destroy
+     */
+    public static native void destroyKey(long sessionHandle, long keyHandle);
 }
