@@ -61,4 +61,12 @@ public class KeyEncryptionResult {
     public long getKeyHandle() {
         return keyHandle;
     }
+
+    @Override
+    public String toString() {
+        return "KeyEncryptionResult{" +
+                "keyHandlePresent=" + (keyHandle != 0) +
+                ", encryptedKey.length=" + (encryptedKey != null ? encryptedKey.length : 0) +
+                '}';
+    }
 }

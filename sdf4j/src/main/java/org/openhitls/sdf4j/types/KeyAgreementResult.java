@@ -104,4 +104,13 @@ public class KeyAgreementResult {
     public ECCPublicKey getTmpPublicKey() {
         return tmpPublicKey;
     }
+
+    @Override
+    public String toString() {
+        return "KeyAgreementResult{" +
+                "agreementHandle=0x" + Long.toHexString(agreementHandle) +
+                ", publicKey=" + (publicKey != null ? publicKey.toString() : "null") +
+                ", tmpPublicKey=" + (tmpPublicKey != null ? tmpPublicKey.toString() : "null") +
+                '}';
+    }
 }

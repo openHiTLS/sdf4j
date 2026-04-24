@@ -132,19 +132,19 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_GenerateRandom(JNIEnv *env, jobject obj, jl
         return NULL;
     }
     if (length <= 0) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid random length"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid random length");
         return NULL;
     }
     jbyteArray result = (*env)->NewByteArray(env, length);
     if (result == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to allocate random buffer");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Failed to allocate random buffer");
         return NULL;
     }
 
     jbyte *random = (*env)->GetByteArrayElements(env, result, NULL);
     if (random == NULL) {
         (*env)->DeleteLocalRef(env, result);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -172,7 +172,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj
 
     char *pwd = java_string_to_native(env, password);
     if (pwd == NULL && password != NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid password"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid password");
         return;
     }
 
@@ -222,7 +222,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetKEKAccessRight(JNIEnv *env, jobject obj, jlong
 
     char *pwd = java_string_to_native(env, password);
     if (pwd == NULL && password != NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid password"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid password");
         return;
     }
 

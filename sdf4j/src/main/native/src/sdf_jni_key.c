@@ -113,13 +113,13 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKey(JNIEnv *env, jobject obj, jlong sessio
 
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     if (key_len <= 0) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
 
     jbyte *key_buf = (*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed"); /* SDR_NOBUFFER */
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return 0;
     }
 

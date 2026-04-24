@@ -207,4 +207,26 @@ public class HybridCipher {
     public void setKeyHandle(long keyHandle) {
         this.keyHandle = keyHandle;
     }
+
+    @Override
+    public String toString() {
+        return "HybridCipher{" +
+                "l1=" + l1 +
+                ", ctM=" + bytesToHex(ctM) +
+                ", uiAlgID=0x" + Long.toHexString(uiAlgID) +
+                ", ctS=" + (ctS != null ? ctS.toString() : "null") +
+                ", keyHandlePresent=" + (keyHandle != 0) +
+                '}';
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
+    }
 }

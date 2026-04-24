@@ -147,4 +147,24 @@ public class HybridSignature {
         }
         this.l = l;
     }
+
+    @Override
+    public String toString() {
+        return "HybridSignature{" +
+                "sigS=" + (sigS != null ? sigS.toString() : "null") +
+                ", l=" + l +
+                ", sigM=" + bytesToHex(sigM) +
+                '}';
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
+    }
 }

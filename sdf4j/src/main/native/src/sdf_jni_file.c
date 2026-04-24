@@ -30,14 +30,14 @@ JNIEXPORT void JNICALL JNI_SDF_CreateFile(JNIEnv *env, jobject obj, jlong sessio
     }
 
     if (fileName == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "File name is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "File name is null");
         return;
     }
 
     /* 转换文件名 */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
     ULONG name_len = (ULONG)strlen(file_name);
@@ -72,14 +72,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ReadFile(JNIEnv *env, jobject obj, jlong se
     }
 
     if (fileName == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "File name is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "File name is null");
         return NULL;
     }
 
     /* 转换文件名 */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     ULONG name_len = (ULONG)strlen(file_name);
@@ -88,7 +88,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ReadFile(JNIEnv *env, jobject obj, jlong se
     BYTE *buffer = (BYTE*)malloc(length);
     if (buffer == NULL) {
         free(file_name);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -133,14 +133,14 @@ JNIEXPORT void JNICALL JNI_SDF_WriteFile(JNIEnv *env, jobject obj, jlong session
     }
 
     if (fileName == NULL || data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "File name or data is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "File name or data is null");
         return;
     }
 
     /* Convert file name */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
     ULONG name_len = (ULONG)strlen(file_name);
@@ -150,7 +150,7 @@ JNIEXPORT void JNICALL JNI_SDF_WriteFile(JNIEnv *env, jobject obj, jlong session
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
         free(file_name);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
 
@@ -184,14 +184,14 @@ JNIEXPORT void JNICALL JNI_SDF_DeleteFile(JNIEnv *env, jobject obj, jlong sessio
     }
 
     if (fileName == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "File name is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "File name is null");
         return;
     }
 
     /* Convert file name */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
     ULONG name_len = (ULONG)strlen(file_name);

@@ -23,13 +23,13 @@ JNI_NativeLibraryLoader_loadSDFLibrary(JNIEnv *env, jclass cls, jstring library_
 
     // Java层应该保证传递非null的库路径或库名
     if (library_path == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "Library path is null"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "Library path is null");
         return JNI_FALSE;
     }
 
     const char *path = (*env)->GetStringUTFChars(env, library_path, NULL);
     if (path == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Failed to get library path string"); /* SDR_NOBUFFER */
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Failed to get library path string");
         return JNI_FALSE;
     }
 
