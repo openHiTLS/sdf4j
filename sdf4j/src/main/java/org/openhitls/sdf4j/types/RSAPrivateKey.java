@@ -231,8 +231,12 @@ public class RSAPrivateKey {
      * Set CRT exponents.
      *
      * @param pexp CRT exponents array
+     * @throws IllegalArgumentException if pexp is null
      */
     public void setPexp(byte[][] pexp) {
+        if (pexp == null) {
+            throw new IllegalArgumentException("CRT exponents cannot be null");
+        }
         this.pexp = pexp;
     }
 
@@ -251,8 +255,36 @@ public class RSAPrivateKey {
      * Set CRT coefficient.
      *
      * @param coef CRT coefficient byte array
+     * @throws IllegalArgumentException if coef is null
      */
     public void setCoef(byte[] coef) {
+        if (coef == null) {
+            throw new IllegalArgumentException("CRT coefficient cannot be null");
+        }
         this.coef = coef;
+    }
+
+    @Override
+    public String toString() {
+        return "RSAPrivateKey{" +
+                "bits=" + bits +
+                ", m=" + bytesToHex(m) +
+                ", e=" + bytesToHex(e) +
+                ", d=[REDACTED]" +
+                ", prime=[REDACTED]" +
+                ", pexp=[REDACTED]" +
+                ", coef=[REDACTED]" +
+                '}';
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
     }
 }

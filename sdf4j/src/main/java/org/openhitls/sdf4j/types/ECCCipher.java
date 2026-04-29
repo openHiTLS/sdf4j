@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * ECC Cipher Structure (ECCCipher)
  *
@@ -215,24 +213,21 @@ public class ECCCipher {
     @Override
     public String toString() {
         return "ECCCipher{" +
-                "x=" + bytesToHex(x, 16) +
-                ", y=" + bytesToHex(y, 16) +
-                ", m=" + bytesToHex(m, 16) +
+                "x=" + bytesToHex(x) +
+                ", y=" + bytesToHex(y) +
+                ", m=" + bytesToHex(m) +
                 ", L=" + l +
                 ", c.length=" + (c != null ? c.length : 0) +
                 '}';
     }
 
-    private static String bytesToHex(byte[] bytes, int limit) {
+    private static String bytesToHex(byte[] bytes) {
         if (bytes == null || bytes.length == 0) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Math.min(bytes.length, limit); i++) {
-            sb.append(String.format("%02X", bytes[i]));
-        }
-        if (bytes.length > limit) {
-            sb.append("...");
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
         }
         return sb.toString();
     }

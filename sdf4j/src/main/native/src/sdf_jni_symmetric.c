@@ -37,7 +37,7 @@ JNIEXPORT void JNICALL JNI_SDF_EncryptInit(JNIEnv *env, jobject obj, jlong sessi
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -72,14 +72,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_EncryptUpdate(JNIEnv *env, jobject obj, jlo
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "Data is null");
         return NULL;
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -88,7 +88,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_EncryptUpdate(JNIEnv *env, jobject obj, jlo
     BYTE *enc_buf = (BYTE*)malloc(enc_len);
     if (enc_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -178,7 +178,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
 
@@ -186,7 +186,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -196,7 +196,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -209,7 +209,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
         if (iv_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -221,7 +221,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
         (*env)->DeleteLocalRef(env, result);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -254,7 +254,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
     }
 
     if (encData == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
 
@@ -262,7 +262,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
     jsize enc_data_len = (*env)->GetArrayLength(env, encData);
     jbyte *enc_data_buf = (*env)->GetByteArrayElements(env, encData, NULL);
     if (enc_data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -272,7 +272,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleaseByteArrayElements(env, encData, enc_data_buf, JNI_ABORT);
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -285,7 +285,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
         if (iv_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     BYTE *data_buf = (BYTE*)(*env)->GetByteArrayElements(env, result, NULL);
@@ -295,7 +295,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
         (*env)->DeleteLocalRef(env, result);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -335,7 +335,7 @@ JNIEXPORT void JNICALL JNI_SDF_DecryptInit(JNIEnv *env, jobject obj, jlong sessi
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -369,14 +369,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_DecryptUpdate(JNIEnv *env, jobject obj, jlo
     }
 
     if (encData == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "Encrypted data is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "Encrypted data is null");
         return NULL;
     }
 
     jsize enc_len = (*env)->GetArrayLength(env, encData);
     jbyte *enc_buf = (*env)->GetByteArrayElements(env, encData, NULL);
     if (enc_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -384,7 +384,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_DecryptUpdate(JNIEnv *env, jobject obj, jlo
     BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, encData, enc_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -450,7 +450,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
 
@@ -458,7 +458,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -468,7 +468,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_CalculateMAC(JNIEnv *env, jobject obj, jlon
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
             (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -512,7 +512,7 @@ JNIEXPORT void JNICALL JNI_SDF_CalculateMACInit(JNIEnv *env, jobject obj, jlong 
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -546,14 +546,14 @@ JNIEXPORT void JNICALL JNI_SDF_CalculateMACUpdate(JNIEnv *env, jobject obj, jlon
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "Data is null");
         return;
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
 
@@ -610,14 +610,14 @@ JNIEXPORT void JNICALL JNI_SDF_HMACUpdate(JNIEnv *env, jobject obj, jlong sessio
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000001, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "Data is null");
         return;
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
 
@@ -674,7 +674,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "Data is null");
         return NULL;
     }
 
@@ -685,7 +685,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -700,7 +700,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
             if (iv_buf != NULL) {
                 (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
             }
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -715,7 +715,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
         if (aad_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, aad, aad_buf, JNI_ABORT);
         }
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -730,7 +730,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEnc(JNIEnv *env, jobject obj, jlong s
             (*env)->ReleaseByteArrayElements(env, aad, aad_buf, JNI_ABORT);
         }
         (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -805,7 +805,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
     }
 
     if (encData == NULL || authTag == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "Encrypted data or auth tag is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "Encrypted data or auth tag is null");
         return NULL;
     }
 
@@ -816,7 +816,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -831,7 +831,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
             if (iv_buf != NULL) {
                 (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
             }
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
     }
@@ -846,7 +846,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
         if (aad_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, aad, aad_buf, JNI_ABORT);
         }
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -861,7 +861,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
             (*env)->ReleaseByteArrayElements(env, aad, aad_buf, JNI_ABORT);
         }
         (*env)->ReleaseByteArrayElements(env, authTag, tag_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -877,7 +877,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDec(JNIEnv *env, jobject obj, jlong ses
         }
         (*env)->ReleaseByteArrayElements(env, authTag, tag_buf, JNI_ABORT);
         (*env)->ReleaseByteArrayElements(env, encData, enc_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -937,7 +937,7 @@ JNIEXPORT void JNICALL JNI_SDF_AuthEncInit(JNIEnv *env, jobject obj, jlong sessi
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -952,7 +952,7 @@ JNIEXPORT void JNICALL JNI_SDF_AuthEncInit(JNIEnv *env, jobject obj, jlong sessi
             if (iv_buf != NULL) {
                 (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
             }
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -993,14 +993,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthEncUpdate(JNIEnv *env, jobject obj, jlo
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "Data is null");
         return NULL;
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -1009,7 +1009,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthEncUpdate(JNIEnv *env, jobject obj, jlo
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -1057,7 +1057,7 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_AuthEncFinal(JNIEnv *env, jobject obj, jl
         output_len = (*env)->GetArrayLength(env, pucEncData);
         output_buf = (BYTE*)malloc(output_len);
         if (output_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, pucEncData, 0, output_len, (jbyte*)output_buf);
@@ -1126,7 +1126,7 @@ JNIEXPORT void JNICALL JNI_SDF_AuthDecInit(JNIEnv *env, jobject obj, jlong sessi
         iv_len = (*env)->GetArrayLength(env, iv);
         iv_buf = (*env)->GetByteArrayElements(env, iv, NULL);
         if (iv_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -1141,7 +1141,7 @@ JNIEXPORT void JNICALL JNI_SDF_AuthDecInit(JNIEnv *env, jobject obj, jlong sessi
             if (iv_buf != NULL) {
                 (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
             }
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -1159,7 +1159,7 @@ JNIEXPORT void JNICALL JNI_SDF_AuthDecInit(JNIEnv *env, jobject obj, jlong sessi
             if (aad_buf != NULL) {
                 (*env)->ReleaseByteArrayElements(env, aad, aad_buf, JNI_ABORT);
             }
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -1205,14 +1205,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDecUpdate(JNIEnv *env, jobject obj, jlo
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x01000006, "Data is null");
+        THROW_SDF_EXCEPTION(env, SDR_OPENSESSION, "Data is null");
         return NULL;
     }
 
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -1221,7 +1221,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_AuthDecUpdate(JNIEnv *env, jobject obj, jlo
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -1307,7 +1307,7 @@ JNIEXPORT void JNICALL JNI_SDF_HashInit(JNIEnv *env, jobject obj, jlong sessionH
         id_len = (*env)->GetArrayLength(env, id);
         id_buf = (*env)->GetByteArrayElements(env, id, NULL);
         if (id_buf == NULL) {
-            THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+            THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
             return;
         }
     }
@@ -1331,7 +1331,7 @@ JNIEXPORT void JNICALL JNI_SDF_HashUpdate(JNIEnv *env, jobject obj, jlong sessio
     }
 
     if (data == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return;
     }
 
@@ -1339,7 +1339,7 @@ JNIEXPORT void JNICALL JNI_SDF_HashUpdate(JNIEnv *env, jobject obj, jlong sessio
     jsize data_len = (*env)->GetArrayLength(env, data);
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return;
     }
 

@@ -84,4 +84,12 @@ public class ECCKeyEncryptionResult {
     public long getKeyHandle() {
         return keyHandle;
     }
+
+    @Override
+    public String toString() {
+        return "ECCKeyEncryptionResult{" +
+                "keyHandlePresent=" + (keyHandle != 0) +
+                ", eccCipher=" + (eccCipher != null ? eccCipher.toString() : "null") +
+                '}';
+    }
 }

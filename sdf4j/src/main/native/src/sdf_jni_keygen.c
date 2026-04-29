@@ -34,7 +34,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_RSA(JNIEnv *env, jobject ob
     ULONG key_len = (keyBits + 7) / 8;  /* RSA密钥长度，按位转字节 */
     BYTE *key_buf = (BYTE*)malloc(key_len);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -60,7 +60,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_RSA(JNIEnv *env, jobject ob
     free(key_buf);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -82,7 +82,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_RSA(JNIEnv *env, jobject ob
 
     /* 转换Java RSAPublicKey到C结构 */
     if (publicKey == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
     RSArefPublicKey rsa_pub_key;
@@ -94,7 +94,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_RSA(JNIEnv *env, jobject ob
     ULONG key_len = (keyBits + 7) / 8;
     BYTE *key_buf = (BYTE*)malloc(key_len);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -120,7 +120,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_RSA(JNIEnv *env, jobject ob
     free(key_buf);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     return result;
@@ -141,13 +141,13 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_RSA(JNIEnv *env, jobject obj, j
 
     /* 转换加密密钥数据 */
     if (encryptedKey == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     BYTE *key_buf = (BYTE*)(*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return 0;
     }
 
@@ -213,7 +213,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_ECC(JNIEnv *env, jobject ob
     free(ecc_cipher);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     return result;
@@ -234,7 +234,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
 
     /* 转换Java ECCPublicKey到C结构 */
     if (publicKey == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument");
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
 
@@ -273,7 +273,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
     free(ecc_cipher);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     return result;
@@ -292,13 +292,13 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_ECC(JNIEnv *env, jobject obj, j
         return 0;
     }
     if (cipher == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
     /* 转换Java ECCCipher到C结构 (使用动态分配以支持柔性数组成员) */
     ECCCipher *ecc_cipher = java_to_native_ECCCipher_alloc(env, cipher);
     if (ecc_cipher == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
 
@@ -335,14 +335,14 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataWithECC(JNIEnv *env, jobj
         return NULL;
     }
     if (sponsorID == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
     /* 转换sponsorID */
     jsize sponsor_id_len = (*env)->GetArrayLength(env, sponsorID);
     jbyte *sponsor_id_buf = (*env)->GetByteArrayElements(env, sponsorID, NULL);
     if (sponsor_id_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -387,7 +387,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
         return 0;
     }
     if (responsePublicKey == NULL || responseTmpPublicKey == NULL || responseID == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
 
@@ -405,7 +405,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_GenerateKeyWithECC(JNIEnv *env, jobject obj, jlo
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
     jbyte *response_id_buf = (*env)->GetByteArrayElements(env, responseID, NULL);
     if (response_id_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return 0;
     }
 
@@ -446,7 +446,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
         return NULL;
     }
     if (sponsorPublicKey == NULL || sponsorTmpPublicKey == NULL || responseID == NULL || sponsorID == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }
 
@@ -462,7 +462,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
     jsize response_id_len = (*env)->GetArrayLength(env, responseID);
     jbyte *response_id_buf = (*env)->GetByteArrayElements(env, responseID, NULL);
     if (response_id_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -471,7 +471,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateAgreementDataAndKeyWithECC(JNIEnv *env
     jbyte *sponsor_id_buf = (*env)->GetByteArrayElements(env, sponsorID, NULL);
     if (sponsor_id_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, responseID, response_id_buf, JNI_ABORT);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -533,7 +533,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithKEK(JNIEnv *env, jobject obj, j
     ULONG buffer_size = key_len + 16;
     BYTE *key_buf = (BYTE*)malloc(buffer_size);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -561,7 +561,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithKEK(JNIEnv *env, jobject obj, j
     free(key_buf);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -583,13 +583,13 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong
 
     /* 转换加密密钥数据 */
     if (encryptedKey == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001D, "Invalid argument"); /* SDR_INARGERR */
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return 0;
     }
     jsize key_len = (*env)->GetArrayLength(env, encryptedKey);
     jbyte *key_buf = (*env)->GetByteArrayElements(env, encryptedKey, NULL);
     if (key_buf == NULL) {
-        THROW_SDF_EXCEPTION(env, 0x0100001C, "Memory allocation failed");
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return 0;
     }
 
