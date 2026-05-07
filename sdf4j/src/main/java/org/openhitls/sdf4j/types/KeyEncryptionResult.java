@@ -36,7 +36,7 @@ public class KeyEncryptionResult {
     /**
      * Constructor
      *
-     * @param encryptedKey Encrypted key data
+     * @param encryptedKey Encrypted key data; stored by reference without cloning
      * @param keyHandle Key handle
      */
     public KeyEncryptionResult(byte[] encryptedKey, long keyHandle) {
@@ -50,7 +50,7 @@ public class KeyEncryptionResult {
      * @return Encrypted key data
      */
     public byte[] getEncryptedKey() {
-        return encryptedKey;
+        return encryptedKey != null ? encryptedKey.clone() : null;
     }
 
     /**

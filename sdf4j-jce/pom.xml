@@ -58,7 +58,8 @@
                                     cd build &amp;&amp; \
                                     cmake .. \
                                         -DCMAKE_BUILD_TYPE=${cmake.build.type} \
-                                        -DSDF4J_NATIVE_DIR=${project.basedir}/../sdf4j/src/main/native &amp;&amp; \
+                                        -DSDF4J_NATIVE_DIR=${project.basedir}/../sdf4j/src/main/native \
+                                        ${cmake.extra.options} &amp;&amp; \
                                     cmake --build . --config ${cmake.build.type} -j
                                 </argument>
                             </arguments>

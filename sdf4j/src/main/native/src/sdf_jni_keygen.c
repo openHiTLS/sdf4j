@@ -29,7 +29,10 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_RSA(JNIEnv *env, jobject ob
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
-
+    if (keyBits <= 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid key bits");
+        return NULL;
+    }
     /* 分配密钥缓冲区 */
     ULONG key_len = (keyBits + 7) / 8;  /* RSA密钥长度，按位转字节 */
     BYTE *key_buf = (BYTE*)malloc(key_len);

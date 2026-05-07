@@ -12,7 +12,6 @@
 package org.openhitls.sdf4j.jce;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Assume;
 import org.junit.Test;

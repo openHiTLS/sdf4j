@@ -52,8 +52,8 @@ public class SM2ParameterSpec implements AlgorithmParameterSpec {
     /**
      * Create with specified user ID and public key
      *
-     * @param userId    the user identifier
-     * @param publicKey the SM2 public key (required for Z value calculation)
+     * @param userId    the user identifier; stored by reference without cloning
+     * @param publicKey the SM2 public key; stored by reference without cloning
      */
     public SM2ParameterSpec(byte[] userId, SM2PublicKey publicKey) {
         if (userId == null || userId.length == 0) {

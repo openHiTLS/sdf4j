@@ -12,16 +12,19 @@
 
 package org.openhitls.sdf4j;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
 import org.openhitls.sdf4j.constants.ErrorCode;
-import org.openhitls.sdf4j.types.*;
-
-import static org.junit.Assert.*;
+import org.openhitls.sdf4j.types.DeviceInfo;
+import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
 
 /**
  * SDF4J 资源管理测试
@@ -179,6 +182,58 @@ public class ResourceManagementTest extends BaseSDFTest {
         }
         // 直接关闭设备，保证session和key也能被关闭释放
         sdf6.SDF_CloseDevice(deviceHandle);
+    }
+
+    /**
+     * 测试跨实例关闭 session 应被拒绝
+     * 实例 A 创建的 session 不能被实例 B 关闭
+     */
+    @Test
+    public void testCloseSessionFromDifferentInstance() throws SDFException {
+        SDF sdfA = new SDF();
+
+        long deviceA = sdfA.SDF_OpenDevice();
+
+        long sessionA = sdfA.SDF_OpenSession(deviceA);
+        assertNotEquals("会话句柄有效", 0, sessionA);
+
+        try {
+            sdfA.SDF_CloseSession(sessionA + 1);
+            fail("不同实例关闭 session 应抛出异常");
+        } catch (SDFException e) {
+            // 忽略
+        }
+
+        // 验证实例 A 的 session 仍然可用
+        byte[] random = sdfA.SDF_GenerateRandom(sessionA, 16);
+        assertNotNull("session 仍然可用", random);
+        assertEquals(16, random.length);
+
+        sdfA.SDF_CloseSession(sessionA);
+        sdfA.SDF_CloseDevice(deviceA);
+    }
+
+    /**
+     * 测试重复关闭同一 session 应被拒绝
+     */
+    @Test
+    public void testDoubleCloseSession() throws SDFException {
+        SDF sdf7 = new SDF();
+        long deviceHandle = sdf7.SDF_OpenDevice();
+        long sessionHandle = sdf7.SDF_OpenSession(deviceHandle);
+
+        // 第一次关闭应成功
+        sdf7.SDF_CloseSession(sessionHandle);
+
+        // 第二次关闭应抛出异常
+        try {
+            sdf7.SDF_CloseSession(sessionHandle);
+            fail("重复关闭 session 应抛出异常");
+        } catch (SDFException e) {
+            // 忽略
+        }
+
+        sdf7.SDF_CloseDevice(deviceHandle);
     }
 }
 

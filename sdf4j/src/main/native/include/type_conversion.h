@@ -34,11 +34,11 @@ void throw_sdf_exception_with_format(JNIEnv *env, int error_code, const char *fm
  *
  * 异常消息格式: Function: xxx, File: xxx, Line: xxx, ErrorNum: 0xXXXXXXXX, Message: xxx
  */
-#define THROW_SDF_EXCEPTION(env, error_code, ...) \
+#define THROW_SDF_EXCEPTION(env, error_code, fmt, ...) \
     throw_sdf_exception_with_format(env, error_code, \
-        "Function: %s, File: %s, Line: %d, ErrorNum: 0x%08X, Message: " __VA_ARGS__, \
+        "Function: %s, File: %s, Line: %d, ErrorNum: 0x%08X, Message: " fmt, \
         __func__, strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__, __LINE__, \
-        (unsigned int)(error_code))
+        (unsigned int)(error_code), ##__VA_ARGS__)
 
 /* ========================================================================
  * C结构体 → Java对象转换

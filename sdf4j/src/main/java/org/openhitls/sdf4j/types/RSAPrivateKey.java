@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * RSA Private Key (RSArefPrivateKey)
  *
@@ -70,12 +68,12 @@ public class RSAPrivateKey {
      * Parameterized constructor.
      *
      * @param bits  modulus bit length
-     * @param m     modulus
-     * @param e     public exponent
-     * @param d     private exponent
-     * @param prime prime factors [p, q]
-     * @param pexp  CRT exponents [dp, dq]
-     * @param coef  CRT coefficient
+     * @param m     modulus; stored by reference without cloning
+     * @param e     public exponent; stored by reference without cloning
+     * @param d     private exponent; stored by reference without cloning
+     * @param prime prime factors [p, q]; stored by reference without cloning
+     * @param pexp  CRT exponents [dp, dq]; stored by reference without cloning
+     * @param coef  CRT coefficient; stored by reference without cloning
      */
     public RSAPrivateKey(int bits, byte[] m, byte[] e, byte[] d,
                          byte[][] prime, byte[][] pexp, byte[] coef) {
@@ -123,12 +121,12 @@ public class RSAPrivateKey {
     /**
      * Get modulus m.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return modulus byte array
      */
     public byte[] getM() {
-        return m;
+        return m != null ? m.clone() : null;
     }
 
     /**
@@ -141,18 +139,18 @@ public class RSAPrivateKey {
         if (m == null) {
             throw new IllegalArgumentException("Modulus cannot be null");
         }
-        this.m = m;
+        this.m = m.clone();
     }
 
     /**
      * Get public exponent e.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return public exponent byte array
      */
     public byte[] getE() {
-        return e;
+        return e != null ? e.clone() : null;
     }
 
     /**
@@ -165,18 +163,18 @@ public class RSAPrivateKey {
         if (e == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
         }
-        this.e = e;
+        this.e = e.clone();
     }
 
     /**
      * Get private exponent d.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return private exponent byte array
      */
     public byte[] getD() {
-        return d;
+        return d != null ? d.clone() : null;
     }
 
     /**
@@ -189,18 +187,25 @@ public class RSAPrivateKey {
         if (d == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
         }
-        this.d = d;
+        this.d = d.clone();
     }
 
     /**
      * Get prime factors [p, q].
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return prime factors array, where index 0 is p and index 1 is q
      */
     public byte[][] getPrime() {
-        return prime;
+        if (prime == null) {
+            return null;
+        }
+        byte[][] copy = new byte[prime.length][];
+        for (int i = 0; i < prime.length; i++) {
+            copy[i] = prime[i] != null ? prime[i].clone() : null;
+        }
+        return copy;
     }
 
     /**
@@ -213,18 +218,25 @@ public class RSAPrivateKey {
         if (prime == null) {
             throw new IllegalArgumentException("Prime cannot be null");
         }
-        this.prime = prime;
+        this.prime = cloneParams(prime);
     }
 
     /**
      * Get CRT exponents.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return CRT exponents array, where index 0 is dp and index 1 is dq
      */
     public byte[][] getPexp() {
-        return pexp;
+        if (pexp == null) {
+            return null;
+        }
+        byte[][] copy = new byte[pexp.length][];
+        for (int i = 0; i < pexp.length; i++) {
+            copy[i] = pexp[i] != null ? pexp[i].clone() : null;
+        }
+        return copy;
     }
 
     /**
@@ -237,18 +249,18 @@ public class RSAPrivateKey {
         if (pexp == null) {
             throw new IllegalArgumentException("CRT exponents cannot be null");
         }
-        this.pexp = pexp;
+        this.pexp = cloneParams(pexp);
     }
 
     /**
      * Get CRT coefficient.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return CRT coefficient byte array
      */
     public byte[] getCoef() {
-        return coef;
+        return coef != null ? coef.clone() : null;
     }
 
     /**
@@ -261,7 +273,7 @@ public class RSAPrivateKey {
         if (coef == null) {
             throw new IllegalArgumentException("CRT coefficient cannot be null");
         }
-        this.coef = coef;
+        this.coef = coef.clone();
     }
 
     @Override
@@ -286,5 +298,13 @@ public class RSAPrivateKey {
             sb.append(String.format("%02X", b));
         }
         return sb.toString();
+    }
+
+    private static byte[][] cloneParams(byte[][] values) {
+        byte[][] copy = new byte[values.length][];
+        for (int i = 0; i < values.length; i++) {
+            copy[i] = values[i] != null ? values[i].clone() : null;
+        }
+        return copy;
     }
 }

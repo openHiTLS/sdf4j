@@ -176,6 +176,22 @@ java -cp target/sdf4j-1.0.0-SNAPSHOT.jar \
 
 ---
 
+### 自定义 CMake 选项
+
+通过 `cmake.extra.options` 属性可以向 CMake 传递额外的构建选项，适用于开启 Sanitizer、自定义编译标志等场景：
+
+```bash
+# 开启 AddressSanitizer
+mvn clean package -Dcmake.extra.options="-DCMAKE_C_FLAGS=-fsanitize=address"
+
+# 传递多个 CMake 选项
+mvn clean package -Dcmake.extra.options="-DFOO=bar -DBAZ=qux"
+
+# 组合使用：Release模式 + 自定义 CMake 选项
+mvn clean package -Prelease \
+    -Dcmake.extra.options="-DCMAKE_C_FLAGS=-fsanitize=address"
+```
+
 ### 构建模式选择
 
 **不同构建模式：**

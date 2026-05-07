@@ -38,14 +38,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_generateSm4Key(JNIEnv *env, jclass
     jbyteArray result = (*env)->NewByteArray(env, SM4_KEY_LENGTH);
     if (result == NULL) {
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
-        memset(key, 0, SM4_KEY_LENGTH);
+        SDF_Clear(key, SM4_KEY_LENGTH);
         return NULL;
     }
     /* SM4_KEY_LENGTH > 0 is guaranteed */
     (*env)->SetByteArrayRegion(env, result, 0, SM4_KEY_LENGTH, (jbyte *)key);
 
     /* 清除敏感数据 */
-    memset(key, 0, SM4_KEY_LENGTH);
+    SDF_Clear(key, SM4_KEY_LENGTH);
 
     return result;
 }

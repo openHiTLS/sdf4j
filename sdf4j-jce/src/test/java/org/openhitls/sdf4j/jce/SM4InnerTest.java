@@ -33,6 +33,7 @@ import java.util.Arrays;
  *   <li>ECB/CBC 向量测试 (已知答案验证)</li>
  *   <li>PKCS5/PKCS7 填充测试</li>
  *   <li>ECB/CBC 流式 update + doFinal (多包模式验证)</li>
+ *   <li>GCM 向量测试 (已知答案验证, 含/不含 AAD)</li>
  *   <li>GCM 模式基本加解密</li>
  *   <li>GCM 模式带 AAD 加解密</li>
  *   <li>GCM 模式 tag 验证失败</li>
@@ -693,6 +694,156 @@ public class SM4InnerTest {
         assertArrayEquals("Streaming CBC PKCS5 decrypt roundtrip failed", plaintext, decrypted);
     }
 
+    // ==================== GCM 向量测试 ====================
+
+    private static final byte[] GCM_IV = new byte[]{
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B
+    };
+
+    private static final byte[] GCM_PLAINTEXT_16 = new byte[]{
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+    };
+
+    private static final byte[] GCM_PLAINTEXT_32 = new byte[]{
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+            0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+    };
+
+    private static final byte[] GCM_AAD_16 = new byte[]{
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+    };
+
+    private static final byte[] GCM_AAD_20 = new byte[]{
+            (byte) 0xFE, (byte) 0xED, (byte) 0xFA, (byte) 0xCE, (byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF,
+            (byte) 0xFE, (byte) 0xED, (byte) 0xFA, (byte) 0xCE, (byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF,
+            (byte) 0xAB, (byte) 0xAD, (byte) 0xDA, (byte) 0xD2
+    };
+
+    // Vector 1: 16-byte plaintext, no AAD (ciphertext || tag)
+    private static final byte[] EXPECTED_GCM_CT_NO_AAD_16 = new byte[]{
+            (byte) 0x55, (byte) 0xFB, (byte) 0xBA, (byte) 0x63, (byte) 0xA5, (byte) 0x99, (byte) 0x23, (byte) 0xF5,
+            (byte) 0xEA, (byte) 0xFD, (byte) 0x55, (byte) 0x50, (byte) 0x73, (byte) 0x69, (byte) 0x9E, (byte) 0xDF,
+            (byte) 0x06, (byte) 0x8E, (byte) 0xBF, (byte) 0x38, (byte) 0xE3, (byte) 0x07, (byte) 0x05, (byte) 0x89,
+            (byte) 0xB6, (byte) 0xC6, (byte) 0x10, (byte) 0xCB, (byte) 0xD7, (byte) 0x9A, (byte) 0x43, (byte) 0x03
+    };
+
+    // Vector 2: 16-byte plaintext, 16-byte AAD (ciphertext || tag)
+    private static final byte[] EXPECTED_GCM_CT_WITH_AAD_16 = new byte[]{
+            (byte) 0x55, (byte) 0xFB, (byte) 0xBA, (byte) 0x63, (byte) 0xA5, (byte) 0x99, (byte) 0x23, (byte) 0xF5,
+            (byte) 0xEA, (byte) 0xFD, (byte) 0x55, (byte) 0x50, (byte) 0x73, (byte) 0x69, (byte) 0x9E, (byte) 0xDF,
+            (byte) 0x16, (byte) 0xD4, (byte) 0x25, (byte) 0x1B, (byte) 0x46, (byte) 0x69, (byte) 0xE2, (byte) 0x43,
+            (byte) 0x51, (byte) 0xD4, (byte) 0xD5, (byte) 0xF7, (byte) 0x4A, (byte) 0x19, (byte) 0xF2, (byte) 0x41
+    };
+
+    // Vector 3: 32-byte plaintext, no AAD (ciphertext || tag)
+    private static final byte[] EXPECTED_GCM_CT_NO_AAD_32 = new byte[]{
+            (byte) 0x55, (byte) 0xFB, (byte) 0xBA, (byte) 0x63, (byte) 0xA5, (byte) 0x99, (byte) 0x23, (byte) 0xF5,
+            (byte) 0xEA, (byte) 0xFD, (byte) 0x55, (byte) 0x50, (byte) 0x73, (byte) 0x69, (byte) 0x9E, (byte) 0xDF,
+            (byte) 0xC5, (byte) 0xE0, (byte) 0x4A, (byte) 0xCA, (byte) 0x35, (byte) 0xD7, (byte) 0x17, (byte) 0x7D,
+            (byte) 0xAF, (byte) 0x4F, (byte) 0x50, (byte) 0xFA, (byte) 0xE9, (byte) 0xCF, (byte) 0xF6, (byte) 0xE7,
+            (byte) 0x69, (byte) 0x0D, (byte) 0x93, (byte) 0x5F, (byte) 0x42, (byte) 0x24, (byte) 0xA5, (byte) 0x95,
+            (byte) 0x51, (byte) 0x14, (byte) 0x67, (byte) 0x8F, (byte) 0x56, (byte) 0x7F, (byte) 0x49, (byte) 0xF9
+    };
+
+    // Vector 4: 32-byte plaintext, 20-byte AAD (ciphertext || tag)
+    private static final byte[] EXPECTED_GCM_CT_WITH_AAD_32 = new byte[]{
+            (byte) 0x55, (byte) 0xFB, (byte) 0xBA, (byte) 0x63, (byte) 0xA5, (byte) 0x99, (byte) 0x23, (byte) 0xF5,
+            (byte) 0xEA, (byte) 0xFD, (byte) 0x55, (byte) 0x50, (byte) 0x73, (byte) 0x69, (byte) 0x9E, (byte) 0xDF,
+            (byte) 0xC5, (byte) 0xE0, (byte) 0x4A, (byte) 0xCA, (byte) 0x35, (byte) 0xD7, (byte) 0x17, (byte) 0x7D,
+            (byte) 0xAF, (byte) 0x4F, (byte) 0x50, (byte) 0xFA, (byte) 0xE9, (byte) 0xCF, (byte) 0xF6, (byte) 0xE7,
+            (byte) 0xA2, (byte) 0x57, (byte) 0x8F, (byte) 0x8B, (byte) 0x9A, (byte) 0xBE, (byte) 0x41, (byte) 0x60,
+            (byte) 0x0A, (byte) 0xFB, (byte) 0xAE, (byte) 0x47, (byte) 0xC2, (byte) 0xA6, (byte) 0xF6, (byte) 0xAD
+    };
+
+    @Test
+    public void testGCMVector16BytesNoAAD() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, GCM_IV);
+
+        Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+        byte[] result = encCipher.doFinal(GCM_PLAINTEXT_16);
+
+        assertArrayEquals("GCM 16-byte no-AAD vector failed", EXPECTED_GCM_CT_NO_AAD_16, result);
+
+        Cipher decCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+        byte[] decrypted = decCipher.doFinal(result);
+
+        assertArrayEquals("GCM 16-byte no-AAD decrypt failed", GCM_PLAINTEXT_16, decrypted);
+    }
+
+    @Test
+    public void testGCMVector16BytesWithAAD() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, GCM_IV);
+
+        Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+        encCipher.updateAAD(GCM_AAD_16);
+        byte[] result = encCipher.doFinal(GCM_PLAINTEXT_16);
+
+        assertArrayEquals("GCM 16-byte with-AAD vector failed", EXPECTED_GCM_CT_WITH_AAD_16, result);
+
+        Cipher decCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+        decCipher.updateAAD(GCM_AAD_16);
+        byte[] decrypted = decCipher.doFinal(result);
+
+        assertArrayEquals("GCM 16-byte with-AAD decrypt failed", GCM_PLAINTEXT_16, decrypted);
+    }
+
+    @Test
+    public void testGCMVector32BytesNoAAD() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, GCM_IV);
+
+        Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+        byte[] result = encCipher.doFinal(GCM_PLAINTEXT_32);
+
+        assertArrayEquals("GCM 32-byte no-AAD vector failed", EXPECTED_GCM_CT_NO_AAD_32, result);
+
+        Cipher decCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+        byte[] decrypted = decCipher.doFinal(result);
+
+        assertArrayEquals("GCM 32-byte no-AAD decrypt failed", GCM_PLAINTEXT_32, decrypted);
+    }
+
+    @Test
+    public void testGCMVector32BytesWithAAD() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, GCM_IV);
+
+        Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
+        encCipher.updateAAD(GCM_AAD_20);
+        byte[] result = encCipher.doFinal(GCM_PLAINTEXT_32);
+
+        assertArrayEquals("GCM 32-byte with-AAD vector failed", EXPECTED_GCM_CT_WITH_AAD_32, result);
+
+        Cipher decCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+        decCipher.updateAAD(GCM_AAD_20);
+        byte[] decrypted = decCipher.doFinal(result);
+
+        assertArrayEquals("GCM 32-byte with-AAD decrypt failed", GCM_PLAINTEXT_32, decrypted);
+    }
+
     // ==================== GCM 模式测试 ====================
 
     @Test
@@ -984,18 +1135,14 @@ public class SM4InnerTest {
         cipher.init(Cipher.ENCRYPT_MODE, key);
     }
 
-    @Test
+    @Test(expected = InvalidKeyException.class)
     public void testCBCWithoutIV() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
 
-        // CBC 模式不传 IV，实现允许（使用全零 IV）
+        // Cipher.init(opmode, key) cannot surface InvalidAlgorithmParameterException directly.
         Cipher cipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
         cipher.init(Cipher.ENCRYPT_MODE, key);
-
-        byte[] plaintext = "CBC no IV test".getBytes();
-        byte[] ciphertext = cipher.doFinal(plaintext);
-        assertNotNull(ciphertext);
     }
 
     @Test

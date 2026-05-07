@@ -13,7 +13,7 @@
 #include "sdf_jni_common.h"
 #include "sdf_types.h"
 
-#define HYBRID_PUBKEY_MAX_BYTES 2660
+#define HYBRID_PUBKEY_MAX_BYTES 18825
 
 JNIEXPORT jbyteArray JNICALL JNI_SDF_ExportPublicKey_Hybrid(JNIEnv *env, jobject obj,
     jlong sessionHandle, jint keyIndex) {

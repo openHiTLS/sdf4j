@@ -19,10 +19,6 @@
 /* 保存库路径用于初始化 */
 static char *g_library_path = NULL;
 
-JNIEXPORT void JNICALL Sdf4j_Jce_NativeLoader_SetLibraryPath(JNIEnv *env, jclass cls, jstring path);
-JNIEXPORT jboolean JNICALL Sdf4j_Jce_NativeLoader_Initialize(JNIEnv *env, jclass cls);
-JNIEXPORT void JNICALL Sdf4j_Jce_NativeLoader_Cleanup(JNIEnv *env, jclass cls);
-
 /* SDF库路径环境变量名 */
 #define SDF_LIBRARY_PATH_ENV "SDF_LIBRARY_PATH"
 

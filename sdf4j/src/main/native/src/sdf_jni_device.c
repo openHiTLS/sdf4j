@@ -11,6 +11,7 @@
  */
 
 #include "sdf_jni_common.h"
+#include "stdint.h"
 
 /* ========================================================================
  * 设备管理函数 JNI 实现
@@ -26,7 +27,7 @@ JNIEXPORT jlong JNICALL JNI_SDF_OpenDevice(JNIEnv *env, jobject obj) {
         return 0;
     }
 
-    return (jlong)hDevice;
+    return (jlong)(uintptr_t)hDevice;
 }
 
 JNIEXPORT jlong JNICALL JNI_SDF_OpenDeviceWithConf(JNIEnv *env, jobject obj, jstring configFile) {
@@ -183,7 +184,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetPrivateKeyAccessRight(JNIEnv *env, jobject obj
 
     if (pwd != NULL) {
         /* 清除密码内存 */
-        memset(pwd, 0, pwd_len);
+        SDF_Clear(pwd, pwd_len);
         free(pwd);
     }
 
@@ -232,7 +233,7 @@ JNIEXPORT void JNICALL JNI_SDF_GetKEKAccessRight(JNIEnv *env, jobject obj, jlong
 
     if (pwd != NULL) {
         /* 清除密码内存 */
-        memset(pwd, 0, pwd_len);
+        SDF_Clear(pwd, pwd_len);
         free(pwd);
     }
 

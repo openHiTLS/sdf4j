@@ -33,6 +33,9 @@
         <!-- CMake构建配置 -->
         <cmake.build.type>RelWithDebInfo</cmake.build.type>
         <cmake.generator>Unix Makefiles</cmake.generator>
+        <!-- CMake额外选项 - 编译时可通过 -Dcmake.extra.options="-DFOO=bar" 指定 -->
+        <!-- 例如: -Dcmake.extra.options="-DENABLE_SANITIZER=ON -DCMAKE_C_FLAGS=-fsanitize=address" -->
+        <cmake.extra.options></cmake.extra.options>
         <!-- SDF库配置 - 编译时可通过 -Dsdf.library.name=xxx 指定 -->
         <!-- 默认库名称: sdf (对应 libsdf.so) -->
         <sdf.library.name>sdf</sdf.library.name>

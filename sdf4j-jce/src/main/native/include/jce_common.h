@@ -16,9 +16,18 @@
 #include <jni.h>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 #include "sdf.h"
 #include "sdf_err.h"
 #include "dynamic_loader.h"
+
+static inline void SDF_Clear(void *ptr, size_t len)
+{
+    volatile unsigned char *p = (volatile unsigned char *)ptr;
+    while (len--) {
+        *p++ = 0;
+    }
+}
 
 /* 全局设备句柄 - 在JNI_OnLoad时初始化，JNI_OnUnload时释放 */
 extern HANDLE g_device_handle;

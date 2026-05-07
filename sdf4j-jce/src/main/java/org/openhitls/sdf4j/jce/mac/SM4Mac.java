@@ -16,7 +16,9 @@ import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayOutputStream;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.SDFJceNative;

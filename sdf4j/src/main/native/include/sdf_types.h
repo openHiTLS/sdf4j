@@ -92,7 +92,7 @@ typedef struct DeviceInfo_st
 #define RSAref_MAX_PLEN     ((RSAref_MAX_PBITS + 7) / 8)
 
 /* 后量子相关参数 */
-#define HYBRIDENCref_MAX_LEN 1576
+#define HYBRIDENCref_MAX_LEN 21937
 #define HYBRIDSIGref_MAX_LEN 4636
 #define HYBRIDENCref_ECC_FIXED_LEN 32
 
@@ -138,7 +138,7 @@ typedef struct ECCCipher_st
     BYTE  y[ECCref_MAX_LEN];
     BYTE  M[32];
     ULONG L;
-    BYTE  C[]; 
+    BYTE  C[];
 } ECCCipher;
 
 /* 5.8 ECC 签名数据结构定义 (ECC Signature Structure Definition) */

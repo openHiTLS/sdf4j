@@ -84,7 +84,7 @@ public class DeviceInfo {
      * @param deviceSerial    device serial number
      * @param deviceVersion   device version
      * @param standardVersion standard version
-     * @param asymAlgAbility  asymmetric algorithm abilities
+     * @param asymAlgAbility  asymmetric algorithm abilities; stored by reference without cloning
      * @param symAlgAbility   symmetric algorithm ability
      * @param hashAlgAbility  hash algorithm ability
      * @param bufferSize      buffer size
@@ -203,12 +203,12 @@ public class DeviceInfo {
     /**
      * Get asymmetric algorithm abilities.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return asymmetric algorithm ability flags
      */
     public long[] getAsymAlgAbility() {
-        return asymAlgAbility;
+        return asymAlgAbility != null ? asymAlgAbility.clone() : null;
     }
 
     /**
@@ -221,7 +221,7 @@ public class DeviceInfo {
         if (asymAlgAbility == null) {
             throw new IllegalArgumentException("asymAlgAbility cannot be null");
         }
-        this.asymAlgAbility = asymAlgAbility;
+        this.asymAlgAbility = asymAlgAbility.clone();
     }
 
     /**

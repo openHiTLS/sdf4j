@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * Hybrid Cipher Structure (HybridCipher)
  *
@@ -90,9 +88,9 @@ public class HybridCipher {
             throw new IllegalArgumentException("pqc cipher is invalid");
         }
         this.l1 = l1;
-        this.ctM = ctM;
+        this.ctM = ctM.clone();
         this.uiAlgID = uiAlgID;
-        this.ctS = ctS;
+        this.ctS = ECCCipher.dup(ctS);
         this.keyHandle = keyHandle;
     }
 
@@ -124,16 +122,18 @@ public class HybridCipher {
     /**
      * Get post-quantum ciphertext data.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return post-quantum ciphertext byte array (e.g., ML-KEM ciphertext)
      */
     public byte[] getCtM() {
-        return ctM;
+        return ctM != null ? ctM.clone() : null;
     }
 
     /**
      * Set post-quantum ciphertext data.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param ctM post-quantum ciphertext byte array
      * @throws IllegalArgumentException if ctM is null or length is inconsistent with l1
@@ -142,7 +142,7 @@ public class HybridCipher {
         if (ctM == null || this.l1 > ctM.length) {
             throw new IllegalArgumentException("cipher value is invalid");
         }
-        this.ctM = ctM;
+        this.ctM = ctM.clone();
     }
 
     /**
@@ -167,14 +167,18 @@ public class HybridCipher {
     /**
      * Get classical ECC ciphertext component.
      *
-     * @return ECC ciphertext structure (e.g., SM2 encryption result)
+     * <p>Returns a deep copy of the internal object for safety.
+     *
+     * @return a copy of the ECC ciphertext structure (e.g., SM2 encryption result)
      */
     public ECCCipher getCtS() {
-        return ctS;
+        return ECCCipher.dup(ctS);
     }
 
     /**
      * Set classical ECC ciphertext component.
+     *
+     * <p>Stores a deep copy of the provided object.
      *
      * @param ctS ECC ciphertext structure
      * @throws IllegalArgumentException if ctS is null
@@ -183,9 +187,8 @@ public class HybridCipher {
         if (ctS == null) {
             throw new IllegalArgumentException("cipher value cannot be null");
         }
-        this.ctS = ctS;
+        this.ctS = ECCCipher.dup(ctS);
     }
-
     /**
      * Get session key handle.
      *

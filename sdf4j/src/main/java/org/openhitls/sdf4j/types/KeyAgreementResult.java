@@ -88,10 +88,12 @@ public class KeyAgreementResult {
     /**
      * Get party's ECC public key.
      *
-     * @return ECC public key of this party
+     * <p>Returns a deep copy of the internal object for safety.
+     *
+     * @return a copy of the ECC public key of this party
      */
     public ECCPublicKey getPublicKey() {
-        return publicKey;
+        return ECCPublicKey.dup(publicKey);
     }
 
     /**
@@ -99,10 +101,12 @@ public class KeyAgreementResult {
      *
      * <p>This is the ephemeral key generated specifically for this agreement session.
      *
-     * @return temporary ECC public key
+     * <p>Returns a deep copy of the internal object for safety.
+     *
+     * @return a copy of the temporary ECC public key
      */
     public ECCPublicKey getTmpPublicKey() {
-        return tmpPublicKey;
+        return ECCPublicKey.dup(tmpPublicKey);
     }
 
     @Override

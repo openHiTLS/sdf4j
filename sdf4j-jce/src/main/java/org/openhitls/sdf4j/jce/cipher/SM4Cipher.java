@@ -12,11 +12,22 @@
 
 package org.openhitls.sdf4j.jce.cipher;
 
-import javax.crypto.*;
+import javax.crypto.AEADBadTagException;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.CipherSpi;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayOutputStream;
-import java.security.*;
+import java.security.AlgorithmParameters;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.SDFJceNative;
@@ -191,12 +202,7 @@ public class SM4Cipher extends CipherSpi {
                 throw new InvalidAlgorithmParameterException("Unsupported parameter type");
             }
         } else if (cipherMode != MODE_ECB) {
-            if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
-                throw new InvalidAlgorithmParameterException("IV required for decryption");
-            }
-            this.iv = new byte[BLOCK_SIZE];
-            SecureRandom rng = (random != null) ? random : new SecureRandom();
-            rng.nextBytes(this.iv);
+            throw new InvalidAlgorithmParameterException("IV required for non-ECB mode");
         }
 
         buffer = new ByteArrayOutputStream();
@@ -476,10 +482,9 @@ public class SM4Cipher extends CipherSpi {
         if (data.length % BLOCK_SIZE != 0) {
             throw new BadPaddingException("Data length not block aligned");
         }
-
         int paddingLen = data[data.length - 1] & 0xFF;
         if (paddingLen < 1 || paddingLen > BLOCK_SIZE) {
-            throw new BadPaddingException("Invalid padding length: " + paddingLen);
+            throw new BadPaddingException("Invalid PKCS5 padding");
         }
 
         // Verify all padding bytes are correct
@@ -488,7 +493,6 @@ public class SM4Cipher extends CipherSpi {
                 throw new BadPaddingException("Invalid PKCS5 padding");
             }
         }
-
         byte[] unpadded = new byte[data.length - paddingLen];
         System.arraycopy(data, 0, unpadded, 0, unpadded.length);
         return unpadded;

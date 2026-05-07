@@ -34,6 +34,9 @@ void throw_sdf_exception_with_format(JNIEnv *env, int error_code, const char *fm
                                           error_code, jmsg);
     if (exception != NULL) {
         (*env)->Throw(env, (jthrowable)exception);
+    } else {
+        (*env)->ExceptionClear(env);
+        (*env)->ThrowNew(env, g_jni_cache.sdfException.cls, buffer);
     }
 }
 
@@ -810,7 +813,7 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
         if (len > HYBRIDENCref_MAX_LEN) {
             free(native_cipher);
             free(temp_cts);
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds 1576");
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds %d", HYBRIDENCref_MAX_LEN);
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, ctm_array, 0, len, (jbyte*)native_cipher->ct_m);
@@ -821,7 +824,13 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
 
     /* ct_s */
     if (temp_cts != NULL) {
-        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + HYBRIDENCref_ECC_FIXED_LEN);
+        if (temp_cts->L > HYBRIDENCref_ECC_FIXED_LEN) {
+            free(native_cipher);
+            free(temp_cts);
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds %d", HYBRIDENCref_MAX_LEN);
+            return NULL;
+        }
+        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + temp_cts->L);
         free(temp_cts);
     }
 

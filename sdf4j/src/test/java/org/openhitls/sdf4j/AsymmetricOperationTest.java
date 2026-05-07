@@ -17,7 +17,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
 import org.openhitls.sdf4j.constants.ErrorCode;
 import org.openhitls.sdf4j.types.*;
@@ -25,7 +24,6 @@ import org.openhitls.sdf4j.types.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Properties;
 
 import static org.junit.Assert.*;

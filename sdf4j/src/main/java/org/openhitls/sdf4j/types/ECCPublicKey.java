@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * ECC Public Key (ECCrefPublicKey)
  *
@@ -61,8 +59,8 @@ public class ECCPublicKey {
             throw new IllegalArgumentException("X and Y coordinates cannot be null");
         }
         this.bits = bits;
-        this.x = x;
-        this.y = y;
+        this.x = x.clone();
+        this.y = y.clone();
     }
 
     // ========================================================================
@@ -94,12 +92,12 @@ public class ECCPublicKey {
     /**
      * Get X coordinate of the elliptic curve point.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
-     * @return X coordinate byte array
+     * @return X coordinate byte array, or null if not set
      */
     public byte[] getX() {
-        return x;
+        return x != null ? x.clone() : null;
     }
 
     /**
@@ -112,18 +110,18 @@ public class ECCPublicKey {
         if (x == null) {
             throw new IllegalArgumentException("X coordinate cannot be null");
         }
-        this.x = x;
+        this.x = x.clone();
     }
 
     /**
      * Get Y coordinate of the elliptic curve point.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
-     * @return Y coordinate byte array
+     * @return Y coordinate byte array, or null if not set
      */
     public byte[] getY() {
-        return y;
+        return y != null ? y.clone() : null;
     }
 
     /**
@@ -136,45 +134,38 @@ public class ECCPublicKey {
         if (y == null) {
             throw new IllegalArgumentException("Y coordinate cannot be null");
         }
-        this.y = y;
-    }
-
-    // ========================================================================
-    // Utility Methods
-    // ========================================================================
-
-    /**
-     * Get effective X coordinate data (trimmed by bit length).
-     *
-     * @return effective X coordinate data
-     */
-    public byte[] getEffectiveX() {
-        if (x == null) {
-            return null;
-        }
-        int len = (bits + 7) / 8;
-        return Arrays.copyOf(x, len);
+        this.y = y.clone();
     }
 
     /**
-     * Get effective Y coordinate data (trimmed by bit length).
+     * Create a deep copy of the given public key, returning null if the input is null.
      *
-     * @return effective Y coordinate data
+     * @param key the public key to duplicate
+     * @return a new ECCPublicKey instance, or null
      */
-    public byte[] getEffectiveY() {
-        if (y == null) {
+    public static ECCPublicKey dup(ECCPublicKey key) {
+        if (key == null) {
             return null;
         }
-        int len = (bits + 7) / 8;
-        return Arrays.copyOf(y, len);
+        ECCPublicKey copy = new ECCPublicKey();
+        if (key.bits > 0) {
+            copy.bits = key.bits;
+        }
+        if (key.x != null) {
+            copy.x = key.x.clone();
+        }
+        if (key.y != null) {
+            copy.y = key.y.clone();
+        }
+        return copy;
     }
 
     @Override
     public String toString() {
         return "ECCPublicKey{" +
                 "bits=" + bits +
-                ", x=" + bytesToHex(getEffectiveX()) +
-                ", y=" + bytesToHex(getEffectiveY()) +
+                ", x=" + bytesToHex(x) +
+                ", y=" + bytesToHex(y) +
                 '}';
     }
 

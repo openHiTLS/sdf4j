@@ -41,7 +41,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Djava.library.path=${project.basedir}/../sdf4j-core/target/native</argLine>
+                    <argLine>-Djava.library.path=${project.basedir}/../sdf4j/target/native</argLine>
                     <failIfNoTests>false</failIfNoTests>
                     <!-- 继承父POM的fork配置 -->
                 </configuration>

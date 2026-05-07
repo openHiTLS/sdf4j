@@ -22,9 +22,6 @@ int g_sdf_initialized = 0;
 
 static pthread_mutex_t g_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* 前向声明 */
-void sdf_jce_cleanup(void);
-
 /**
  * 初始化SDF - 打开设备
  * 如果已经初始化过且句柄有效，直接返回成功
