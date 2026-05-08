@@ -17,7 +17,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
 import org.openhitls.sdf4j.constants.ErrorCode;
 import org.openhitls.sdf4j.types.*;

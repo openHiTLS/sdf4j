@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openhitls.sdf4j.*;
 import org.openhitls.sdf4j.constants.AlgorithmID;
-import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
 import org.junit.Assume;
 
 import java.nio.charset.StandardCharsets;

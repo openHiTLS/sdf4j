@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * Hybrid Signature Structure (HybridSignature)
  *
@@ -73,22 +71,26 @@ public class HybridSignature {
         if (l < 0 || l > sigM.length) {
             throw new IllegalArgumentException("pqc signature value is invalid");
         }
-        this.sigS = sigS;
+        this.sigS = ECCSignature.dup(sigS);
         this.l = l;
-        this.sigM = sigM;
+        this.sigM = sigM.clone();
     }
 
     /**
      * Get classical ECC signature component.
      *
-     * @return ECC signature containing r and s values
+     * <p>Returns a deep copy of the internal object for safety.
+     *
+     * @return a copy of the ECC signature containing r and s values
      */
     public ECCSignature getSigS() {
-        return sigS;
+        return ECCSignature.dup(sigS);
     }
 
     /**
      * Set classical ECC signature component.
+     *
+     * <p>Stores a deep copy of the provided object.
      *
      * @param sigS ECC signature
      * @throws IllegalArgumentException if sigS is null
@@ -97,22 +99,24 @@ public class HybridSignature {
         if (sigS == null) {
             throw new IllegalArgumentException("ECC signature cannot be null");
         }
-        this.sigS = sigS;
+        this.sigS = ECCSignature.dup(sigS);
     }
 
     /**
      * Get post-quantum signature data.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return post-quantum signature byte array (e.g., ML-DSA signature)
      */
     public byte[] getSigM() {
-        return sigM;
+        return sigM != null ? sigM.clone() : null;
     }
 
     /**
      * Set post-quantum signature data.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param sigM post-quantum signature byte array
      * @throws IllegalArgumentException if sigM is null or length is inconsistent with l
@@ -121,7 +125,7 @@ public class HybridSignature {
         if (sigM == null || this.l > sigM.length) {
             throw new IllegalArgumentException("signature value is invalid");
         }
-        this.sigM = sigM;
+        this.sigM = sigM.clone();
     }
 
     /**

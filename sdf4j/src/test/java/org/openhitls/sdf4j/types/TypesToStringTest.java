@@ -12,12 +12,9 @@
 
 package org.openhitls.sdf4j.types;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
-import org.openhitls.sdf4j.constants.AlgorithmID;
-
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
 
 /**
  * Test class for toString() methods in types package

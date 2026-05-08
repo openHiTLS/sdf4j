@@ -26,6 +26,9 @@ public class SM2PrivateKey implements PrivateKey {
 
     private final byte[] keyBytes;
 
+    /**
+     * @param keyBytes private key material; stored by reference without cloning
+     */
     public SM2PrivateKey(byte[] keyBytes) {
         if (keyBytes == null || keyBytes.length != 32) {
             throw new IllegalArgumentException("Key must be 32 bytes");

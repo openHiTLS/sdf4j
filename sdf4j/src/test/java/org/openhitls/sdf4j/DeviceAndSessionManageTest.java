@@ -12,20 +12,23 @@
 
 package org.openhitls.sdf4j;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.openhitls.sdf4j.*;
-import org.openhitls.sdf4j.constants.ErrorCode;
-import org.openhitls.sdf4j.types.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import org.junit.After;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.openhitls.sdf4j.constants.ErrorCode;
+import org.openhitls.sdf4j.types.DeviceInfo;
 
 /**
  * SDF4J 设备管理类函数测试

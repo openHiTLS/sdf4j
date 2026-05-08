@@ -12,8 +12,20 @@
 
 package org.openhitls.sdf4j;
 
+import org.openhitls.sdf4j.constants.ErrorCode;
 import org.openhitls.sdf4j.internal.NativeLibraryLoader;
-import org.openhitls.sdf4j.types.*;
+import org.openhitls.sdf4j.types.DeviceInfo;
+import org.openhitls.sdf4j.types.ECCCipher;
+import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
+import org.openhitls.sdf4j.types.ECCPrivateKey;
+import org.openhitls.sdf4j.types.ECCPublicKey;
+import org.openhitls.sdf4j.types.ECCSignature;
+import org.openhitls.sdf4j.types.HybridCipher;
+import org.openhitls.sdf4j.types.HybridSignature;
+import org.openhitls.sdf4j.types.KeyAgreementResult;
+import org.openhitls.sdf4j.types.KeyEncryptionResult;
+import org.openhitls.sdf4j.types.RSAPrivateKey;
+import org.openhitls.sdf4j.types.RSAPublicKey;
 
 /**
  * SDF主接口类
@@ -64,13 +76,13 @@ public class SDF {
 
     private Long gDevHandle = null;
     private DeviceResource gDevResource = null;
-    private java.util.Map<Long, SessionResource> gSessResource = new java.util.HashMap<>();
+    private java.util.Map<Long, SessionResource> gSessResource = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * devive类
      */
     private class DeviceResource {
-        private java.util.Set<Long> sessions = new java.util.HashSet<>();
+        private java.util.Set<Long> sessions = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         @Override
         protected void finalize() throws Throwable {
@@ -95,7 +107,7 @@ public class SDF {
      */
     private class SessionResource {
         private final long sessionHandle;
-        private final java.util.Set<Long> keys = new java.util.HashSet<>(); // 该 session 的所有 keyHandle
+        private final java.util.Set<Long> keys = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         SessionResource(long sessionHandle) {
             this.sessionHandle = sessionHandle;
@@ -240,19 +252,19 @@ public class SDF {
      * @throws SDFException 如果操作失败 / if operation fails
      */
     public void SDF_CloseSession(long sessionHandle) throws SDFException {
-        // 获取对应的 SessionResource
+        // 获取对应的 SessionResource，验证 session 属于当前实例
         SessionResource sessionResource = gSessResource.get(sessionHandle);
-        if (sessionResource != null) {
-            // 先关闭该 session 的所有 keyHandle
-            for (Long keyHandle : new java.util.HashSet<>(sessionResource.keys)) {
-                // 从 session resource 中移除, 避免 finalize 重复处理
-                sessionResource.removeKey(keyHandle);
-                // 关闭 keyHandle
-                SDF_DestroyKey_Native(sessionHandle, keyHandle);
-            }
-            // 从 sessionResources 中移除
-            gSessResource.remove(sessionHandle);
+        if (sessionResource == null) {
+            throw new SDFException(ErrorCode.SDR_INARGERR,
+                "Session handle does not belong to this SDF instance");
         }
+        // 先关闭该 session 的所有 keyHandle
+        for (Long keyHandle : new java.util.HashSet<>(sessionResource.keys)) {
+            sessionResource.removeKey(keyHandle);
+            SDF_DestroyKey_Native(sessionHandle, keyHandle);
+        }
+        // 从 sessionResources 中移除
+        gSessResource.remove(sessionHandle);
         // 从 device resource 中移除
         if (gDevResource != null) {
             gDevResource.removeSession(sessionHandle);

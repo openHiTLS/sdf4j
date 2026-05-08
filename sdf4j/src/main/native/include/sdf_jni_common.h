@@ -17,10 +17,19 @@
 #include "type_conversion.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static inline void SDF_Clear(void *ptr, size_t len)
+{
+    volatile unsigned char *p = (volatile unsigned char *)ptr;
+    while (len--) {
+        *p++ = 0;
+    }
+}
 
 /* 标记未使用的参数以避免编译警告 */
 #define UNUSED(x) (void)(x)

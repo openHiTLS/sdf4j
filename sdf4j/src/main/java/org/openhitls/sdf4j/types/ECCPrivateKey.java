@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * ECC Private Key (ECCrefPrivateKey)
  *
@@ -45,7 +43,7 @@ public class ECCPrivateKey {
      * Parameterized constructor.
      *
      * @param bits key bit length
-     * @param k    private key value
+     * @param k    private key value; stored by reference without cloning
      */
     public ECCPrivateKey(int bits, byte[] k) {
         if (bits <= 0) {
@@ -87,12 +85,12 @@ public class ECCPrivateKey {
     /**
      * Get private key value K.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return private key value byte array
      */
     public byte[] getK() {
-        return k;
+        return k != null ? k.clone() : null;
     }
 
     /**
@@ -105,20 +103,7 @@ public class ECCPrivateKey {
         if (k == null) {
             throw new IllegalArgumentException("Private key value cannot be null");
         }
-        this.k = k;
-    }
-
-    /**
-     * Get effective private key data (trimmed by bit length).
-     *
-     * @return effective private key data
-     */
-    public byte[] getEffectiveK() {
-        if (k == null) {
-            return null;
-        }
-        int len = (bits + 7) / 8;
-        return Arrays.copyOf(k, len);
+        this.k = k.clone();
     }
 
     @Override

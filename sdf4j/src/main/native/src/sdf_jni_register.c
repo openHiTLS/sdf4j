@@ -10,14 +10,14 @@
  * See the Mulan PSL v2 for more details.
  */
 
- #include "sdf_jni_common.h"
- #include "sdf_jni_functions.h"
- #include "jni_cache.h"
- #include <string.h>
- #include <stdio.h>
- 
- /* JNI 方法注册表 - SDF 类 */
- static JNINativeMethod sdf_methods[] = {
+#include "sdf_jni_common.h"
+#include "sdf_jni_functions.h"
+#include "jni_cache.h"
+#include <string.h>
+#include <stdio.h>
+
+/* JNI 方法注册表 - SDF 类 */
+static JNINativeMethod sdf_methods[] = {
     /* 6.2 设备管理类函数 */
     {"SDF_OpenDeviceNative", "()J", (void*)JNI_SDF_OpenDevice},
     {"SDF_OpenDeviceWithConf", "(Ljava/lang/String;)J", (void*)JNI_SDF_OpenDeviceWithConf},
@@ -118,7 +118,7 @@
     {"SDF_InternalSign_Composite", "(JI[B)Lorg/openhitls/sdf4j/types/HybridSignature;", (void*)JNI_SDF_InternalSign_Composite},
     {"SDF_ExternalVerify_Composite", "(JI[B[BLorg/openhitls/sdf4j/types/HybridSignature;)V", (void*)JNI_SDF_ExternalVerify_Composite},
 
- };
+};
 
 /* JNI 方法注册表 - NativeLibraryLoader 类 */
 static JNINativeMethod loader_methods[] = {
@@ -213,5 +213,4 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
 
     /* 清理 JNI 缓存 */
     jni_cache_cleanup(env);
- }
- 
+}

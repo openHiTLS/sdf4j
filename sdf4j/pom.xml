@@ -59,7 +59,8 @@
                                     mkdir -p build &amp;&amp; \
                                     cd build &amp;&amp; \
                                     cmake .. \
-                                        -DCMAKE_BUILD_TYPE=${cmake.build.type} &amp;&amp; \
+                                        -DCMAKE_BUILD_TYPE=${cmake.build.type} \
+                                        ${cmake.extra.options} &amp;&amp; \
                                     cmake --build . --config ${cmake.build.type} -j
                                 </argument>
                             </arguments>

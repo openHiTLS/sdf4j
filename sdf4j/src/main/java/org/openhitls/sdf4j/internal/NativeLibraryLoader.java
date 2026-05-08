@@ -12,10 +12,12 @@
 
 package org.openhitls.sdf4j.internal;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 
@@ -86,6 +88,8 @@ public class NativeLibraryLoader {
                 }
 
                 loaded = true;
+            } catch (UnsatisfiedLinkError e) {
+                throw e;
             } catch (Exception e) {
                 throw new UnsatisfiedLinkError("Failed to load native libraries: " + e.getMessage());
             }
@@ -308,15 +312,5 @@ public class NativeLibraryLoader {
      */
     public static boolean isLoaded() {
         return loaded;
-    }
-
-    /**
-     * 检查是否启用调试模式
-     *
-     * @return 如果启用调试返回true
-     */
-    private static boolean isDebugEnabled() {
-        String debug = System.getProperty("sdf4j.debug");
-        return "true".equalsIgnoreCase(debug) || "1".equals(debug);
     }
 }

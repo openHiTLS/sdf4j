@@ -66,10 +66,12 @@ public class ECCKeyEncryptionResult {
      * <p>This cipher should be transmitted to the receiving party for key recovery
      * via {@link org.openhitls.sdf4j.SDF#SDF_ImportKeyWithISK_ECC}.
      *
-     * @return ECC-encrypted key data
+     * <p>Returns a deep copy of the internal object for safety.
+     *
+     * @return a copy of the ECC-encrypted key data
      */
     public ECCCipher getEccCipher() {
-        return eccCipher;
+        return ECCCipher.dup(eccCipher);
     }
 
     /**

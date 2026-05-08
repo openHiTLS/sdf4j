@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * ECC Signature (ECCSignature)
  *
@@ -51,8 +49,8 @@ public class ECCSignature {
         if (r == null || s == null) {
             throw new IllegalArgumentException("Signature r and s cannot be null");
         }
-        this.r = r;
-        this.s = s;
+        this.r = r.clone();
+        this.s = s.clone();
     }
 
     // ========================================================================
@@ -62,16 +60,18 @@ public class ECCSignature {
     /**
      * Get signature r value.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return signature r component byte array
      */
     public byte[] getR() {
-        return r;
+        return r != null ? r.clone() : null;
     }
 
     /**
      * Set signature r value.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param r signature r component byte array
      * @throws IllegalArgumentException if r is null
@@ -80,22 +80,24 @@ public class ECCSignature {
         if (r == null) {
             throw new IllegalArgumentException("Signature r cannot be null");
         }
-        this.r = r;
+        this.r = r.clone();
     }
 
     /**
      * Get signature s value.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return signature s component byte array
      */
     public byte[] getS() {
-        return s;
+        return s != null ? s.clone() : null;
     }
 
     /**
      * Set signature s value.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param s signature s component byte array
      * @throws IllegalArgumentException if s is null
@@ -104,7 +106,27 @@ public class ECCSignature {
         if (s == null) {
             throw new IllegalArgumentException("Signature s cannot be null");
         }
-        this.s = s;
+        this.s = s.clone();
+    }
+
+    /**
+     * Create a deep copy of the given signature, returning null if the input is null.
+     *
+     * @param sig the signature to duplicate
+     * @return a new ECCSignature instance, or null
+     */
+    public static ECCSignature dup(ECCSignature sig) {
+        if (sig == null) {
+            return null;
+        }
+        ECCSignature copy = new ECCSignature();
+        if (sig.r != null) {
+            copy.r = sig.r.clone();
+        }
+        if (sig.s != null) {
+            copy.s = sig.s.clone();
+        }
+        return copy;
     }
 
     @Override

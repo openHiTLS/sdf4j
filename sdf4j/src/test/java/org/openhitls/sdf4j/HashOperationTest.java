@@ -12,23 +12,24 @@
 
 package org.openhitls.sdf4j;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.openhitls.sdf4j.*;
-import org.openhitls.sdf4j.constants.AlgorithmID;
-import org.openhitls.sdf4j.constants.ErrorCode;
-import org.openhitls.sdf4j.types.ECCPublicKey;
-import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import org.junit.After;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.openhitls.sdf4j.constants.AlgorithmID;
+import org.openhitls.sdf4j.constants.ErrorCode;
+import org.openhitls.sdf4j.types.ECCKeyEncryptionResult;
+import org.openhitls.sdf4j.types.ECCPublicKey;
 
 /**
  * SDF4J 杂凑运算类函数测试

@@ -661,6 +661,6 @@ JNIEXPORT void JNICALL JNI_SDFJceNative_sm4Free(JNIEnv *env, jclass cls, jlong c
         g_sdf_functions.SDF_DestroyKey(ctx->session_handle, ctx->key_handle);
     }
 
-    memset(ctx, 0, sizeof(SM4Context));
+    SDF_Clear(ctx, sizeof(SM4Context));
     free(ctx);
 }

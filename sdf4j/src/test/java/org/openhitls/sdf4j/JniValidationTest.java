@@ -12,11 +12,18 @@
 
 package org.openhitls.sdf4j;
 
-import org.junit.Test;
-import org.openhitls.sdf4j.types.*;
-import org.openhitls.sdf4j.constants.ErrorCode;
 import java.lang.reflect.Field;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.fail;
+import org.junit.Test;
+import org.openhitls.sdf4j.types.ECCCipher;
+import org.openhitls.sdf4j.types.ECCPrivateKey;
+import org.openhitls.sdf4j.types.ECCPublicKey;
+import org.openhitls.sdf4j.types.ECCSignature;
+import org.openhitls.sdf4j.types.HybridCipher;
+import org.openhitls.sdf4j.types.HybridSignature;
+import org.openhitls.sdf4j.types.RSAPrivateKey;
+import org.openhitls.sdf4j.types.RSAPublicKey;
 
 /**
  * Tests for JNI-layer length validation in java_to_native_* functions.
@@ -167,8 +174,8 @@ public class JniValidationTest extends BaseSDFTest {
         requireDevice();
 
         HybridCipher cipher = new HybridCipher();
-        setField(cipher, "l1", 2000L);
-        setField(cipher, "ctM", new byte[2000]); // > HYBRIDENCref_MAX_LEN (1576)
+        setField(cipher, "l1", 21938);
+        setField(cipher, "ctM", new byte[21938]); // > HYBRIDENCref_MAX_LEN (21937)
         setField(cipher, "uiAlgID", 0x00000401L);
 
         try {

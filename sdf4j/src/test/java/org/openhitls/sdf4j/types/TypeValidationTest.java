@@ -15,7 +15,6 @@ package org.openhitls.sdf4j.types;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
-import org.openhitls.sdf4j.constants.ErrorCode;
 
 /**
  * Tests for Java-layer constructor and setter validation in type classes.
@@ -131,6 +130,21 @@ public class TypeValidationTest {
         assertNotNull(sig.getS());
     }
 
+    @Test
+    public void testECCSignature_settersCloneInputs() {
+        ECCSignature sig = new ECCSignature();
+        byte[] r = new byte[] {1, 2};
+        byte[] s = new byte[] {3, 4};
+
+        sig.setR(r);
+        sig.setS(s);
+        r[0] = 9;
+        s[0] = 9;
+
+        assertArrayEquals(new byte[] {1, 2}, sig.getR());
+        assertArrayEquals(new byte[] {3, 4}, sig.getS());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testECCCipher_nullX() {
         new ECCCipher(null, new byte[64], new byte[32], 16, new byte[16]);
@@ -174,6 +188,30 @@ public class TypeValidationTest {
         assertEquals(13, cipher.getL());
     }
 
+    @Test
+    public void testECCCipher_settersCloneInputs() {
+        ECCCipher cipher = new ECCCipher();
+        byte[] x = new byte[] {1, 2};
+        byte[] y = new byte[] {3, 4};
+        byte[] m = new byte[] {5, 6};
+        byte[] c = new byte[] {7, 8};
+
+        cipher.setX(x);
+        cipher.setY(y);
+        cipher.setM(m);
+        cipher.setL(2);
+        cipher.setC(c);
+        x[0] = 9;
+        y[0] = 9;
+        m[0] = 9;
+        c[0] = 9;
+
+        assertArrayEquals(new byte[] {1, 2}, cipher.getX());
+        assertArrayEquals(new byte[] {3, 4}, cipher.getY());
+        assertArrayEquals(new byte[] {5, 6}, cipher.getM());
+        assertArrayEquals(new byte[] {7, 8}, cipher.getC());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testHybridCipher_nullCtM() {
         ECCCipher ctS = new ECCCipher(new byte[64], new byte[64], new byte[32], 13, new byte[16]);
@@ -207,6 +245,25 @@ public class TypeValidationTest {
         assertNotNull(cipher.getCtS());
     }
 
+    @Test
+    public void testHybridCipher_gettersAndSettersCloneMutableFields() {
+        HybridCipher cipher = new HybridCipher(1, new byte[] {0}, 0x00000401L, createECCCipher((byte) 1), 0);
+        byte[] ctM = new byte[] {1, 2, 3};
+        ECCCipher ctS = createECCCipher((byte) 4);
+
+        cipher.setCtM(ctM);
+        cipher.setCtS(ctS);
+        ctM[0] = 9;
+        ctS.setC(new byte[] {9, 9, 9});
+
+        ECCCipher returnedCtS = cipher.getCtS();
+        returnedCtS.setC(new byte[] {8, 8, 8});
+
+        assertArrayEquals(new byte[] {1, 2, 3}, cipher.getCtM());
+        assertNotSame(ctS, returnedCtS);
+        assertArrayEquals(new byte[] {4, 2, 3}, cipher.getCtS().getC());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testHybridCipher_setInvalidCipher() {
         HybridCipher cipher = new HybridCipher();
@@ -232,6 +289,80 @@ public class TypeValidationTest {
         assertEquals(32, sig.getL());
         assertNotNull(sig.getSigS());
         assertNotNull(sig.getSigM());
+    }
+
+    @Test
+    public void testHybridSignature_gettersAndSettersCloneMutableFields() {
+        HybridSignature sig = new HybridSignature(new ECCSignature(new byte[] {0}, new byte[] {0}), 1, new byte[] {0});
+        ECCSignature sigS = new ECCSignature(new byte[] {1, 2}, new byte[] {3, 4});
+        byte[] sigM = new byte[] {5, 6};
+
+        sig.setSigS(sigS);
+        sig.setSigM(sigM);
+        sigS.setR(new byte[] {9, 9});
+        sigM[0] = 9;
+
+        ECCSignature returnedSigS = sig.getSigS();
+        returnedSigS.setS(new byte[] {8, 8});
+
+        assertNotSame(sigS, returnedSigS);
+        assertArrayEquals(new byte[] {1, 2}, sig.getSigS().getR());
+        assertArrayEquals(new byte[] {3, 4}, sig.getSigS().getS());
+        assertArrayEquals(new byte[] {5, 6}, sig.getSigM());
+    }
+
+    @Test
+    public void testNestedResultGettersCloneMutableObjects() {
+        ECCCipher eccCipher = createECCCipher((byte) 1);
+        ECCKeyEncryptionResult encResult = new ECCKeyEncryptionResult(eccCipher, 1);
+        ECCCipher returnedCipher = encResult.getEccCipher();
+        returnedCipher.setC(new byte[] {9, 9, 9});
+
+        ECCPublicKey publicKey = new ECCPublicKey(256, new byte[] {1, 2}, new byte[] {3, 4});
+        ECCPublicKey tmpPublicKey = new ECCPublicKey(256, new byte[] {5, 6}, new byte[] {7, 8});
+        KeyAgreementResult agreementResult = new KeyAgreementResult(1, publicKey, tmpPublicKey);
+        ECCPublicKey returnedPublicKey = agreementResult.getPublicKey();
+        ECCPublicKey returnedTmpPublicKey = agreementResult.getTmpPublicKey();
+        returnedPublicKey.setX(new byte[] {9, 9});
+        returnedTmpPublicKey.setY(new byte[] {8, 8});
+
+        assertNotSame(eccCipher, returnedCipher);
+        assertArrayEquals(new byte[] {1, 2, 3}, encResult.getEccCipher().getC());
+        assertNotSame(publicKey, returnedPublicKey);
+        assertNotSame(tmpPublicKey, returnedTmpPublicKey);
+        assertArrayEquals(new byte[] {1, 2}, agreementResult.getPublicKey().getX());
+        assertArrayEquals(new byte[] {7, 8}, agreementResult.getTmpPublicKey().getY());
+    }
+
+    @Test
+    public void testRSAPrivateKey_settersCloneInputs() {
+        RSAPrivateKey key = new RSAPrivateKey();
+        byte[] m = new byte[] {1};
+        byte[] e = new byte[] {2};
+        byte[] d = new byte[] {3};
+        byte[][] prime = new byte[][] {new byte[] {4}, new byte[] {5}};
+        byte[][] pexp = new byte[][] {new byte[] {6}, new byte[] {7}};
+        byte[] coef = new byte[] {8};
+
+        key.setM(m);
+        key.setE(e);
+        key.setD(d);
+        key.setPrime(prime);
+        key.setPexp(pexp);
+        key.setCoef(coef);
+        m[0] = 9;
+        e[0] = 9;
+        d[0] = 9;
+        prime[0][0] = 9;
+        pexp[0][0] = 9;
+        coef[0] = 9;
+
+        assertArrayEquals(new byte[] {1}, key.getM());
+        assertArrayEquals(new byte[] {2}, key.getE());
+        assertArrayEquals(new byte[] {3}, key.getD());
+        assertArrayEquals(new byte[] {4}, key.getPrime()[0]);
+        assertArrayEquals(new byte[] {6}, key.getPexp()[0]);
+        assertArrayEquals(new byte[] {8}, key.getCoef());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -275,5 +406,9 @@ public class TypeValidationTest {
         HybridSignature sig = new HybridSignature();
         sig.setL(10);
         sig.setSigM(new byte[5]);
+    }
+
+    private static ECCCipher createECCCipher(byte c0) {
+        return new ECCCipher(new byte[] {1, 2}, new byte[] {3, 4}, new byte[] {5, 6}, 3, new byte[] {c0, 2, 3});
     }
 }

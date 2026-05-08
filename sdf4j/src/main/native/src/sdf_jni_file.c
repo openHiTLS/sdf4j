@@ -75,7 +75,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ReadFile(JNIEnv *env, jobject obj, jlong se
         THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "File name is null");
         return NULL;
     }
-
+    if (length <= 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "length is invalid");
+        return NULL;
+    }
     /* 转换文件名 */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {

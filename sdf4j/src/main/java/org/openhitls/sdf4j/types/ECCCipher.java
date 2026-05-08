@@ -70,11 +70,11 @@ public class ECCCipher {
         if (l < 0 || l > c.length) {
             throw new IllegalArgumentException("l is invalid");
         }
-        this.x = x;
-        this.y = y;
-        this.m = m;
+        this.x = x.clone();
+        this.y = y.clone();
+        this.m = m.clone();
         this.l = l;
-        this.c = c;
+        this.c = c.clone();
     }
 
     // ========================================================================
@@ -84,16 +84,18 @@ public class ECCCipher {
     /**
      * Get X coordinate.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return X coordinate byte array
      */
     public byte[] getX() {
-        return x;
+        return x != null ? x.clone() : null;
     }
 
     /**
      * Set X coordinate.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param x X coordinate byte array
      * @throws IllegalArgumentException if x is null
@@ -102,22 +104,24 @@ public class ECCCipher {
         if (x == null) {
             throw new IllegalArgumentException("X coordinate cannot be null");
         }
-        this.x = x;
+        this.x = x.clone();
     }
 
     /**
      * Get Y coordinate.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return Y coordinate byte array
      */
     public byte[] getY() {
-        return y;
+        return y != null ? y.clone() : null;
     }
 
     /**
      * Set Y coordinate.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param y Y coordinate byte array
      * @throws IllegalArgumentException if y is null
@@ -126,22 +130,24 @@ public class ECCCipher {
         if (y == null) {
             throw new IllegalArgumentException("Y coordinate cannot be null");
         }
-        this.y = y;
+        this.y = y.clone();
     }
 
     /**
      * Get hash value M.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return hash value M byte array
      */
     public byte[] getM() {
-        return m;
+        return m != null ? m.clone() : null;
     }
 
     /**
      * Set hash value M.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param m hash value M byte array
      * @throws IllegalArgumentException if m is null
@@ -150,22 +156,24 @@ public class ECCCipher {
         if (m == null) {
             throw new IllegalArgumentException("Hash value M cannot be null");
         }
-        this.m = m;
+        this.m = m.clone();
     }
 
     /**
      * Get ciphertext data C.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return ciphertext byte array
      */
     public byte[] getC() {
-        return c;
+        return c != null ? c.clone() : null;
     }
 
     /**
      * Set ciphertext data C.
+     *
+     * <p>Stores a copy of the provided array.
      *
      * @param c ciphertext byte array
      * @throws IllegalArgumentException if c is null or length is inconsistent with L
@@ -174,7 +182,7 @@ public class ECCCipher {
         if (c == null || this.l > c.length) {
             throw new IllegalArgumentException("cipher value is invalid");
         }
-        this.c = c;
+        this.c = c.clone();
     }
 
     /**
@@ -208,6 +216,33 @@ public class ECCCipher {
      */
     public int getCipherLength() {
         return c != null ? c.length : 0;
+    }
+
+    /**
+     * Create a deep copy of the given cipher, returning null if the input is null.
+     *
+     * @param cipher the cipher to duplicate
+     * @return a new ECCCipher instance, or null
+     */
+    public static ECCCipher dup(ECCCipher cipher) {
+        if (cipher == null) {
+            return null;
+        }
+        ECCCipher copy = new ECCCipher();
+        if (cipher.x != null) {
+            copy.x = cipher.x.clone();
+        }
+        if (cipher.y != null) {
+            copy.y = cipher.y.clone();
+        }
+        if (cipher.m != null) {
+            copy.m = cipher.m.clone();
+        }
+        if (cipher.c != null) {
+            copy.c = cipher.c.clone();
+        }
+        copy.l = cipher.l;
+        return copy;
     }
 
     @Override

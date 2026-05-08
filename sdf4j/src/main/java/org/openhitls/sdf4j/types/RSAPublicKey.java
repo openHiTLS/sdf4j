@@ -12,8 +12,6 @@
 
 package org.openhitls.sdf4j.types;
 
-import java.util.Arrays;
-
 /**
  * RSA Public Key (RSArefPublicKey)
  *
@@ -50,8 +48,8 @@ public class RSAPublicKey {
      * Parameterized constructor.
      *
      * @param bits modulus bit length
-     * @param m    modulus
-     * @param e    public exponent
+     * @param m    modulus; stored by reference without cloning
+     * @param e    public exponent; stored by reference without cloning
      */
     public RSAPublicKey(int bits, byte[] m, byte[] e) {
         if (bits <= 0) {
@@ -94,12 +92,12 @@ public class RSAPublicKey {
     /**
      * Get modulus m.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return modulus byte array
      */
     public byte[] getM() {
-        return m;
+        return m != null ? m.clone() : null;
     }
 
     /**
@@ -112,18 +110,18 @@ public class RSAPublicKey {
         if (m == null) {
             throw new IllegalArgumentException("Modulus cannot be null");
         }
-        this.m = m;
+        this.m = m.clone();
     }
 
     /**
      * Get public exponent e.
      *
-     * <p>Returns a direct reference to the internal array. Callers should not modify the returned value.
+     * <p>Returns a copy of the internal array for safety.
      *
      * @return public exponent byte array
      */
     public byte[] getE() {
-        return e;
+        return e != null ? e.clone() : null;
     }
 
     /**
@@ -136,52 +134,15 @@ public class RSAPublicKey {
         if (e == null) {
             throw new IllegalArgumentException("Exponent cannot be null");
         }
-        this.e = e;
-    }
-
-    // ========================================================================
-    // Utility Methods
-    // ========================================================================
-
-    /**
-     * Get effective modulus data (trimmed by bit length).
-     *
-     * @return effective modulus data
-     */
-    public byte[] getEffectiveM() {
-        if (m == null) {
-            return null;
-        }
-        int len = (bits + 7) / 8;
-        return Arrays.copyOf(m, len);
-    }
-
-    /**
-     * Get effective public exponent data (stripped of leading zeros).
-     *
-     * @return effective public exponent data
-     */
-    public byte[] getEffectiveE() {
-        if (e == null) {
-            return null;
-        }
-        // Find first non-zero byte
-        int start = 0;
-        while (start < e.length && e[start] == 0) {
-            start++;
-        }
-        if (start == e.length) {
-            return new byte[]{0};
-        }
-        return Arrays.copyOfRange(e, start, e.length);
+        this.e = e.clone();
     }
 
     @Override
     public String toString() {
         return "RSAPublicKey{" +
                 "bits=" + bits +
-                ", m=" + bytesToHex(getEffectiveM()) +
-                ", e=" + bytesToHex(getEffectiveE()) +
+                ", m=" + bytesToHex(m) +
+                ", e=" + bytesToHex(e) +
                 '}';
     }
 

@@ -16,7 +16,6 @@ import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.*;
-import java.util.Arrays;
 
 import org.junit.*;
 import org.openhitls.sdf4j.jce.key.SM2PublicKey;

@@ -15,7 +15,9 @@ package org.openhitls.sdf4j.jce.mac;
 import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.SDFJceNative;

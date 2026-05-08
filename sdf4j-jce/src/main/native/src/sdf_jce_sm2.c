@@ -42,7 +42,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2GenerateKeyPair(JNIEnv *env, jc
     jbyteArray result = (*env)->NewByteArray(env, 96);
     if (result == NULL) {
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
-        memset(&privKey, 0, sizeof(privKey));
+        SDF_Clear(&privKey, sizeof(privKey));
         return NULL;
     }
     /* 96 > 0 is guaranteed */
@@ -57,7 +57,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2GenerateKeyPair(JNIEnv *env, jc
                                (jbyte *)(pubKey.y + ECCref_MAX_LEN - SM2_KEY_BYTES));
 
     /* 清除敏感数据 */
-    memset(&privKey, 0, sizeof(privKey));
+    SDF_Clear(&privKey, sizeof(privKey));
     return result;
 }
 
@@ -88,7 +88,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Sign(JNIEnv *env, jclass cls, j
     jsize dataLen = (*env)->GetArrayLength(env, data);
     if (privKeyBytes == NULL || dataBytes == NULL) {
         if (privKeyBytes) {
-            memset(privKeyBytes, 0, (size_t)privKeyLen);
+            SDF_Clear(privKeyBytes, (size_t)privKeyLen);
             (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         }
         if (dataBytes) (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
@@ -126,10 +126,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Sign(JNIEnv *env, jclass cls, j
 
 ERR:
     /* Clear sensitive data in JNI buffer before releasing */
-    memset(privKeyBytes, 0, (size_t)privKeyLen);
+    SDF_Clear(privKeyBytes, (size_t)privKeyLen);
     (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
-    memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+    SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
     return result;
 }
 
@@ -351,7 +351,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
     jsize cipherLen = (*env)->GetArrayLength(env, ciphertext);
     if (privKeyBytes == NULL || cipherBytes == NULL) {
         if (privKeyBytes) {
-            memset(privKeyBytes, 0, (size_t)privKeyLen);
+            SDF_Clear(privKeyBytes, (size_t)privKeyLen);
             (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         }
         if (cipherBytes) {
@@ -363,7 +363,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
 
     /* 构造私钥 */
     ECCrefPrivateKey eccPrivKey;
-    memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+    SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
     eccPrivKey.bits = SM2_KEY_BITS;
     memcpy(eccPrivKey.K + ECCref_MAX_LEN - SM2_KEY_BYTES, privKeyBytes, SM2_KEY_BYTES);
 
@@ -377,20 +377,20 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
     jbyteArray result = NULL;
 
     if (cipherLen < 97 || c2Len <= 0) {
-        memset(privKeyBytes, 0, (size_t)privKeyLen);
+        SDF_Clear(privKeyBytes, (size_t)privKeyLen);
         (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
-        memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+        SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
         throw_exception(env, "java/lang/IllegalArgumentException", "Ciphertext too short");
         return NULL;
     }
 
     /* 检查04前缀 */
     if (cipherBytes[0] != 0x04) {
-        memset(privKeyBytes, 0, (size_t)privKeyLen);
+        SDF_Clear(privKeyBytes, (size_t)privKeyLen);
         (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
-        memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+        SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
         throw_exception(env, "java/lang/IllegalArgumentException", "Invalid ciphertext format (missing 0x04 prefix)");
         return NULL;
     }
@@ -398,10 +398,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
     size_t cipherStructSize = sizeof(ECCCipher) + (size_t)c2Len;
     cipher = (ECCCipher *)malloc(cipherStructSize);
     if (cipher == NULL) {
-        memset(privKeyBytes, 0, (size_t)privKeyLen);
+        SDF_Clear(privKeyBytes, (size_t)privKeyLen);
         (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
-        memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+        SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate cipher");
         return NULL;
     }
@@ -419,10 +419,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
     plaintext = (BYTE *)malloc((size_t)c2Len);
     if (plaintext == NULL) {
         free(cipher);
-        memset(privKeyBytes, 0, (size_t)privKeyLen);
+        SDF_Clear(privKeyBytes, (size_t)privKeyLen);
         (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
         (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
-        memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+        SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate plaintext");
         return NULL;
     }
@@ -443,10 +443,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Decrypt(JNIEnv *env, jclass cls
     (*env)->SetByteArrayRegion(env, result, 0, (jsize)plainLen, (jbyte *)plaintext);
 ERR:
     /* 清除敏感数据 */
-    memset(privKeyBytes, 0, (size_t)privKeyLen);
+    SDF_Clear(privKeyBytes, (size_t)privKeyLen);
     (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
-    memset(&eccPrivKey, 0, sizeof(eccPrivKey));
+    SDF_Clear(&eccPrivKey, sizeof(eccPrivKey));
     free(cipher);
     free(plaintext);
     return result;

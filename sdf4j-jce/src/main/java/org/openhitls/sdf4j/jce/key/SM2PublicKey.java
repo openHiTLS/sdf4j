@@ -26,6 +26,10 @@ public class SM2PublicKey implements PublicKey {
     private final byte[] x;
     private final byte[] y;
 
+    /**
+     * @param x X coordinate; stored by reference without cloning
+     * @param y Y coordinate; stored by reference without cloning
+     */
     public SM2PublicKey(byte[] x, byte[] y) {
         if (x == null || x.length != 32 || y == null || y.length != 32) {
             throw new IllegalArgumentException("X and Y must be 32 bytes each");

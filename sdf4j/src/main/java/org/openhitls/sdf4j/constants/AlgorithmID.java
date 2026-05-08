@@ -331,6 +331,27 @@ public final class AlgorithmID {
      */
     public static final int SGD_COMPOSITE_MLDSA87_SM2 = 0x80000006;
 
+    /**
+     * Hybrid envelope: SM2 + scloud plus
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with scloud plus
+     */
+    public static final int SGD_HYBRID_ENV_SM2_SCLOUDPLUS_128 = 0x80000007;
+
+    /**
+     * Hybrid envelope: SM2 + scloud plus
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with scloud plus
+     */
+    public static final int SGD_HYBRID_ENV_SM2_SCLOUDPLUS_192 = 0x80000008;
+
+    /**
+     * Hybrid envelope: SM2 + scloud plus
+     *
+     * <p>Combines SM2 elliptic curve key encapsulation with scloud plus
+     */
+    public static final int SGD_HYBRID_ENV_SM2_SCLOUDPLUS_256 = 0x80000009;
+
     // ========================================================================
     // 工具方法 (Utility Methods)
     // ========================================================================
@@ -446,6 +467,12 @@ public final class AlgorithmID {
                 return "COMPOSITE-MLDSA65-SM2";
             case SGD_COMPOSITE_MLDSA87_SM2:
                 return "COMPOSITE-MLDSA87-SM2";
+            case SGD_HYBRID_ENV_SM2_SCLOUDPLUS_128:
+                return "HYBRID-ENV-SM2-SCLOUDPLUS-128";
+            case SGD_HYBRID_ENV_SM2_SCLOUDPLUS_192:
+                return "HYBRID-ENV-SM2-SCLOUDPLUS-192";
+            case SGD_HYBRID_ENV_SM2_SCLOUDPLUS_256:
+                return "HYBRID-ENV-SM2-SCLOUDPLUS-256";
             default:
                 return "Unknown(0x" + Integer.toHexString(algorithmID).toUpperCase() + ")";
         }

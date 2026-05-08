@@ -1524,7 +1524,7 @@ public class TypeFieldExtractionTest {
             assertEquals("重构的l1应与原始l1相同", l1, reconstructedCipher.getL1());
             assertArrayEquals("重构的ctM应与原始ctM相同", ctM, reconstructedCipher.getCtM());
             assertEquals("重构的uiAlgID应与原始uiAlgID相同", uiAlgID, reconstructedCipher.getUiAlgID());
-            assertEquals("重构的ctS应与原始ctS相同", ctS, reconstructedCipher.getCtS());
+            assertECCCipherEquals("重构的ctS应与原始ctS相同", ctS, reconstructedCipher.getCtS());
             assertEquals("重构的keyHandle应与原始keyHandle相同", originalKeyHandle, reconstructedCipher.getKeyHandle());
 
             // 步骤5: 获取私钥访问权限
@@ -1834,7 +1834,7 @@ public class TypeFieldExtractionTest {
             HybridSignature reconstructedSignature = new HybridSignature(sigS, l, sigM);
 
             // 验证重构的对象字段与原始对象相同
-            assertEquals("重构的sigS应与原始sigS相同", sigS, reconstructedSignature.getSigS());
+            assertECCSignatureEquals("重构的sigS应与原始sigS相同", sigS, reconstructedSignature.getSigS());
             assertEquals("重构的l应与原始l相同", l, reconstructedSignature.getL());
             assertArrayEquals("重构的sigM应与原始sigM相同", sigM, reconstructedSignature.getSigM());
 
@@ -2238,5 +2238,22 @@ public class TypeFieldExtractionTest {
                 } catch (Exception ignored) {}
             }
         }
+    }
+
+    private static void assertECCCipherEquals(String message, ECCCipher expected, ECCCipher actual) {
+        assertNotNull(message + " expected", expected);
+        assertNotNull(message + " actual", actual);
+        assertArrayEquals(message + " x", expected.getX(), actual.getX());
+        assertArrayEquals(message + " y", expected.getY(), actual.getY());
+        assertArrayEquals(message + " m", expected.getM(), actual.getM());
+        assertEquals(message + " L", expected.getL(), actual.getL());
+        assertArrayEquals(message + " c", expected.getC(), actual.getC());
+    }
+
+    private static void assertECCSignatureEquals(String message, ECCSignature expected, ECCSignature actual) {
+        assertNotNull(message + " expected", expected);
+        assertNotNull(message + " actual", actual);
+        assertArrayEquals(message + " r", expected.getR(), actual.getR());
+        assertArrayEquals(message + " s", expected.getS(), actual.getS());
     }
 }
