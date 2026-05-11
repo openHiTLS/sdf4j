@@ -784,6 +784,9 @@ jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_ciph
 
 HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher) {
     jobject cts_obj = (*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctS);
+    if ((*env)->ExceptionCheck(env)) {
+        return NULL;
+    }
 
     ECCCipher *temp_cts = NULL;
     if (cts_obj != NULL) {
@@ -802,22 +805,53 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
         return NULL;
     }
     native_cipher->ct_m = (BYTE*)(native_cipher) + sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN;
-    /* L1 */
-    native_cipher->L1 = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
 
-    /* ct_m */
+    jlong l1_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
+    if ((*env)->ExceptionCheck(env)) {
+        free(native_cipher);
+        free(temp_cts);
+        return NULL;
+    }
+    if (l1_value < 0 || l1_value > HYBRIDENCref_MAX_LEN) {
+        free(native_cipher);
+        free(temp_cts);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid cipher L1 out of range");
+        return NULL;
+    }
+
     jbyteArray ctm_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                               g_jni_cache.hybridCipher.ctM);
+    if ((*env)->ExceptionCheck(env)) {
+        free(native_cipher);
+        free(temp_cts);
+        return NULL;
+    }
     if (ctm_array != NULL) {
         jsize len = (*env)->GetArrayLength(env, ctm_array);
-        if (len > HYBRIDENCref_MAX_LEN) {
+        if ((*env)->ExceptionCheck(env)) {
             free(native_cipher);
             free(temp_cts);
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds %d", HYBRIDENCref_MAX_LEN);
+            return NULL;
+        }
+        if (len > HYBRIDENCref_MAX_LEN || l1_value > len) {
+            free(native_cipher);
+            free(temp_cts);
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid cipher length mismatch");
             return NULL;
         }
         (*env)->GetByteArrayRegion(env, ctm_array, 0, len, (jbyte*)native_cipher->ct_m);
+        if ((*env)->ExceptionCheck(env)) {
+            free(native_cipher);
+            free(temp_cts);
+            return NULL;
+        }
+    } else if (l1_value != 0) {
+        free(native_cipher);
+        free(temp_cts);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid cipher ctM is null but L1 is non-zero");
+        return NULL;
     }
+    native_cipher->L1 = (ULONG)l1_value;
 
     /* uiAlgID */
     native_cipher->uiAlgID = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.uiAlgID);
@@ -868,13 +902,16 @@ jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *nativ
 }
 
 HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_sig) {
-    /* Get the sig_m array length */
     jbyteArray sig_m_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
                                                                  g_jni_cache.hybridSignature.sigM);
-    /* Also check L field */
+    if ((*env)->ExceptionCheck(env)) {
+        return NULL;
+    }
     jint l_value = (*env)->GetIntField(env, java_sig, g_jni_cache.hybridSignature.l);
+    if ((*env)->ExceptionCheck(env)) {
+        return NULL;
+    }
 
-    /* Allocate memory for HybridSignature struct */
     HybridSignature *native_sig = (HybridSignature*)calloc(1, sizeof(HybridSignature) + HYBRIDSIGref_MAX_LEN);
     if (native_sig == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "calloc failed");
@@ -882,9 +919,12 @@ HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_
     }
     native_sig->sig_m = (BYTE*)(native_sig) + sizeof(HybridSignature);
 
-    /* Get ECC signature part */
     jobject ecc_sig_obj = (jobject)(*env)->GetObjectField(env, java_sig,
                                                           g_jni_cache.hybridSignature.sigS);
+    if ((*env)->ExceptionCheck(env)) {
+        free(native_sig);
+        return NULL;
+    }
     if (ecc_sig_obj != NULL) {
         if (!java_to_native_ECCSignature(env, ecc_sig_obj, &native_sig->sig_s)) {
             free(native_sig);
@@ -892,17 +932,36 @@ HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_
         }
     }
 
-    /* L - sig value length */
-    if (l_value > HYBRIDSIGref_MAX_LEN) {
+    if (l_value < 0 || l_value > HYBRIDSIGref_MAX_LEN) {
         free(native_sig);
-        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds 4636");
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid signature L out of range");
         return NULL;
     }
-    native_sig->L = (ULONG)l_value;
 
-    /* sig_m  */
     if (sig_m_array != NULL) {
-        (*env)->GetByteArrayRegion(env, sig_m_array, 0, l_value, (jbyte*)native_sig->sig_m);
+        jsize sig_m_len = (*env)->GetArrayLength(env, sig_m_array);
+        if ((*env)->ExceptionCheck(env)) {
+            free(native_sig);
+            return NULL;
+        }
+        if (l_value > sig_m_len) {
+            free(native_sig);
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid signature length mismatch");
+            return NULL;
+        }
+        if (l_value > 0) {
+            (*env)->GetByteArrayRegion(env, sig_m_array, 0, l_value, (jbyte*)native_sig->sig_m);
+            if ((*env)->ExceptionCheck(env)) {
+                free(native_sig);
+                return NULL;
+            }
+        }
+    } else if (l_value != 0) {
+        free(native_sig);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "hybrid signature sigM is null but L is non-zero");
+        return NULL;
     }
+
+    native_sig->L = (ULONG)l_value;
     return native_sig;
 }
