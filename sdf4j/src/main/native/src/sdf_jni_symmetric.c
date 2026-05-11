@@ -201,26 +201,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
         }
     }
 
-    /* 分配输出内存，入参保证为16的整数倍，接口不负责填充*/
-    ULONG enc_data_len = data_len;
-    jbyteArray result = (*env)->NewByteArray(env, enc_data_len);
-    if (result == NULL) {
-        (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
-        if (iv_buf != NULL) {
-            (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
-        }
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
-        return NULL;
-    }
-
-    /* 获取输出数组指针 */
-    BYTE *enc_data_buf = (BYTE*)(*env)->GetByteArrayElements(env, result, NULL);
+    /* 密文长度可能大于明文（填充），分配足够空间 */
+    ULONG enc_data_len = data_len + 32;
+    BYTE *enc_data_buf = (BYTE*)malloc(enc_data_len);
     if (enc_data_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, data, data_buf, JNI_ABORT);
         if (iv_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
-        (*env)->DeleteLocalRef(env, result);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
@@ -233,11 +221,18 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
     if (iv_buf != NULL) {
         (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
     }
-    (*env)->ReleaseByteArrayElements(env, result, (jbyte*)enc_data_buf, ret == SDR_OK ? 0 : JNI_ABORT);
+    jbyteArray result = NULL;
 
     if (ret != SDR_OK) {
-        (*env)->DeleteLocalRef(env, result);
+        free(enc_data_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform enc operation");
+        return NULL;
+    }
+
+    result = native_to_java_byte_array(env, enc_data_buf, enc_data_len);
+    free(enc_data_buf);
+    if (result == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
 
@@ -277,24 +272,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
         }
     }
 
-    /* 分配输出缓冲区 */
+    /* 明文不应大于密文长度，按密文长度分配缓冲区 */
     ULONG data_len = enc_data_len;
-    jbyteArray result = (*env)->NewByteArray(env, data_len);
-    if (result == NULL) {
-        (*env)->ReleaseByteArrayElements(env, encData, enc_data_buf, JNI_ABORT);
-        if (iv_buf != NULL) {
-            (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
-        }
-        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
-        return NULL;
-    }
-    BYTE *data_buf = (BYTE*)(*env)->GetByteArrayElements(env, result, NULL);
+    BYTE *data_buf = (BYTE*)malloc(data_len);
     if (data_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, encData, enc_data_buf, JNI_ABORT);
         if (iv_buf != NULL) {
             (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
         }
-        (*env)->DeleteLocalRef(env, result);
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
@@ -307,11 +292,18 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Decrypt(JNIEnv *env, jobject obj, jlong ses
     if (iv_buf != NULL) {
         (*env)->ReleaseByteArrayElements(env, iv, iv_buf, JNI_ABORT);
     }
-    (*env)->ReleaseByteArrayElements(env, result, (jbyte*)data_buf, ret == SDR_OK ? 0 : JNI_ABORT);
+    jbyteArray result = NULL;
 
     if (ret != SDR_OK) {
-        (*env)->DeleteLocalRef(env, result);
+        free(data_buf);
         THROW_SDF_EXCEPTION(env, ret, "Failed to perform dec operation");
+        return NULL;
+    }
+
+    result = native_to_java_byte_array(env, data_buf, data_len);
+    free(data_buf);
+    if (result == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");
         return NULL;
     }
     return result;
@@ -1371,4 +1363,3 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_HashFinal(JNIEnv *env, jobject obj, jlong s
     }
     return native_to_java_byte_array(env, hash_buf, hash_len);
 }
-
