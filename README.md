@@ -9,6 +9,7 @@
 ## 目录
 
 - [特性](#特性)
+- [支持的算法规格](#支持的算法规格)
 - [快速开始](#快速开始)
 - [安装](#安装)
 - [编译](#编译)
@@ -23,12 +24,33 @@
 
 - **完整的SDF接口** - 覆盖设备管理、密钥管理、加解密、签名验签等核心功能
 - **国密算法支持** - SM2、SM3、SM4、SM9 等国密算法
+- **混合后量子算法支持** - 支持 SM2 与 ML-KEM、ML-DSA 等后量子算法组合的混合加密和复合签名接口
 - **部分实现支持** - 合理处理未完整实现GM/T 0018-2023的SDF库，可选函数返回 `SDR_NOTSUPPORT` 错误码
 - **编译时配置** - 编译时指定 SDF 库，生成的 JAR 包开箱即用，无需运行时配置
 - **动态库加载** - 支持灵活配置密码设备库路径，多厂商兼容
 - **类型安全** - 完整的 Java 类型定义和参数校验
 - **异常处理** - 统一的异常体系和错误码映射
 - **跨平台** - 支持 Linux x86_64 和 aarch64
+
+## 支持的算法规格
+
+SDF4J 覆盖 GM/T 0018-2023 定义的常规 SDF 算法，并扩展支持混合后量子算法标识。实际可用能力仍以底层 SDF 设备库实现为准。
+
+| 类别 | 算法/规格 | Java 标识 |
+| --- | --- | --- |
+| 对称算法 | SM4 | `AlgorithmID.SGD_SM4_ECB`、`AlgorithmID.SGD_SM4_CBC`、`AlgorithmID.SGD_SM4_GCM` 等 |
+| 非对称算法 | SM2 | `AlgorithmID.SGD_SM2_1`、`AlgorithmID.SGD_SM2_3` |
+| 杂凑/HMAC | SM3 | `AlgorithmID.SGD_SM3`、`AlgorithmID.SGD_SM3_HMAC`、`AlgorithmID.SGD_SHA*` |
+| 混合加密 | SM2 + ML-KEM-512 | `AlgorithmID.SGD_HYBRID_ENV_SM2_MLKEM_512` |
+| 混合加密 | SM2 + ML-KEM-768 | `AlgorithmID.SGD_HYBRID_ENV_SM2_MLKEM_768` |
+| 混合加密 | SM2 + ML-KEM-1024 | `AlgorithmID.SGD_HYBRID_ENV_SM2_MLKEM_1024` |
+| 混合加密 | SM2 + POLAR-LAC-LIGHT | `AlgorithmID.SGD_HYBRID_ENV_SM2_POLAR_LAC_LIGHT` |
+| 混合加密 | SM2 + SCloudPlus-128/192/256 | `AlgorithmID.SGD_HYBRID_ENV_SM2_SCLOUDPLUS_128`、`AlgorithmID.SGD_HYBRID_ENV_SM2_SCLOUDPLUS_192`、`AlgorithmID.SGD_HYBRID_ENV_SM2_SCLOUDPLUS_256` |
+| 复合签名 | ML-DSA-44 + SM2 | `AlgorithmID.SGD_COMPOSITE_MLDSA44_SM2` |
+| 复合签名 | ML-DSA-65 + SM2 | `AlgorithmID.SGD_COMPOSITE_MLDSA65_SM2` |
+| 复合签名 | ML-DSA-87 + SM2 | `AlgorithmID.SGD_COMPOSITE_MLDSA87_SM2` |
+
+混合加密接口包括 `SDF_ExportPublicKey_Hybrid`、`SDF_GenerateKeyWithEPK_Hybrid`、`SDF_ImportKeyWithISK_Hybrid`；复合签名接口包括 `SDF_InternalSign_Composite`、`SDF_ExternalVerify_Composite`。
 
 ## 快速开始
 
@@ -645,6 +667,8 @@ try {
 - **对称**: SM1, SM4, SM7, SSF33, AES
 - **非对称**: RSA, SM2, SM9
 - **杂凑**: SM3, SHA-1, SHA-256, SHA-384, SHA-512
+- **混合加密**: SM2 + ML-KEM-512/768/1024, SM2 + POLAR-LAC-LIGHT, SM2 + SCloudPlus-128/192/256
+- **复合签名**: ML-DSA-44/65/87 + SM2
 
 **具体支持的算法取决于底层密码设备的实现程度**。使用功能探测方法检测可用算法。
 

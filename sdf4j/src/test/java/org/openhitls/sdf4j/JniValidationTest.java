@@ -94,6 +94,26 @@ public class JniValidationTest extends BaseSDFTest {
     }
 
     @Test
+    public void testECCCipher_lNegative() throws Exception {
+        requireDevice();
+
+        ECCPrivateKey privKey = new ECCPrivateKey(256, new byte[32]);
+        ECCCipher cipher = new ECCCipher();
+        setField(cipher, "x", new byte[64]);
+        setField(cipher, "y", new byte[64]);
+        setField(cipher, "m", new byte[32]);
+        setField(cipher, "l", -1L);
+        setField(cipher, "c", new byte[16]);
+
+        try {
+            sdf.SDF_ExternalDecrypt_ECC(sessionHandle, 0x00020200, privKey, cipher);
+            fail("Expected SDFException for negative L");
+        } catch (SDFException e) {
+            // no action
+        }
+    }
+
+    @Test
     public void testRSAPrivateKey_modulusExceedsMaxLen() throws Exception {
         requireDevice();
 
@@ -177,6 +197,7 @@ public class JniValidationTest extends BaseSDFTest {
         setField(cipher, "l1", 21938);
         setField(cipher, "ctM", new byte[21938]); // > HYBRIDENCref_MAX_LEN (21937)
         setField(cipher, "uiAlgID", 0x00000401L);
+        setField(cipher, "ctS", createHybridCtS());
 
         try {
             sdf.SDF_ImportKeyWithISK_Hybrid(sessionHandle, 1, cipher);
@@ -199,6 +220,24 @@ public class JniValidationTest extends BaseSDFTest {
             sdf.SDF_ExternalVerify_Composite(sessionHandle, 0x00020200,
                     new byte[256], new byte[32], sig);
             fail("Expected SDFException for oversized L");
+        } catch (SDFException e) {
+            // no action
+        }
+    }
+
+    @Test
+    public void testHybridSignature_sigMExceedsMaxLen() throws Exception {
+        requireDevice();
+
+        HybridSignature sig = new HybridSignature();
+        setField(sig, "sigS", new ECCSignature(new byte[32], new byte[32]));
+        setField(sig, "l", 1);
+        setField(sig, "sigM", new byte[4637]); // > HYBRIDSIGref_MAX_LEN (4636)
+
+        try {
+            sdf.SDF_ExternalVerify_Composite(sessionHandle, 0x00020200,
+                    new byte[256], new byte[32], sig);
+            fail("Expected SDFException for oversized sigM");
         } catch (SDFException e) {
             // no action
         }
@@ -489,5 +528,9 @@ public class JniValidationTest extends BaseSDFTest {
         } catch (SDFException e) {
             // no action
         }
+    }
+
+    private static ECCCipher createHybridCtS() {
+        return new ECCCipher(new byte[64], new byte[64], new byte[32], 16, new byte[16]);
     }
 }

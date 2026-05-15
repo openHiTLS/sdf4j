@@ -49,7 +49,7 @@ public class ECCPrivateKey {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
-        if (k == null) {
+        if (k == null || k.length == 0) {
             throw new IllegalArgumentException("Private key value cannot be null");
         }
         this.bits = bits;
@@ -100,7 +100,7 @@ public class ECCPrivateKey {
      * @throws IllegalArgumentException if k is null
      */
     public void setK(byte[] k) {
-        if (k == null) {
+        if (k == null || k.length == 0) {
             throw new IllegalArgumentException("Private key value cannot be null");
         }
         this.k = k.clone();

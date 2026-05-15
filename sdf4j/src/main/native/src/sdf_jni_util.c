@@ -99,6 +99,11 @@ JNIEXPORT jobjectArray JNICALL JNI_SDF_GenerateKeyPair_ECC(JNIEnv *env, jobject 
     }
 
     jobjectArray result = (*env)->NewObjectArray(env, 2, g_jni_cache.common.objectClass, NULL);
+    if (result == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create array object");
+        return NULL;
+    }
+
     (*env)->SetObjectArrayElement(env, result, 0, java_pub);
     (*env)->SetObjectArrayElement(env, result, 1, java_priv);
     return result;
@@ -116,7 +121,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_ExternalPrivateKeyOperation_RSA(JNIEnv *env
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
-    if (privateKey == NULL) {
+    if (privateKey == NULL || dataInput == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
         return NULL;
     }

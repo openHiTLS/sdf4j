@@ -221,7 +221,12 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
     return obj;
 }
 
-jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, ULONG cipher_len) {
+jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher) {
+    ULONG cipher_len = native_cipher->L;
+    if (cipher_len == 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ecc cipher is invalid");
+        return NULL;
+    }
     /* Create byte arrays for constructor parameters */
     jbyteArray x_array = (*env)->NewByteArray(env, ECCref_MAX_LEN);
     if (x_array == NULL) {
@@ -249,9 +254,8 @@ jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, UL
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create array object");
         return NULL;
     }
-    if (cipher_len > 0) {
-        (*env)->SetByteArrayRegion(env, c_array, 0, cipher_len, (jbyte*)&native_cipher->C);
-    }
+    (*env)->SetByteArrayRegion(env, c_array, 0, cipher_len, (jbyte*)&native_cipher->C);
+
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccCipher.cls,
                             g_jni_cache.eccCipher.ctor,
                             x_array, y_array, m_array,
@@ -270,32 +274,36 @@ bool java_to_native_RSAPublicKey(JNIEnv *env, jobject java_key, RSArefPublicKey 
 
     memset(native_key, 0, sizeof(RSArefPublicKey));
 
-    /* bits */
-    native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.rsaPublicKey.bits);
+    /* Java RSAPublicKey constructors/setters validate bits > 0 before this ULONG conversion. */
+    native_key->bits = (ULONG)(*env)->GetIntField(env, java_key, g_jni_cache.rsaPublicKey.bits);
 
     /* m (modulus) */
     jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.rsaPublicKey.m);
-    if (m_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, m_array);
-        if (len > RSAref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA modulus array exceeds 512");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_key->m);
+    if (m_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPublicKey.m cannot be null");
+        return false;
     }
+    jsize len = (*env)->GetArrayLength(env, m_array);
+    if (len > RSAref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA modulus array exceeds 512");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_key->m);
 
     /* e (public exponent) */
     jbyteArray e_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.rsaPublicKey.e);
-    if (e_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, e_array);
-        if (len > RSAref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA exponent array exceeds 512");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, e_array, 0, len, (jbyte*)native_key->e);
+    if (e_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPublicKey.e cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, e_array);
+    if (len > RSAref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA exponent array exceeds 512");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, e_array, 0, len, (jbyte*)native_key->e);
     return true;
 }
 
@@ -306,18 +314,15 @@ bool java_to_native_RSAPublicKey(JNIEnv *env, jobject java_key, RSArefPublicKey 
  */
 ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
     /* First, get the cipher data length to determine allocation size */
-    jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                             g_jni_cache.eccCipher.c);
-    jsize c_len = 0;
-    if (c_array != NULL) {
-        c_len = (*env)->GetArrayLength(env, c_array);
+    jbyteArray c_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher, g_jni_cache.eccCipher.c);
+    if (c_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher.c cannot be null");
+        return NULL;
     }
+    jsize c_len = (*env)->GetArrayLength(env, c_array); // clen cannont be 0.
 
-    /* Also check L field */
+    /* L field */
     jlong l_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.eccCipher.l);
-    if (c_len == 0 && l_value > 0) {
-        c_len = (jsize)l_value;
-    }
 
     /* Allocate memory for ECCCipher struct + flexible array C[] */
     size_t alloc_size = sizeof(ECCCipher) + c_len;
@@ -330,49 +335,55 @@ ECCCipher* java_to_native_ECCCipher_alloc(JNIEnv *env, jobject java_cipher) {
     /* x */
     jbyteArray x_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.x);
-    if (x_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, x_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "X coordinate exceeds 64 bytes");
-            free(native_cipher);
-            return NULL;
-        }
-        (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_cipher->x);
+    if (x_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher.x cannot be null");
+        free(native_cipher);
+        return NULL;
     }
+    jsize len = (*env)->GetArrayLength(env, x_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "X coordinate exceeds 64 bytes");
+        free(native_cipher);
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_cipher->x);
 
     /* y */
     jbyteArray y_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.y);
-    if (y_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, y_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Y coordinate exceeds 64 bytes");
-            free(native_cipher);
-            return NULL;
-        }
-        (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
+    if (y_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher.y cannot be null");
+        free(native_cipher);
+        return NULL;
     }
+    len = (*env)->GetArrayLength(env, y_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Y coordinate exceeds 64 bytes");
+        free(native_cipher);
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_cipher->y);
 
     /* m (hash/MAC) */
     jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
                                                              g_jni_cache.eccCipher.m);
-    if (m_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, m_array);
-        if (len > 32) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher hash value M exceeds 32 bytes");
-            free(native_cipher);
-            return NULL;
-        }
-        (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_cipher->M);
+    if (m_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher.m cannot be null");
+        free(native_cipher);
+        return NULL;
     }
+    len = (*env)->GetArrayLength(env, m_array);
+    if (len > 32) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCCipher hash value M exceeds 32 bytes");
+        free(native_cipher);
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_cipher->M);
 
-    /* L - cipher data length */
+    /* Java ECCCipher constructors/setters validate L >= 0 and L <= C.length before this ULONG conversion. */
     native_cipher->L = (ULONG)l_value;
     /* C - cipher data (now properly allocated) */
-    if (c_array != NULL && c_len > 0) {
-        (*env)->GetByteArrayRegion(env, c_array, 0, c_len, (jbyte*)native_cipher->C);
-    }
-
+    (*env)->GetByteArrayRegion(env, c_array, 0, c_len, (jbyte*)native_cipher->C);
     return native_cipher;
 }
 
@@ -380,32 +391,36 @@ bool java_to_native_ECCPublicKey(JNIEnv *env, jobject java_key, ECCrefPublicKey 
 
     memset(native_key, 0, sizeof(ECCrefPublicKey));
 
-    /* bits */
-    native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.eccPublicKey.bits);
+    /* Java ECCPublicKey constructors/setters validate bits > 0 before this ULONG conversion. */
+    native_key->bits = (ULONG)(*env)->GetIntField(env, java_key, g_jni_cache.eccPublicKey.bits);
 
     /* x */
     jbyteArray x_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.eccPublicKey.x);
-    if (x_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, x_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "X coordinate exceeds 64 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_key->x);
+    if (x_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCPublicKey.x cannot be null");
+        return false;
     }
+    jsize len = (*env)->GetArrayLength(env, x_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "X coordinate exceeds 64 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, x_array, 0, len, (jbyte*)native_key->x);
 
     /* y */
     jbyteArray y_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.eccPublicKey.y);
-    if (y_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, y_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Y coordinate exceeds 64 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_key->y);
+    if (y_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCPublicKey.y cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, y_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Y coordinate exceeds 64 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, y_array, 0, len, (jbyte*)native_key->y);
 
     return true;
 }
@@ -415,26 +430,30 @@ bool java_to_native_ECCSignature(JNIEnv *env, jobject java_sig, ECCSignature *na
     /* r */
     jbyteArray r_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
                                                              g_jni_cache.eccSignature.r);
-    if (r_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, r_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Signature r exceeds 64 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, r_array, 0, len, (jbyte*)native_sig->r);
+    if (r_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCSignature.r cannot be null");
+        return false;
     }
+    jsize len = (*env)->GetArrayLength(env, r_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Signature r exceeds 64 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, r_array, 0, len, (jbyte*)native_sig->r);
 
     /* s */
     jbyteArray s_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
                                                              g_jni_cache.eccSignature.s);
-    if (s_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, s_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Signature s exceeds 64 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, s_array, 0, len, (jbyte*)native_sig->s);
+    if (s_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCSignature.s cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, s_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Signature s exceeds 64 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, s_array, 0, len, (jbyte*)native_sig->s);
 
     return true;
 }
@@ -487,10 +506,9 @@ jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
     return obj;
 }
 
-jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
-                                     ULONG key_length, HANDLE key_handle) {
+jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher, HANDLE key_handle) {
     /* Convert ECCCipher to Java object */
-    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, ecc_cipher, key_length);
+    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, ecc_cipher);
     if (ecc_cipher_obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create ECCCipher object");
         return NULL;
@@ -615,110 +633,136 @@ jobject native_to_java_ECCPrivateKey(JNIEnv *env, const ECCrefPrivateKey *native
 bool java_to_native_RSAPrivateKey(JNIEnv *env, jobject java_key, RSArefPrivateKey *native_key) {
 
     memset(native_key, 0, sizeof(RSArefPrivateKey));
-    /* bits */
-    native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.rsaPrivateKey.bits);
+    /* Java RSAPrivateKey constructors/setters validate bits > 0 before this ULONG conversion. */
+    native_key->bits = (ULONG)(*env)->GetIntField(env, java_key, g_jni_cache.rsaPrivateKey.bits);
 
     /* m */
     jbyteArray m_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.rsaPrivateKey.m);
-    if (m_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, m_array);
-        if (len > RSAref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA modulus array exceeds 512 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_key->m);
+    if (m_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.m cannot be null");
+        return false;
     }
+    jsize len = (*env)->GetArrayLength(env, m_array);
+    if (len > RSAref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA modulus array exceeds 512 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, m_array, 0, len, (jbyte*)native_key->m);
 
     /* e */
     jbyteArray e_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.rsaPrivateKey.e);
-    if (e_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, e_array);
-        if (len > RSAref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA exponent array exceeds 512 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, e_array, 0, len, (jbyte*)native_key->e);
+    if (e_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.e cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, e_array);
+    if (len > RSAref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA exponent array exceeds 512 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, e_array, 0, len, (jbyte*)native_key->e);
 
     /* d */
     jbyteArray d_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.rsaPrivateKey.d);
-    if (d_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, d_array);
-        if (len > RSAref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA private exponent array exceeds 512 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, d_array, 0, len, (jbyte*)native_key->d);
+    if (d_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.d cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, d_array);
+    if (len > RSAref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA private exponent array exceeds 512 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, d_array, 0, len, (jbyte*)native_key->d);
 
     /* prime[2] */
     jobjectArray prime_array = (jobjectArray)(*env)->GetObjectField(env, java_key,
                                                                      g_jni_cache.rsaPrivateKey.prime);
-    if (prime_array != NULL) {
-        for (int i = 0; i < 2; i++) {
-            jbyteArray p = (jbyteArray)(*env)->GetObjectArrayElement(env, prime_array, i);
-            if (p != NULL) {
-                jsize len = (*env)->GetArrayLength(env, p);
-                if (len > RSAref_MAX_PLEN) {
-                    THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA prime array exceeds 512 bytes");
-                    return false;
-                }
-                (*env)->GetByteArrayRegion(env, p, 0, len, (jbyte*)native_key->prime[i]);
-            }
+    if (prime_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.prime cannot be null");
+        return false;
+    }
+    if ((*env)->GetArrayLength(env, prime_array) < 2) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA prime array must contain 2 elements");
+        return false;
+    }
+    for (int i = 0; i < 2; i++) {
+        jbyteArray p = (jbyteArray)(*env)->GetObjectArrayElement(env, prime_array, i);
+        if (p == NULL) {
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.prime[%d] cannot be null", i);
+            return false;
         }
+        len = (*env)->GetArrayLength(env, p);
+        if (len > RSAref_MAX_PLEN) {
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA prime array exceeds 512 bytes");
+            return false;
+        }
+        (*env)->GetByteArrayRegion(env, p, 0, len, (jbyte*)native_key->prime[i]);
     }
 
     /* pexp[2] */
     jobjectArray pexp_array = (jobjectArray)(*env)->GetObjectField(env, java_key,
                                                                     g_jni_cache.rsaPrivateKey.pexp);
-    if (pexp_array != NULL) {
-        for (int i = 0; i < 2; i++) {
-            jbyteArray p = (jbyteArray)(*env)->GetObjectArrayElement(env, pexp_array, i);
-            if (p != NULL) {
-                jsize len = (*env)->GetArrayLength(env, p);
-                if (len > RSAref_MAX_PLEN) {
-                    THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA CRT exponent array exceeds 512 bytes");
-                    return false;
-                }
-                (*env)->GetByteArrayRegion(env, p, 0, len, (jbyte*)native_key->pexp[i]);
-            }
+    if (pexp_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.pexp cannot be null");
+        return false;
+    }
+    if ((*env)->GetArrayLength(env, pexp_array) < 2) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA CRT exponent array must contain 2 elements");
+        return false;
+    }
+    for (int i = 0; i < 2; i++) {
+        jbyteArray p = (jbyteArray)(*env)->GetObjectArrayElement(env, pexp_array, i);
+        if (p == NULL) {
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.pexp[%d] cannot be null", i);
+            return false;
         }
+        len = (*env)->GetArrayLength(env, p);
+        if (len > RSAref_MAX_PLEN) {
+            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA CRT exponent array exceeds 512 bytes");
+            return false;
+        }
+        (*env)->GetByteArrayRegion(env, p, 0, len, (jbyte*)native_key->pexp[i]);
     }
 
     /* coef */
     jbyteArray coef_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                                 g_jni_cache.rsaPrivateKey.coef);
-    if (coef_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, coef_array);
-        if (len > RSAref_MAX_PLEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA CRT coefficient array exceeds 512 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, coef_array, 0, len, (jbyte*)native_key->coef);
+    if (coef_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSAPrivateKey.coef cannot be null");
+        return false;
     }
+    len = (*env)->GetArrayLength(env, coef_array);
+    if (len > RSAref_MAX_PLEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "RSA CRT coefficient array exceeds 512 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, coef_array, 0, len, (jbyte*)native_key->coef);
 
     return true;
 }
 
 bool java_to_native_ECCPrivateKey(JNIEnv *env, jobject java_key, ECCrefPrivateKey *native_key) {
 
-    /* bits */
-    native_key->bits = (*env)->GetIntField(env, java_key, g_jni_cache.eccPrivateKey.bits);
+    /* Java ECCPrivateKey constructors/setters validate bits > 0 before this ULONG conversion. */
+    native_key->bits = (ULONG)(*env)->GetIntField(env, java_key, g_jni_cache.eccPrivateKey.bits);
 
     /* k */
     jbyteArray k_array = (jbyteArray)(*env)->GetObjectField(env, java_key,
                                                              g_jni_cache.eccPrivateKey.k);
-    if (k_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, k_array);
-        if (len > ECCref_MAX_LEN) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Private key K exceeds 64 bytes");
-            return false;
-        }
-        (*env)->GetByteArrayRegion(env, k_array, 0, len, (jbyte*)native_key->K);
+    if (k_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "ECCPrivateKey.k cannot be null");
+        return false;
     }
+    jsize len = (*env)->GetArrayLength(env, k_array);
+    if (len > ECCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Private key K exceeds 64 bytes");
+        return false;
+    }
+    (*env)->GetByteArrayRegion(env, k_array, 0, len, (jbyte*)native_key->K);
 
     return true;
 }
@@ -751,9 +795,17 @@ jobject native_to_java_KeyAgreementResult(JNIEnv *env, HANDLE agreement_handle,
     return obj;
 }
 
-jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, ULONG cipher_len,
-    HANDLE key_handle)
+jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, HANDLE key_handle)
 {
+    if (native_cipher->L1 > HYBRIDENCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_OUTARGERR, "HybridCipher ctM length exceeds %d", HYBRIDENCref_MAX_LEN);
+        return NULL;
+    }
+    if (native_cipher->ct_s.L > HYBRIDENCref_ECC_FIXED_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_OUTARGERR, "HybridCipher ctS length exceeds %d", HYBRIDENCref_ECC_FIXED_LEN);
+        return NULL;
+    }
+
     /* ctM byte array */
     jsize ctm_len = (jsize)native_cipher->L1;
     jbyteArray ctm_array = (*env)->NewByteArray(env, ctm_len);
@@ -764,7 +816,7 @@ jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_ciph
     (*env)->SetByteArrayRegion(env, ctm_array, 0, ctm_len, (jbyte*)native_cipher->ct_m);
 
     /* ctS - ECCCipher object */
-    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, &native_cipher->ct_s, cipher_len);
+    jobject ecc_cipher_obj = native_to_java_ECCCipher(env, &native_cipher->ct_s);
     if (ecc_cipher_obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create ECCCipher object");
         return NULL;
@@ -783,15 +835,31 @@ jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_ciph
 }
 
 HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher) {
-    jobject cts_obj = (*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctS);
 
-    ECCCipher *temp_cts = NULL;
-    if (cts_obj != NULL) {
-        temp_cts = java_to_native_ECCCipher_alloc(env, cts_obj);
-        if (temp_cts == NULL) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "convert to ecc cipher failed");
-            return NULL;
-        }
+    jlong l1_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
+    if (l1_value > HYBRIDENCref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridCipher L1 exceeds %d", HYBRIDENCref_MAX_LEN);
+        return NULL;
+    }
+
+    jbyteArray ctm_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctM);
+    if (ctm_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridCipher.ctM cannot be null");
+        return NULL;
+    }
+    jobject cts_obj = (*env)->GetObjectField(env, java_cipher, g_jni_cache.hybridCipher.ctS);
+    if (cts_obj == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridCipher ctS cannot be null");
+        return NULL;
+    }
+    ECCCipher *temp_cts = java_to_native_ECCCipher_alloc(env, cts_obj);
+    if (temp_cts == NULL) {
+        return NULL;
+    }
+    if (temp_cts->L > HYBRIDENCref_ECC_FIXED_LEN) {
+        free(temp_cts);
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridCipher ctS length exceeds %d", HYBRIDENCref_ECC_FIXED_LEN);
+        return NULL;
     }
 
     size_t alloc_size = sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN + HYBRIDENCref_MAX_LEN;
@@ -802,43 +870,26 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
         return NULL;
     }
     native_cipher->ct_m = (BYTE*)(native_cipher) + sizeof(HybridCipher) + HYBRIDENCref_ECC_FIXED_LEN;
-    /* L1 */
-    native_cipher->L1 = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
+    /* Java HybridCipher constructors/setters validate L1 >= 0 and L1 <= ctM.length; native keeps the C max bound. */
+    native_cipher->L1 = (ULONG)l1_value;
 
     /* ct_m */
-    jbyteArray ctm_array = (jbyteArray)(*env)->GetObjectField(env, java_cipher,
-                                                              g_jni_cache.hybridCipher.ctM);
-    if (ctm_array != NULL) {
-        jsize len = (*env)->GetArrayLength(env, ctm_array);
-        if (len > HYBRIDENCref_MAX_LEN) {
-            free(native_cipher);
-            free(temp_cts);
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds %d", HYBRIDENCref_MAX_LEN);
-            return NULL;
-        }
-        (*env)->GetByteArrayRegion(env, ctm_array, 0, len, (jbyte*)native_cipher->ct_m);
-    }
-
-    /* uiAlgID */
+    (*env)->GetByteArrayRegion(env, ctm_array, 0, (jsize)l1_value, (jbyte*)native_cipher->ct_m);
+    /* Java HybridCipher constructors/setters normalize Java int-style uiAlgID values to the unsigned 32-bit range. */
     native_cipher->uiAlgID = (ULONG)(*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.uiAlgID);
 
     /* ct_s */
-    if (temp_cts != NULL) {
-        if (temp_cts->L > HYBRIDENCref_ECC_FIXED_LEN) {
-            free(native_cipher);
-            free(temp_cts);
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds %d", HYBRIDENCref_MAX_LEN);
-            return NULL;
-        }
-        memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + temp_cts->L);
-        free(temp_cts);
-    }
+    memcpy(&native_cipher->ct_s, temp_cts, sizeof(ECCCipher) + temp_cts->L);
+    free(temp_cts);
 
     return native_cipher;
 }
 
-jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig, ULONG sig_m_len) {
-
+jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig) {
+    if (native_sig->L > HYBRIDSIGref_MAX_LEN || native_sig->L == 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridSignature L length is invalid");
+        return NULL;
+    }
     /* sigS - ECC signature */
     jobject ecc_sig_obj = native_to_java_ECCSignature(env, &native_sig->sig_s);
     if (ecc_sig_obj == NULL) {
@@ -847,15 +898,12 @@ jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *nativ
     }
 
     /* sigM byte array */
-    jbyteArray sig_m_array = NULL;
-    if (sig_m_len > 0) {
-        sig_m_array = (*env)->NewByteArray(env, sig_m_len);
-        if (sig_m_array == NULL) {
-            THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to new byte array");
-            return NULL;
-        }
-        (*env)->SetByteArrayRegion(env, sig_m_array, 0, sig_m_len, (jbyte*)native_sig->sig_m);
+    jbyteArray sig_m_array = (*env)->NewByteArray(env, (jsize)native_sig->L);
+    if (sig_m_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to new byte array");
+        return NULL;
     }
+    (*env)->SetByteArrayRegion(env, sig_m_array, 0, (jsize)native_sig->L, (jbyte*)native_sig->sig_m);
 
     /* Create HybridSignature via parameterized constructor */
     jobject obj = (*env)->NewObject(env, g_jni_cache.hybridSignature.cls,
@@ -871,8 +919,24 @@ HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_
     /* Get the sig_m array length */
     jbyteArray sig_m_array = (jbyteArray)(*env)->GetObjectField(env, java_sig,
                                                                  g_jni_cache.hybridSignature.sigM);
-    /* Also check L field */
+    if (sig_m_array == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridSignature.sigM cannot be null");
+        return NULL;
+    }
+    /* check L field */
     jint l_value = (*env)->GetIntField(env, java_sig, g_jni_cache.hybridSignature.l);
+    if (l_value < 0 || l_value > HYBRIDSIGref_MAX_LEN) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridSignature L exceeds %d", HYBRIDSIGref_MAX_LEN);
+        return NULL;
+    }
+
+    /* Get ECC signature part */
+    jobject ecc_sig_obj = (jobject)(*env)->GetObjectField(env, java_sig,
+                                                          g_jni_cache.hybridSignature.sigS);
+    if (ecc_sig_obj == NULL) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridSignature.sigS cannot be null");
+        return NULL;
+    }
 
     /* Allocate memory for HybridSignature struct */
     HybridSignature *native_sig = (HybridSignature*)calloc(1, sizeof(HybridSignature) + HYBRIDSIGref_MAX_LEN);
@@ -883,26 +947,15 @@ HybridSignature* java_to_native_HybridSignature_alloc(JNIEnv *env, jobject java_
     native_sig->sig_m = (BYTE*)(native_sig) + sizeof(HybridSignature);
 
     /* Get ECC signature part */
-    jobject ecc_sig_obj = (jobject)(*env)->GetObjectField(env, java_sig,
-                                                          g_jni_cache.hybridSignature.sigS);
-    if (ecc_sig_obj != NULL) {
-        if (!java_to_native_ECCSignature(env, ecc_sig_obj, &native_sig->sig_s)) {
-            free(native_sig);
-            return NULL;
-        }
-    }
-
-    /* L - sig value length */
-    if (l_value > HYBRIDSIGref_MAX_LEN) {
+    if (!java_to_native_ECCSignature(env, ecc_sig_obj, &native_sig->sig_s)) {
         free(native_sig);
-        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "cipher len exceeds 4636");
         return NULL;
     }
+
+    /* Java HybridSignature constructors/setters validate L >= 0 and L <= sigM.length; native keeps the C max bound. */
     native_sig->L = (ULONG)l_value;
 
     /* sig_m  */
-    if (sig_m_array != NULL) {
-        (*env)->GetByteArrayRegion(env, sig_m_array, 0, l_value, (jbyte*)native_sig->sig_m);
-    }
+    (*env)->GetByteArrayRegion(env, sig_m_array, 0, (jsize)l_value, (jbyte*)native_sig->sig_m);
     return native_sig;
 }

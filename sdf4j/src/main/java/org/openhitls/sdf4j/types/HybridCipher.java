@@ -81,7 +81,7 @@ public class HybridCipher {
      * @throws IllegalArgumentException if ctM or ctS is null, or l1 is invalid
      */
     public HybridCipher(long l1, byte[] ctM, long uiAlgID, ECCCipher ctS, long keyHandle) {
-        if (ctM == null || ctS == null) {
+        if (ctM == null || ctS == null || ctM.length == 0) {
             throw new IllegalArgumentException("input cannot be null");
         }
         if (l1 < 0 || l1 > ctM.length) {
@@ -139,7 +139,7 @@ public class HybridCipher {
      * @throws IllegalArgumentException if ctM is null or length is inconsistent with l1
      */
     public void setCtM(byte[] ctM) {
-        if (ctM == null || this.l1 > ctM.length) {
+        if (ctM == null || ctM.length == 0 || this.l1 > ctM.length) {
             throw new IllegalArgumentException("cipher value is invalid");
         }
         this.ctM = ctM.clone();

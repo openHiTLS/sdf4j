@@ -184,6 +184,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_Encrypt(JNIEnv *env, jobject obj, jlong ses
 
     /* 获取输入数据 */
     jsize data_len = (*env)->GetArrayLength(env, data);
+    if (data_len == 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Invalid argument");
+        return NULL;
+    }
     jbyte *data_buf = (*env)->GetByteArrayElements(env, data, NULL);
     if (data_buf == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOBUFFER, "Memory allocation failed");

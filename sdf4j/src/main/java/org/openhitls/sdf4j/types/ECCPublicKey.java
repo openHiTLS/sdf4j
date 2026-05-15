@@ -55,7 +55,7 @@ public class ECCPublicKey {
         if (bits <= 0) {
             throw new IllegalArgumentException("Invalid bits: " + bits);
         }
-        if (x == null || y == null) {
+        if (x == null || y == null || x.length == 0 || y.length == 0) {
             throw new IllegalArgumentException("X and Y coordinates cannot be null");
         }
         this.bits = bits;
@@ -107,7 +107,7 @@ public class ECCPublicKey {
      * @throws IllegalArgumentException if x is null
      */
     public void setX(byte[] x) {
-        if (x == null) {
+        if (x == null || x.length == 0) {
             throw new IllegalArgumentException("X coordinate cannot be null");
         }
         this.x = x.clone();
@@ -131,7 +131,7 @@ public class ECCPublicKey {
      * @throws IllegalArgumentException if y is null
      */
     public void setY(byte[] y) {
-        if (y == null) {
+        if (y == null || y.length == 0) {
             throw new IllegalArgumentException("Y coordinate cannot be null");
         }
         this.y = y.clone();

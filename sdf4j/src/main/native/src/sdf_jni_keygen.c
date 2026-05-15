@@ -212,7 +212,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_ECC(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
+    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_handle);
     free(ecc_cipher);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
@@ -272,7 +272,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_ECC(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_len, key_handle);
+    jobject result = create_ecc_key_encryption_result(env, ecc_cipher, key_handle);
     free(ecc_cipher);
     if (result == NULL) {
         g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, (HANDLE)key_handle);
@@ -616,4 +616,3 @@ JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithKEK(JNIEnv *env, jobject obj, jlong
 
     return (jlong)key_handle;
 }
-

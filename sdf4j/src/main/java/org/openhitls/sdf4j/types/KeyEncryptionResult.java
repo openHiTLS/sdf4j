@@ -40,6 +40,9 @@ public class KeyEncryptionResult {
      * @param keyHandle Key handle
      */
     public KeyEncryptionResult(byte[] encryptedKey, long keyHandle) {
+        if (encryptedKey == null || encryptedKey.length == 0) {
+            throw new IllegalArgumentException("Encrypted key data cannot be null");
+        }
         this.encryptedKey = encryptedKey;
         this.keyHandle = keyHandle;
     }

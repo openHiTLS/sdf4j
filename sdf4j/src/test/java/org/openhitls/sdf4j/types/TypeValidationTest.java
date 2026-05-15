@@ -12,9 +12,11 @@
 
 package org.openhitls.sdf4j.types;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Tests for Java-layer constructor and setter validation in type classes.

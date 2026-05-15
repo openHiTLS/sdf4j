@@ -17,6 +17,7 @@
 #include "sdf.h"
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 
 /**
  * 抛出SDF异常
@@ -67,7 +68,7 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
 /**
  * ECCCipher → ECCCipher
  */
-jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher, ULONG cipher_len);
+jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher);
 
 /**
  * RSArefPrivateKey → RSAPrivateKey
@@ -148,12 +149,10 @@ jobject create_key_encryption_result(JNIEnv *env, const BYTE *encrypted_key,
  *
  * @param env JNI环境
  * @param ecc_encrypted_key 加密的ECCCipher数据
- * @param key_length 密钥长度
  * @param key_handle 密钥句柄
  * @return ECCKeyEncryptionResult对象
  */
-jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher,
-                                     ULONG key_length, HANDLE key_handle);
+jobject create_ecc_key_encryption_result(JNIEnv *env, ECCCipher *ecc_cipher, HANDLE key_handle);
 
 /**
  * 创建KeyAgreementResult对象
@@ -172,8 +171,7 @@ jobject native_to_java_KeyAgreementResult(JNIEnv *env, HANDLE agreement_handle,
 /**
  * HybridCipher → HybridCipher (Java)
  */
-jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, ULONG cipher_len,
-    HANDLE key_handle);
+jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_cipher, HANDLE key_handle);
 
 /**
  * HybridCipher (Java) → HybridCipher (with dynamic memory allocation)
@@ -184,7 +182,7 @@ HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher
 /**
  * HybridSignature → HybridSignature (Java)
  */
-jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig, ULONG sig_m_len);
+jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *native_sig);
 
 /**
  * HybridSignature (Java) → HybridSignature (with dynamic memory allocation)

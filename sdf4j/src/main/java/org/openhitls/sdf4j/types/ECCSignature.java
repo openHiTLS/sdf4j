@@ -46,7 +46,7 @@ public class ECCSignature {
      * @param s signature s value
      */
     public ECCSignature(byte[] r, byte[] s) {
-        if (r == null || s == null) {
+        if (r == null || s == null || r.length == 0 || s.length == 0) {
             throw new IllegalArgumentException("Signature r and s cannot be null");
         }
         this.r = r.clone();
@@ -77,7 +77,7 @@ public class ECCSignature {
      * @throws IllegalArgumentException if r is null
      */
     public void setR(byte[] r) {
-        if (r == null) {
+        if (r == null || r.length == 0) {
             throw new IllegalArgumentException("Signature r cannot be null");
         }
         this.r = r.clone();
@@ -103,7 +103,7 @@ public class ECCSignature {
      * @throws IllegalArgumentException if s is null
      */
     public void setS(byte[] s) {
-        if (s == null) {
+        if (s == null || s.length == 0) {
             throw new IllegalArgumentException("Signature s cannot be null");
         }
         this.s = s.clone();
