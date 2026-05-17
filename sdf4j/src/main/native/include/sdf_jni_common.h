@@ -22,13 +22,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+static void *(*const volatile g_memsetFunc)(void *, int, size_t) = memset;
 
 static inline void SDF_Clear(void *ptr, size_t len)
 {
-    volatile unsigned char *p = (volatile unsigned char *)ptr;
-    while (len--) {
-        *p++ = 0;
+    if (ptr == NULL || len == 0) {
+        return;
     }
+    g_memsetFunc(ptr, 0, len);
+    __asm__ __volatile__("" : : "r"(ptr) : "memory");
 }
 
 /* 标记未使用的参数以避免编译警告 */

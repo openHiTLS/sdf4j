@@ -167,6 +167,13 @@ public class HybridAlgorithmTest {
                 throw e;
             }
         } finally {
+            if (keyHandle != 0) {
+                try {
+                    sdf.SDF_DestroyKey(sessionHandle1, keyHandle);
+                } catch (SDFException e) {
+                    System.err.println("销毁导入密钥失败: " + e.getMessage());
+                }
+            }
             if (accessRightObtained) {
                 try {
                     sdf.SDF_ReleasePrivateKeyAccessRight(sessionHandle1, sessionIndex);

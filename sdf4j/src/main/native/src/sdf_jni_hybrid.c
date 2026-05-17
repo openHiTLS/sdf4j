@@ -123,7 +123,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
         return NULL;
     }
 
-    jobject result = native_to_java_HybridCipher(env, cipher, cipher->ct_s.L, key_handle);
+    jobject result = native_to_java_HybridCipher(env, cipher, key_handle);
     free(cipher);
     return result;
 }
@@ -168,7 +168,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject ob
         return NULL;
     }
 
-    jobject result = native_to_java_HybridSignature(env, signature, signature->L);
+    jobject result = native_to_java_HybridSignature(env, signature);
     free(signature);
 
     return result;

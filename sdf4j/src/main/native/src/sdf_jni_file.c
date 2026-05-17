@@ -33,7 +33,10 @@ JNIEXPORT void JNICALL JNI_SDF_CreateFile(JNIEnv *env, jobject obj, jlong sessio
         THROW_SDF_EXCEPTION(env, SDR_UNKNOWERR, "File name is null");
         return;
     }
-
+    if (fileSize < 0) {
+        THROW_SDF_EXCEPTION(env, SDR_INARGERR, "File size is invalid");
+        return;
+    }
     /* 转换文件名 */
     char *file_name = java_string_to_native(env, fileName);
     if (file_name == NULL) {

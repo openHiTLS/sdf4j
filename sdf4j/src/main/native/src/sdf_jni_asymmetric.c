@@ -177,7 +177,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExternalEncrypt_ECC(JNIEnv *env, jobject obj, 
         return NULL;
     }
 
-    jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
+    jobject result = native_to_java_ECCCipher(env, cipher);
     free(cipher);
     return result;
 }
@@ -226,7 +226,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalEncrypt_ECC(JNIEnv *env, jobject obj, 
         return NULL;
     }
 
-    jobject result = native_to_java_ECCCipher(env, cipher, cipher->L);
+    jobject result = native_to_java_ECCCipher(env, cipher);
     free(cipher);
     return result;
 }
@@ -330,7 +330,7 @@ JNIEXPORT jobject JNICALL JNI_SDF_ExchangeDigitEnvelopeBaseOnECC(JNIEnv *env, jo
         return NULL;
     }
 
-    jobject result = native_to_java_ECCCipher(env, out_cipher, out_cipher->L);
+    jobject result = native_to_java_ECCCipher(env, out_cipher);
     free(out_cipher);
     return result;
 }
@@ -493,7 +493,7 @@ JNIEXPORT jbyteArray JNICALL JNI_SDF_InternalPublicKeyOperation_RSA(JNIEnv *env,
     }
 
     /* Allocate output buffer (RSA output is same size as key) */
-    ULONG output_len = 512;  /* Max RSA key size in bytes (4096 bits) */
+    ULONG output_len = RSAref_MAX_LEN;
     BYTE *output_buf = (BYTE*)malloc(output_len);
     if (output_buf == NULL) {
         (*env)->ReleaseByteArrayElements(env, dataInput, (jbyte*)input_buf, JNI_ABORT);

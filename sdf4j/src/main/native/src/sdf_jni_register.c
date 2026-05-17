@@ -41,7 +41,7 @@ static JNINativeMethod sdf_methods[] = {
     {"SDF_ImportKeyWithISK_RSA", "(JI[B)J", (void*)JNI_SDF_ImportKeyWithISK_RSA},
     {"SDF_GenerateKeyWithIPK_ECC_Native", "(JII)Lorg/openhitls/sdf4j/types/ECCKeyEncryptionResult;", (void*)JNI_SDF_GenerateKeyWithIPK_ECC},
     {"SDF_GenerateKeyWithEPK_ECC_Native", "(JIILorg/openhitls/sdf4j/types/ECCPublicKey;)Lorg/openhitls/sdf4j/types/ECCKeyEncryptionResult;", (void*)JNI_SDF_GenerateKeyWithEPK_ECC},
-    {"SDF_ImportKeyWithISK_ECC", "(JILorg/openhitls/sdf4j/types/ECCCipher;)J", (void*)JNI_SDF_ImportKeyWithISK_ECC},
+    {"SDF_ImportKeyWithISK_ECC_Native", "(JILorg/openhitls/sdf4j/types/ECCCipher;)J", (void*)JNI_SDF_ImportKeyWithISK_ECC},
     {"SDF_GenerateAgreementDataWithECC", "(JII[B)Lorg/openhitls/sdf4j/types/KeyAgreementResult;", (void*)JNI_SDF_GenerateAgreementDataWithECC},
     {"SDF_GenerateKeyWithECC_Native", "(J[BLorg/openhitls/sdf4j/types/ECCPublicKey;Lorg/openhitls/sdf4j/types/ECCPublicKey;J)J", (void*)JNI_SDF_GenerateKeyWithECC},
     {"SDF_GenerateAgreementDataAndKeyWithECC_Native", "(JII[B[BLorg/openhitls/sdf4j/types/ECCPublicKey;Lorg/openhitls/sdf4j/types/ECCPublicKey;)Lorg/openhitls/sdf4j/types/KeyAgreementResult;", (void*)JNI_SDF_GenerateAgreementDataAndKeyWithECC},
@@ -113,7 +113,7 @@ static JNINativeMethod sdf_methods[] = {
 
     /* 后量子相关接口 */
     {"SDF_ExportPublicKey_Hybrid", "(JI)[B", (void*)JNI_SDF_ExportPublicKey_Hybrid},
-    {"SDF_ImportKeyWithISK_Hybrid", "(JILorg/openhitls/sdf4j/types/HybridCipher;)J", (void*)JNI_SDF_ImportKeyWithISK_Hybrid},
+    {"SDF_ImportKeyWithISK_Hybrid_Native", "(JILorg/openhitls/sdf4j/types/HybridCipher;)J", (void*)JNI_SDF_ImportKeyWithISK_Hybrid},
     {"SDF_GenerateKeyWithEPK_Hybrid", "(JI[B)Lorg/openhitls/sdf4j/types/HybridCipher;", (void*)JNI_SDF_GenerateKeyWithEPK_Hybrid},
     {"SDF_InternalSign_Composite", "(JI[B)Lorg/openhitls/sdf4j/types/HybridSignature;", (void*)JNI_SDF_InternalSign_Composite},
     {"SDF_ExternalVerify_Composite", "(JI[B[BLorg/openhitls/sdf4j/types/HybridSignature;)V", (void*)JNI_SDF_ExternalVerify_Composite},

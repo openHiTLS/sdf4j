@@ -64,7 +64,8 @@ public class ECCCipher {
      * @param c ciphertext data
      */
     public ECCCipher(byte[] x, byte[] y, byte[] m, long l, byte[] c) {
-        if (x == null || y == null || m == null || c == null) {
+        if (x == null || y == null || m == null || c == null || x.length == 0 || y.length == 0 ||
+                m.length == 0 || c.length == 0) {
             throw new IllegalArgumentException("x, y, m, c cannot be null");
         }
         if (l < 0 || l > c.length) {
@@ -101,7 +102,7 @@ public class ECCCipher {
      * @throws IllegalArgumentException if x is null
      */
     public void setX(byte[] x) {
-        if (x == null) {
+        if (x == null || x.length == 0) {
             throw new IllegalArgumentException("X coordinate cannot be null");
         }
         this.x = x.clone();
@@ -127,7 +128,7 @@ public class ECCCipher {
      * @throws IllegalArgumentException if y is null
      */
     public void setY(byte[] y) {
-        if (y == null) {
+        if (y == null || y.length == 0) {
             throw new IllegalArgumentException("Y coordinate cannot be null");
         }
         this.y = y.clone();
@@ -153,7 +154,7 @@ public class ECCCipher {
      * @throws IllegalArgumentException if m is null
      */
     public void setM(byte[] m) {
-        if (m == null) {
+        if (m == null || m.length == 0) {
             throw new IllegalArgumentException("Hash value M cannot be null");
         }
         this.m = m.clone();
@@ -179,7 +180,7 @@ public class ECCCipher {
      * @throws IllegalArgumentException if c is null or length is inconsistent with L
      */
     public void setC(byte[] c) {
-        if (c == null || this.l > c.length) {
+        if (c == null || c.length == 0 || this.l > c.length) {
             throw new IllegalArgumentException("cipher value is invalid");
         }
         this.c = c.clone();

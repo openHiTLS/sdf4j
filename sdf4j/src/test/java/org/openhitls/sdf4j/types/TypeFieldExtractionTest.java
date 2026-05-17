@@ -612,6 +612,9 @@ public class TypeFieldExtractionTest {
                 throw e;
             }
         } finally {
+            if (deviceAKeyHandle != 0) {
+                try { sdf.SDF_DestroyKey(sessionHandle, deviceAKeyHandle); } catch (Exception ignored) {}
+            }
             if (keyHandle != 0) {
                 try { sdf.SDF_DestroyKey(sessionHandle, keyHandle); } catch (Exception ignored) {}
             }

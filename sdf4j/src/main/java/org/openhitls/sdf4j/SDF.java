@@ -260,17 +260,17 @@ public class SDF {
         }
         // 先关闭该 session 的所有 keyHandle
         for (Long keyHandle : new java.util.HashSet<>(sessionResource.keys)) {
-            sessionResource.removeKey(keyHandle);
             SDF_DestroyKey_Native(sessionHandle, keyHandle);
+            sessionResource.removeKey(keyHandle);
         }
+        // 关闭 session
+        SDF_CloseSessionNative(sessionHandle);
         // 从 sessionResources 中移除
         gSessResource.remove(sessionHandle);
         // 从 device resource 中移除
         if (gDevResource != null) {
             gDevResource.removeSession(sessionHandle);
         }
-        // 关闭 session
-        SDF_CloseSessionNative(sessionHandle);
     }
 
     /**
@@ -510,7 +510,16 @@ public class SDF {
      * @return 密钥句柄 / Key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_ImportKeyWithISK_ECC(
+    public long SDF_ImportKeyWithISK_ECC(long sessionHandle, int keyIndex, ECCCipher cipher) throws SDFException {
+        long keyHandle = SDF_ImportKeyWithISK_ECC_Native(sessionHandle, keyIndex, cipher);
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(keyHandle);
+        }
+        return keyHandle;
+    }
+
+    private native long SDF_ImportKeyWithISK_ECC_Native(
             long sessionHandle, int keyIndex, ECCCipher cipher) throws SDFException;
 
     /**
@@ -652,11 +661,11 @@ public class SDF {
     public void SDF_DestroyKey(long sessionHandle, long keyHandle) throws SDFException {
         // 从对应的 SessionResource 中移除
         SessionResource sessionResource = gSessResource.get(sessionHandle);
+        // 调用 native 方法销毁密钥
+        SDF_DestroyKey_Native(sessionHandle, keyHandle);
         if (sessionResource != null) {
             sessionResource.removeKey(keyHandle);
         }
-        // 调用 native 方法销毁密钥
-        SDF_DestroyKey_Native(sessionHandle, keyHandle);
     }
 
     /**
@@ -1367,7 +1376,17 @@ public class SDF {
      * @return 密钥句柄 / Key handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_ImportKeyWithISK_Hybrid(long sessionHandle, int keyIndex,
+    public long SDF_ImportKeyWithISK_Hybrid(long sessionHandle, int keyIndex,
+            HybridCipher hybridCipher) throws SDFException {
+        long keyHandle = SDF_ImportKeyWithISK_Hybrid_Native(sessionHandle, keyIndex, hybridCipher);
+        SessionResource sessionResource = gSessResource.get(sessionHandle);
+        if (sessionResource != null) {
+            sessionResource.addKey(keyHandle);
+        }
+        return keyHandle;
+    }
+
+    private native long SDF_ImportKeyWithISK_Hybrid_Native(long sessionHandle, int keyIndex,
             HybridCipher hybridCipher) throws SDFException;
 
     /**
