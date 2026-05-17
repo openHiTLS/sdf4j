@@ -72,6 +72,57 @@ byte[] random = new byte[32];
 sr.nextBytes(random);
 ```
 
+### 4. 设备内部密钥使用 (Internal Keys)
+
+SDF 原生密码库除了提供独立的密码运算能力，还支持使用预置在设备内部的密钥（不可导出）。通过本项目的拓展，可与标准 JCE 结合：
+
+#### SM2 非对称内部密钥
+
+```java
+import org.openhitls.sdf4j.jce.key.SDFInternalPrivateKey;
+import org.openhitls.sdf4j.jce.key.SDFInternalPublicKey;
+import org.openhitls.sdf4j.jce.key.SDFInternalPrivateKey.KeyUsage;
+
+// 1. 获取内部私钥引用
+// 参数说明：
+// - keyIndex: 设备中预置的密钥索引（通常是 1~N）
+// - password: 访问内部私钥的密码（若设备不需要密码可传 null）
+// - usage:    密钥用途，取值 KeyUsage.SIGN (签名/验签) 或 KeyUsage.ENCRYPT (加密/解密)
+SDFInternalPrivateKey privKey = new SDFInternalPrivateKey(1, "password".toCharArray(), KeyUsage.SIGN);
+
+// 2. 初始化签名并使用内部私钥
+Signature signer = Signature.getInstance("SM3withSM2", "SDF");
+signer.initSign(privKey);
+signer.update("Hello".getBytes());
+byte[] signature = signer.sign();
+
+// 3. 内部公钥验证 (参数与私钥类似)
+SDFInternalPublicKey pubKey = new SDFInternalPublicKey(1, KeyUsage.SIGN);
+Signature verifier = Signature.getInstance("SM3withSM2", "SDF");
+verifier.initVerify(pubKey);
+verifier.update("Hello".getBytes());
+boolean valid = verifier.verify(signature);
+```
+
+#### SM4 对称内部密钥 (基于 KEK)
+
+对于 SM4 对称加密，SDF 规范支持通过 **内部密钥加密密钥 (KEK)** 来动态协商或派生会话密钥，数据不出密码机：
+
+```java
+import org.openhitls.sdf4j.jce.key.SDFInternalSymmetricKey;
+
+// 1. 获取基于 KEK 的内部对称密钥引用
+// 参数说明：
+// - kekIndex: 密码设备中配置的 KEK（Key Encryption Key）索引
+// - password: 访问 KEK 的密码（若不需要可传 null）
+SDFInternalSymmetricKey sm4Key = new SDFInternalSymmetricKey(4, "password".toCharArray());
+
+// 2. 使用内部对称密钥进行加解密运算，此时 SDF4J 将自动调用底层设备进行 KEK 加解密及运算
+Cipher cipher = Cipher.getInstance("SM4/CBC/NoPadding", "SDF");
+cipher.init(Cipher.ENCRYPT_MODE, sm4Key, new IvParameterSpec(new byte[16]));
+byte[] ciphertext = cipher.doFinal("Hello internal SM4".getBytes());
+```
+
 ## 配置说明
 
 ### SDF 库路径配置

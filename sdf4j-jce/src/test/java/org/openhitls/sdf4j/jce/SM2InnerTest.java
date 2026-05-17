@@ -38,22 +38,22 @@ public class SM2InnerTest {
 
     @BeforeClass
     public static void setUpClass() {
-        String libraryPath = System.getenv("SDF_LIBRARY_PATH");
-        if (libraryPath == null || libraryPath.isEmpty()) {
-            libraryPath = System.getProperty("sdf.library.path");
+        try {
+            Security.addProvider(new SDFProvider());
+            // Reuse one KeyPairGenerator and KeyPair across SM2 tests
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("SM2", "SDF");
+            sm2KeyPair = kpg.generateKeyPair();
+            // Mark as initialized only after the key pair is ready
+            initialized = true;
+        } catch (Throwable t) {
+            System.err.println("Failed to initialize provider: " + t.getMessage());
+            t.printStackTrace();
         }
+    }
 
-        if (libraryPath != null && !libraryPath.isEmpty()) {
-            try {
-                Security.addProvider(new SDFProvider());
-                initialized = true;
-                // Reuse one KeyPairGenerator and KeyPair across SM2 tests
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance("SM2", "SDF");
-                sm2KeyPair = kpg.generateKeyPair();
-            } catch (Exception e) {
-                System.err.println("Failed to initialize provider: " + e.getMessage());
-            }
-        }
+    @Before
+    public void checkInitialized() {
+        Assume.assumeTrue("SDF device not available, skipping test", initialized);
     }
 
     @After

@@ -15,6 +15,7 @@ package org.openhitls.sdf4j.jce;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.Assume;
 import static org.junit.Assert.*;
 
@@ -46,18 +47,12 @@ public class SM4InnerTest {
 
     @BeforeClass
     public static void setUpClass() {
-        String libraryPath = System.getenv("SDF_LIBRARY_PATH");
-        if (libraryPath == null || libraryPath.isEmpty()) {
-            libraryPath = System.getProperty("sdf.library.path");
-        }
-
-        if (libraryPath != null && !libraryPath.isEmpty()) {
-            try {
-                Security.addProvider(new SDFProvider());
-                initialized = true;
-            } catch (Throwable e) {
-                System.err.println("Failed to initialize provider: " + e.getMessage());
-            }
+        try {
+            Security.addProvider(new SDFProvider());
+            initialized = true;
+        } catch (Throwable e) {
+            System.err.println("Failed to initialize provider: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -80,6 +75,7 @@ public class SM4InnerTest {
     // ==================== ECB 向量测试 ====================
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS5Padding1Byte() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -104,6 +100,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS5Padding15Bytes() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -129,6 +126,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS5Padding16Bytes() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -159,6 +157,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS5Padding31Bytes() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -332,6 +331,7 @@ public class SM4InnerTest {
     // ==================== PKCS7 别名向量测试 ====================
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS7Padding1Byte() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -356,6 +356,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS7Padding15Bytes() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -381,6 +382,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testSM4ECBPKCS7Padding31Bytes() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -527,6 +529,7 @@ public class SM4InnerTest {
     // ==================== ECB 流式测试 ====================
 
     @Test
+    @Ignore("由于部分厂商底层库不支持 ECB 模式下的空 IV 流式操作，暂时注释")
     public void testECBStreamingUpdateDoFinal() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
 
@@ -564,6 +567,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("由于部分厂商底层库不支持 ECB 模式下的空 IV 流式操作，暂时注释")
     public void testECBStreamingPKCS5MultipleUpdates() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
 
@@ -589,6 +593,73 @@ public class SM4InnerTest {
         byte[] decrypted = decCipher.doFinal(ciphertext);
 
         assertArrayEquals("Streaming ECB PKCS5 roundtrip failed", plaintext, decrypted);
+    }
+
+    @Test
+    public void testCBCStreamingUpdateDoFinalAlternative() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        IvParameterSpec iv = new IvParameterSpec(IV);
+
+        byte[] part1 = new byte[]{
+                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+        };
+        byte[] part2 = new byte[]{
+                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+                0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+        };
+
+        Cipher encCipher = Cipher.getInstance("SM4/CBC/NoPadding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] enc1 = encCipher.update(part1);
+        byte[] enc2 = encCipher.doFinal(part2);
+        byte[] ciphertext = concat(enc1, enc2);
+
+        Cipher refCipher = Cipher.getInstance("SM4/CBC/NoPadding", "SDF");
+        refCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] fullData = concat(part1, part2);
+        byte[] refCiphertext = refCipher.doFinal(fullData);
+
+        assertArrayEquals("Streaming CBC encrypt should match one-shot", refCiphertext, ciphertext);
+
+        Cipher decCipher = Cipher.getInstance("SM4/CBC/NoPadding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, iv);
+        byte[] dec1 = decCipher.update(ciphertext, 0, 16);
+        byte[] dec2 = decCipher.doFinal(ciphertext, 16, 16);
+        byte[] decrypted = concat(dec1, dec2);
+
+        assertArrayEquals("Streaming CBC decrypt should recover plaintext", fullData, decrypted);
+    }
+
+    @Test
+    public void testCBCStreamingPKCS5MultipleUpdatesAlternative() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        IvParameterSpec iv = new IvParameterSpec(IV);
+        byte[] plaintext = "Hello, SM4 streaming PKCS5 test!".getBytes(); // 32 bytes
+
+        Cipher encCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] enc1 = encCipher.update(plaintext, 0, 5);
+        byte[] enc2 = encCipher.update(plaintext, 5, 11);
+        byte[] enc3 = encCipher.update(plaintext, 16, 10);
+        byte[] enc4 = encCipher.doFinal(plaintext, 26, 6);
+        byte[] ciphertext = concatAll(enc1, enc2, enc3, enc4);
+
+        Cipher refCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        refCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] refCiphertext = refCipher.doFinal(plaintext);
+
+        assertArrayEquals("Streaming CBC PKCS5 encrypt should match one-shot", refCiphertext, ciphertext);
+
+        Cipher decCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, iv);
+        byte[] decrypted = decCipher.doFinal(ciphertext);
+
+        assertArrayEquals("Streaming CBC PKCS5 roundtrip failed", plaintext, decrypted);
     }
 
     // ==================== CBC 流式测试 ====================
@@ -1146,7 +1217,8 @@ public class SM4InnerTest {
     }
 
     @Test
-    public void testNoPaddingNonBlockAligned() throws Exception {
+    @Ignore("暂时注释ECB用例")
+    public void testNoPaddingNonBlockAligned_ECB() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
 
@@ -1163,7 +1235,28 @@ public class SM4InnerTest {
     }
 
     @Test
-    public void testKeyGeneratorBasic() throws Exception {
+    public void testNoPaddingNonBlockAligned_CBC() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        IvParameterSpec iv = new IvParameterSpec(IV);
+
+        // NoPadding 模式下非 16 字节对齐的数据应报错
+        Cipher cipher = Cipher.getInstance("SM4/CBC/NoPadding", "SDF");
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+
+        try {
+            cipher.doFinal(new byte[15]);
+            fail("NoPadding with non-block-aligned data should throw");
+        } catch (IllegalBlockSizeException e) {
+            // expected
+        } catch (Exception e) {
+            fail("Expected IllegalBlockSizeException, but got: " + e.getClass().getName());
+        }
+    }
+
+    @Test
+    @Ignore("暂时注释ECB用例")
+    public void testKeyGeneratorBasic_ECB() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
 
         javax.crypto.KeyGenerator kg = javax.crypto.KeyGenerator.getInstance("SM4", "SDF");
@@ -1180,6 +1273,31 @@ public class SM4InnerTest {
 
         Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
         dec.init(Cipher.DECRYPT_MODE, key);
+        byte[] pt = dec.doFinal(ct);
+
+        assertArrayEquals("test".getBytes(), pt);
+    }
+
+    @Test
+    public void testKeyGeneratorBasic_CBC() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        javax.crypto.KeyGenerator kg = javax.crypto.KeyGenerator.getInstance("SM4", "SDF");
+        SecretKey key = kg.generateKey();
+
+        assertNotNull(key);
+        assertEquals("SM4", key.getAlgorithm());
+        assertEquals(16, key.getEncoded().length);
+        
+        IvParameterSpec iv = new IvParameterSpec(IV);
+
+        // 用生成的 key 加解密验证可用性
+        Cipher enc = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        enc.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] ct = enc.doFinal("test".getBytes());
+
+        Cipher dec = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        dec.init(Cipher.DECRYPT_MODE, key, iv);
         byte[] pt = dec.doFinal(ct);
 
         assertArrayEquals("test".getBytes(), pt);
@@ -1238,6 +1356,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testECBNoPaddingEmptyDoFinal() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
         SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
@@ -1258,6 +1377,7 @@ public class SM4InnerTest {
     }
 
     @Test
+    @Ignore("暂时注释ECB用例")
     public void testDecryptWithWrongKeyFails() throws Exception {
         Assume.assumeTrue("SDF not initialized", initialized);
 

@@ -31,6 +31,7 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
 import org.openhitls.sdf4j.jce.SDFJceNative;
+import org.openhitls.sdf4j.jce.key.SDFInternalSymmetricKey;
 import java.util.Arrays;
 
 /**
@@ -57,6 +58,11 @@ public class SM4Cipher extends CipherSpi {
     protected static final int PADDING_NONE = 0;
     protected static final int PADDING_PKCS5 = 1;
 
+    // GM/T 0018 SDF algorithm IDs — passed to SDF_GenerateKeyWithKEK / SDF_ImportKeyWithKEK
+    // as uiAlgID to indicate the mode in which the generated session key will be used.
+    private static final int SGD_SM4_ECB = 0x00000401;
+    private static final int SGD_SM4_CBC = 0x00000402;
+
     protected long sessionHandle;
     protected int cipherMode = MODE_CBC;
     protected int paddingMode = PADDING_NONE;
@@ -64,6 +70,11 @@ public class SM4Cipher extends CipherSpi {
     protected byte[] key;
     protected byte[] iv;
     protected long ctx = 0;
+
+    // Internal (KEK) mode fields
+    protected boolean useInternalKey = false;
+    protected SDFInternalSymmetricKey internalKey;
+    protected long internalKeyHandle = 0;
 
     // GCM specific fields
     protected int gcmTagLenBits = DEFAULT_GCM_TAG_BITS;
@@ -181,10 +192,19 @@ public class SM4Cipher extends CipherSpi {
         cleanup();
 
         this.opmode = opmode;
-        this.key = key.getEncoded();
 
-        if (this.key == null || this.key.length != KEY_SIZE) {
-            throw new InvalidKeyException("Key must be 16 bytes");
+        // Detect Internal (KEK) key vs External key
+        if (key instanceof SDFInternalSymmetricKey) {
+            this.internalKey = (SDFInternalSymmetricKey) key;
+            this.useInternalKey = true;
+            this.key = null;  // no raw key material
+        } else {
+            this.key = key.getEncoded();
+            if (this.key == null || this.key.length != KEY_SIZE) {
+                throw new InvalidKeyException("Key must be 16 bytes");
+            }
+            this.useInternalKey = false;
+            this.internalKey = null;
         }
 
         // Parse parameters
@@ -218,14 +238,125 @@ public class SM4Cipher extends CipherSpi {
      * Initialize the native streaming context (EncryptInit/DecryptInit).
      */
     private void initStreamingContext() {
-        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
-            ctx = SDFJceNative.sm4EncryptInit(sessionHandle, cipherMode, key, iv);
+        if (useInternalKey) {
+            initInternalStreamingContext();
         } else {
-            ctx = SDFJceNative.sm4DecryptInit(sessionHandle, cipherMode, key, iv);
+            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+                ctx = SDFJceNative.sm4EncryptInit(sessionHandle, cipherMode, key, iv);
+            } else {
+                ctx = SDFJceNative.sm4DecryptInit(sessionHandle, cipherMode, key, iv);
+            }
         }
         if (ctx == 0) {
             throw new IllegalStateException("Failed to initialize SM4 streaming context");
         }
+    }
+
+    /**
+     * Returns the GM/T 0018 SDF algorithm ID that corresponds to the current {@link #cipherMode}.
+     *
+     * <p>This ID is passed as {@code uiAlgID} to {@code SDF_GenerateKeyWithKEK} and
+     * {@code SDF_ImportKeyWithKEK}, telling the device which mode the generated session key
+     * will be used for. It is <em>not</em> the algorithm of the KEK itself.
+     *
+     * <p>GCM and CCM are not defined as distinct algorithm IDs in GM/T 0018; the SDF device
+     * internally treats them as CBC-family keys. CBC is used as the fallback.
+     */
+    private int getSdfAlgId() {
+        switch (cipherMode) {
+            case MODE_ECB: return SGD_SM4_ECB;
+            case MODE_CBC: return SGD_SM4_CBC;
+            default:       return SGD_SM4_CBC; // GCM/CCM: no distinct SDF ID, fall back to CBC
+        }
+    }
+
+    /**
+     * Initialize streaming context using an Internal (KEK-protected) key.
+     *
+     * <p><b>Encrypt path</b>: calls {@code SDF_GenerateKeyWithKEK} to produce a new random
+     * session key wrapped by the KEK. The encrypted key blob (all bytes except the trailing
+     * 8-byte key handle) is stored back into {@link #internalKey} so the caller can hand it
+     * to the decryption side.
+     *
+     * <p><b>Decrypt path</b>: reads the blob previously stored in {@link #internalKey} and
+     * calls {@code SDF_ImportKeyWithKEK} to recover the same session key handle.
+     */
+    private void initInternalStreamingContext() {
+        // Acquire KEK access right
+        char[] pwd = internalKey.getPassword();
+        if (pwd != null) {
+            byte[] pwdBytes = new byte[pwd.length];
+            for (int i = 0; i < pwd.length; i++) {
+                pwdBytes[i] = (byte) pwd[i];
+            }
+            try {
+                SDFJceNative.getKEKAccessRight(sessionHandle, internalKey.getKekIndex(), pwdBytes);
+            } finally {
+                Arrays.fill(pwdBytes, (byte) 0);
+                Arrays.fill(pwd, '\0');
+            }
+        }
+
+        try {
+            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+                // Generate a new random session key wrapped by the KEK.
+                byte[] result = SDFJceNative.sm4GenerateKeyWithKEK(
+                    sessionHandle, KEY_SIZE * 8, getSdfAlgId(), internalKey.getKekIndex());
+                if (result == null || result.length < 8) {
+                    throw new IllegalStateException("Failed to generate key with KEK");
+                }
+                // Save the encrypted key blob (everything except the trailing 8-byte handle)
+                // so the decryption side can call ImportKeyWithKEK to recover the same key.
+                byte[] blob = Arrays.copyOf(result, result.length - 8);
+                internalKey.setEncryptedKeyBlob(blob);
+
+                this.internalKeyHandle = extractKeyHandle(result);
+                ctx = SDFJceNative.sm4EncryptInitWithKeyHandle(
+                    sessionHandle, internalKeyHandle, cipherMode, iv);
+            } else {
+                // Recover the session key from the blob produced during encryption.
+                byte[] blob = internalKey.getEncryptedKeyBlob();
+                if (blob == null) {
+                    throw new IllegalStateException(
+                        "No encrypted key blob found in SDFInternalSymmetricKey. " +
+                        "For decryption, setEncryptedKeyBlob() must be called with the blob " +
+                        "that was saved during the corresponding encryption operation.");
+                }
+                long keyHandle = SDFJceNative.sm4ImportKeyWithKEK(
+                    sessionHandle, getSdfAlgId(), internalKey.getKekIndex(), blob);
+                if (keyHandle == 0) {
+                    throw new IllegalStateException("Failed to import key with KEK");
+                }
+                this.internalKeyHandle = keyHandle;
+                ctx = SDFJceNative.sm4DecryptInitWithKeyHandle(
+                    sessionHandle, internalKeyHandle, cipherMode, iv);
+            }
+
+            if (ctx == 0) {
+                throw new IllegalStateException("Failed to initialize SM4 streaming context with key handle");
+            }
+        } catch (Throwable t) {
+            if (internalKeyHandle != 0) {
+                try {
+                    SDFJceNative.destroyKey(sessionHandle, internalKeyHandle);
+                } catch (Exception ignored) {}
+                internalKeyHandle = 0;
+            }
+            throw t;
+        }
+    }
+
+    /**
+     * Extracts the 64-bit key handle from the last 8 bytes of an SDF key result array
+     * (big-endian encoding).
+     */
+    private static long extractKeyHandle(byte[] result) {
+        long kh = 0;
+        int offset = result.length - 8;
+        for (int i = 0; i < 8; i++) {
+            kh = (kh << 8) | (result[offset + i] & 0xFFL);
+        }
+        return kh;
     }
 
     @Override
@@ -525,6 +656,14 @@ public class SM4Cipher extends CipherSpi {
             SDFJceNative.sm4Free(ctx);
             ctx = 0;
         }
+        if (internalKeyHandle != 0) {
+            try {
+                SDFJceNative.destroyKey(sessionHandle, internalKeyHandle);
+            } catch (Exception ignored) { }
+            internalKeyHandle = 0;
+        }
+        internalKey = null;
+        useInternalKey = false;
         if (buffer != null) {
             buffer.reset();
         }

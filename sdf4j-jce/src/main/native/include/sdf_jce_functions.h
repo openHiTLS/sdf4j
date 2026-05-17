@@ -115,4 +115,55 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_generateRandom(JNIEnv *env,
 JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_generateSm4Key(JNIEnv *env,
     jclass cls, jlong sessionHandle);
 
+/* ==================== SM2 Internal Operations ==================== */
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2InternalSign(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jbyteArray data);
+
+JNIEXPORT jboolean JNICALL JNI_SDFJceNative_sm2InternalVerify(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jbyteArray data, jbyteArray signature);
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2InternalEncrypt(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jbyteArray plaintext);
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2InternalDecrypt(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jint eccKeyType, jbyteArray ciphertext);
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_exportSignPublicKeyECC(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex);
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_exportEncPublicKeyECC(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex);
+
+/* ==================== Access Right Management ==================== */
+
+JNIEXPORT void JNICALL JNI_SDFJceNative_getPrivateKeyAccessRight(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jbyteArray password);
+
+JNIEXPORT void JNICALL JNI_SDFJceNative_releasePrivateKeyAccessRight(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex);
+
+JNIEXPORT void JNICALL JNI_SDFJceNative_getKEKAccessRight(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex, jbyteArray password);
+
+JNIEXPORT void JNICALL JNI_SDFJceNative_releaseKEKAccessRight(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyIndex);
+
+/* ==================== SM4 Internal (KEK) Operations ==================== */
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4GenerateKeyWithKEK(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint keyBits, jint algID, jint kekIndex);
+
+JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4ImportKeyWithKEK(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jint algID, jint kekIndex, jbyteArray wrappedKey);
+
+JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4EncryptInitWithKeyHandle(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv);
+
+JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4DecryptInitWithKeyHandle(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv);
+
+JNIEXPORT void JNICALL JNI_SDFJceNative_destroyKey(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jlong keyHandle);
+
 #endif /* SDF4J_JCE_FUNCTIONS_H */
