@@ -169,7 +169,7 @@ public class TypesToStringTest {
         StringBuilder zeros = new StringBuilder();
         for (int i = 0; i < 31; i++) zeros.append("00");
         String xy = "01" + zeros;
-        String expected = "KeyAgreementResult{agreementHandle=0x12345678, publicKey=ECCPublicKey{bits=256, x=" + xy +
+        String expected = "KeyAgreementResult{agreementHandlePresent=true, publicKey=ECCPublicKey{bits=256, x=" + xy +
                          ", y=02" + zeros + "}, tmpPublicKey=ECCPublicKey{bits=256, x=" + xy + ", y=02" + zeros + "}}";
         assertEquals("KeyAgreementResult toString output should match exactly", expected, result.toString());
     }

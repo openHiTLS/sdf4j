@@ -112,7 +112,7 @@ public class KeyAgreementResult {
     @Override
     public String toString() {
         return "KeyAgreementResult{" +
-                "agreementHandle=0x" + Long.toHexString(agreementHandle) +
+                "agreementHandlePresent=" + (agreementHandle != 0) +
                 ", publicKey=" + (publicKey != null ? publicKey.toString() : "null") +
                 ", tmpPublicKey=" + (tmpPublicKey != null ? tmpPublicKey.toString() : "null") +
                 '}';

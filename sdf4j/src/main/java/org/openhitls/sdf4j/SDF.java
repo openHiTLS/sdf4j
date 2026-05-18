@@ -87,7 +87,9 @@ public class SDF {
         @Override
         protected void finalize() throws Throwable {
             try {
-                SDF_CloseDevice(gDevHandle);
+                if (gDevHandle != null) {
+                    SDF_CloseDevice(gDevHandle);
+                }
             } finally {
                 super.finalize();
             }
@@ -111,7 +113,9 @@ public class SDF {
 
         SessionResource(long sessionHandle) {
             this.sessionHandle = sessionHandle;
-            gDevResource.addSession(sessionHandle);
+            if (gDevResource != null) {
+                gDevResource.addSession(sessionHandle);
+            }
         }
 
         @Override
@@ -123,10 +127,12 @@ public class SDF {
                 }
 
                 // 检查 session 是否还在 device resource 中，如果不在，说明已经被手动关闭了，不需要再次关闭
-                boolean wasInSet = gDevResource.sessions.remove(sessionHandle);
-                if (wasInSet) {
-                    // 只有在集合中时才关闭
-                    SDF_CloseSessionNative(sessionHandle);
+                if (gDevResource != null) {
+                    boolean wasInSet = gDevResource.sessions.remove(sessionHandle);
+                    if (wasInSet) {
+                        // 仍然在集合中时才关闭
+                        SDF_CloseSessionNative(sessionHandle);
+                    }
                 }
             } finally {
                 super.finalize();
@@ -196,9 +202,12 @@ public class SDF {
      * @throws SDFException 如果操作失败 / if operation fails
      */
     public void SDF_CloseDevice(long deviceHandle) throws SDFException {
-        // 验证 handle 是否匹配
-        if (gDevHandle == null || deviceHandle != gDevHandle) {
+        // 验证 handle 是否已经释放
+        if (gDevHandle == null) {
             return;
+        }
+        if (deviceHandle != gDevHandle) {
+            throw new SDFException(ErrorCode.SDR_INARGERR, "Device handle does not belong to this SDF instance");
         }
         // 先关闭所有关联的 session（session 关闭时会自动清理其 keyHandle）
         for (Long sessionHandle : new java.util.HashSet<>(gDevResource.sessions)) {

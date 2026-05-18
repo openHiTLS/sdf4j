@@ -76,6 +76,7 @@ public class SM4Cipher extends CipherSpi {
     protected SDFInternalSymmetricKey internalKey;
     protected long internalKeyHandle = 0;
     private boolean generatedInternalKeyForCipher = false;
+    private int acquiredKekAccessIndex = -1;
 
     // GCM specific fields
     protected int gcmTagLenBits = DEFAULT_GCM_TAG_BITS;
@@ -313,6 +314,7 @@ public class SM4Cipher extends CipherSpi {
     }
 
     private void acquireKekAccessRight() {
+        releaseKekAccessRight();
         char[] pwd = internalKey.getPassword();
         if (pwd == null) {
             return;
@@ -323,9 +325,22 @@ public class SM4Cipher extends CipherSpi {
         }
         try {
             SDFJceNative.getKEKAccessRight(sessionHandle, internalKey.getKekIndex(), pwdBytes);
+            acquiredKekAccessIndex = internalKey.getKekIndex();
         } finally {
             Arrays.fill(pwdBytes, (byte) 0);
             Arrays.fill(pwd, '\0');
+        }
+    }
+
+    private void releaseKekAccessRight() {
+        if (acquiredKekAccessIndex < 0 || sessionHandle == 0) {
+            return;
+        }
+        try {
+            SDFJceNative.releaseKEKAccessRight(sessionHandle, acquiredKekAccessIndex);
+        } catch (Exception ignored) {
+        } finally {
+            acquiredKekAccessIndex = -1;
         }
     }
 
@@ -391,6 +406,8 @@ public class SM4Cipher extends CipherSpi {
                 internalKeyHandle = 0;
             }
             throw t;
+        } finally {
+            releaseKekAccessRight();
         }
     }
 
@@ -442,6 +459,8 @@ public class SM4Cipher extends CipherSpi {
         } catch (Throwable t) {
             destroyDetachedInternalKey();
             throw t;
+        } finally {
+            releaseKekAccessRight();
         }
     }
 
@@ -458,6 +477,7 @@ public class SM4Cipher extends CipherSpi {
             throw new IllegalStateException("No encrypted key blob found for SM4 internal key reset");
         }
 
+        acquireKekAccessRight();
         try {
             long keyHandle = SDFJceNative.sm4ImportKeyWithKEK(
                 sessionHandle, getSdfAlgId(), internalKey.getKekIndex(), blob);
@@ -480,6 +500,8 @@ public class SM4Cipher extends CipherSpi {
         } catch (Throwable t) {
             destroyDetachedInternalKey();
             throw t;
+        } finally {
+            releaseKekAccessRight();
         }
     }
 
@@ -841,6 +863,7 @@ public class SM4Cipher extends CipherSpi {
         }
         freeStreamingContext();
         destroyDetachedInternalKey();
+        releaseKekAccessRight();
         internalKey = null;
         useInternalKey = false;
         generatedInternalKeyForCipher = false;

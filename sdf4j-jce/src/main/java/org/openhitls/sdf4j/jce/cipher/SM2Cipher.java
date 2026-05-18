@@ -71,12 +71,7 @@ public final class SM2Cipher extends CipherSpi {
     }
 
     private void cleanup() {
-        if (acquiredAccessKeyIndex != -1) {
-            try {
-                SDFJceNative.releasePrivateKeyAccessRight(sessionHandle, acquiredAccessKeyIndex);
-            } catch (Exception ignored) {}
-            acquiredAccessKeyIndex = -1;
-        }
+        releasePrivateKeyAccessRight();
         publicKey = null;
         privateKey = null;
         internalPublicKey = null;
@@ -157,8 +152,6 @@ public final class SM2Cipher extends CipherSpi {
                 this.internalPrivateKey = (SDFInternalPrivateKey) key;
                 this.privateKey = null;
                 this.useInternalKey = true;
-                // Auto-acquire access right
-                acquirePrivateKeyAccessRight(this.internalPrivateKey);
             } else if (key instanceof SM2PrivateKey) {
                 this.privateKey = (SM2PrivateKey) key;
                 this.internalPrivateKey = null;
@@ -233,8 +226,15 @@ public final class SM2Cipher extends CipherSpi {
                 if (internalPrivateKey == null) {
                     throw new IllegalStateException("Internal private key not set");
                 }
-                return SDFJceNative.sm2InternalDecrypt(
-                    sessionHandle, internalPrivateKey.getKeyIndex(), SGD_SM2_3, data);
+                try {
+                    acquirePrivateKeyAccessRight(internalPrivateKey);
+                    return SDFJceNative.sm2InternalDecrypt(
+                        sessionHandle, internalPrivateKey.getKeyIndex(), SGD_SM2_3, data);
+                } catch (InvalidKeyException e) {
+                    throw new BadPaddingException(e.getMessage());
+                } finally {
+                    releasePrivateKeyAccessRight();
+                }
             } else {
                 if (privateKey == null) {
                     throw new IllegalStateException("Private key not set");
@@ -287,6 +287,10 @@ public final class SM2Cipher extends CipherSpi {
      * Auto-acquire private key access right for Internal key.
      */
     private void acquirePrivateKeyAccessRight(SDFInternalPrivateKey key) throws InvalidKeyException {
+        if (acquiredAccessKeyIndex == key.getKeyIndex()) {
+            return;
+        }
+        releasePrivateKeyAccessRight();
         char[] pwd = key.getPassword();
         if (pwd != null) {
             byte[] pwdBytes = new byte[pwd.length];
@@ -303,6 +307,15 @@ public final class SM2Cipher extends CipherSpi {
                 java.util.Arrays.fill(pwd, '\0');
             }
         }
+    }
+
+    private void releasePrivateKeyAccessRight() {
+        if (acquiredAccessKeyIndex != -1 && sessionHandle != 0) {
+            try {
+                SDFJceNative.releasePrivateKeyAccessRight(sessionHandle, acquiredAccessKeyIndex);
+            } catch (Exception ignored) {}
+        }
+        acquiredAccessKeyIndex = -1;
     }
 
     @Override

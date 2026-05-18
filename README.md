@@ -209,10 +209,13 @@ mvn clean package -Dcmake.extra.options="-DCMAKE_C_FLAGS=-fsanitize=address"
 # 传递多个 CMake 选项
 mvn clean package -Dcmake.extra.options="-DFOO=bar -DBAZ=qux"
 
-# 组合使用：Release模式 + 自定义 CMake 选项
+# 组合使用：Release模式 + 自定义 CMake 选项（仅非调试参数）
 mvn clean package -Prelease \
-    -Dcmake.extra.options="-DCMAKE_C_FLAGS=-fsanitize=address"
+    -Dcmake.extra.options="-DFOO=bar"
 ```
+
+> ⚠️ 安全约束：`-Prelease` 会拒绝 `cmake.extra.options` 中的内存检测/调试参数（如 `fsanitize`、`asan`、`ubsan`、`-O0`、`-g`）。
+> 如需内存问题检测，请使用 `-Pdebug` 并结合 `-Dcmake.extra.options`，或直接使用 `script/build_with_simulator.sh asan`。
 
 ### 构建模式选择
 

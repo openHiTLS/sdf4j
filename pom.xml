@@ -112,6 +112,33 @@
             <properties>
                 <cmake.build.type>Release</cmake.build.type>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <version>3.4.1</version>
+                        <executions>
+                            <execution>
+                                <id>forbid-debug-sanitizer-options-in-release</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>enforce</goal>
+                                </goals>
+                                <configuration>
+                                    <rules>
+                                        <requireProperty>
+                                            <property>cmake.extra.options</property>
+                                            <regex>^((?!(?i:fsanitize|asan|ubsan|msan|tsan|-O0|\s-g(\s|$))).)*$</regex>
+                                            <message>Release profile forbids debug/sanitizer options in -Dcmake.extra.options. Use -Pdebug (or script/build_with_simulator.sh asan) for memory diagnostics.</message>
+                                        </requireProperty>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- 默认模式：带调试符号的优化版本 -->

@@ -59,6 +59,7 @@ public final class SM2Signature extends SignatureSpi {
     private ByteArrayOutputStream data;
     private boolean forSigning;
     private boolean useInternalKey;
+    private int acquiredPrivateKeyAccessIndex = -1;
     private byte[] userId = SM2ParameterSpec.DEFAULT_USER_ID;
 
     public SM2Signature() {
@@ -70,6 +71,7 @@ public final class SM2Signature extends SignatureSpi {
     }
     private void releaseSession() {
         if (sessionHandle != 0) {
+            releasePrivateKeyAccessRight();
             long h = sessionHandle;
             sessionHandle = 0;
             SDFJceNative.closeSession(h);
@@ -78,6 +80,7 @@ public final class SM2Signature extends SignatureSpi {
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
+        releasePrivateKeyAccessRight();
         if (publicKey instanceof SDFInternalPublicKey) {
             this.internalPublicKey = (SDFInternalPublicKey) publicKey;
             this.publicKey = null;
@@ -99,12 +102,11 @@ public final class SM2Signature extends SignatureSpi {
 
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
+        releasePrivateKeyAccessRight();
         if (privateKey instanceof SDFInternalPrivateKey) {
             this.internalPrivateKey = (SDFInternalPrivateKey) privateKey;
             this.privateKey = null;
             this.useInternalKey = true;
-            // Auto-acquire access right
-            acquirePrivateKeyAccessRight(this.internalPrivateKey);
             // Auto-export and cache public key for Z value calculation
             ensureInternalSignPublicKeyAvailable(this.internalPrivateKey);
         } else if (privateKey instanceof SM2PrivateKey) {
@@ -192,9 +194,16 @@ public final class SM2Signature extends SignatureSpi {
 
         byte[] z = SM2Util.calculateZ(sessionHandle, userId, pubX, pubY);
         byte[] e = SM2Util.calculateE(sessionHandle, z, dataBytes);
-        byte[] rawSignature = SDFJceNative.sm2InternalSign(
-            sessionHandle, internalPrivateKey.getKeyIndex(), e);
-        return DERCodec.rawToDer(rawSignature);
+        try {
+            acquirePrivateKeyAccessRight(internalPrivateKey);
+            byte[] rawSignature = SDFJceNative.sm2InternalSign(
+                sessionHandle, internalPrivateKey.getKeyIndex(), e);
+            return DERCodec.rawToDer(rawSignature);
+        } catch (InvalidKeyException e1) {
+            throw new SignatureException(e1);
+        } finally {
+            releasePrivateKeyAccessRight();
+        }
     }
 
     @Override
@@ -278,6 +287,7 @@ public final class SM2Signature extends SignatureSpi {
      * Auto-acquire private key access right for Internal key.
      */
     private void acquirePrivateKeyAccessRight(SDFInternalPrivateKey key) throws InvalidKeyException {
+        releasePrivateKeyAccessRight();
         char[] pwd = key.getPassword();
         if (pwd != null) {
             byte[] pwdBytes = new byte[pwd.length];
@@ -286,12 +296,25 @@ public final class SM2Signature extends SignatureSpi {
             }
             try {
                 SDFJceNative.getPrivateKeyAccessRight(sessionHandle, key.getKeyIndex(), pwdBytes);
+                acquiredPrivateKeyAccessIndex = key.getKeyIndex();
             } catch (Exception e) {
                 throw new InvalidKeyException("Failed to acquire private key access right: " + e.getMessage(), e);
             } finally {
                 java.util.Arrays.fill(pwdBytes, (byte) 0);
                 java.util.Arrays.fill(pwd, '\0');
             }
+        }
+    }
+
+    private void releasePrivateKeyAccessRight() {
+        if (acquiredPrivateKeyAccessIndex < 0 || sessionHandle == 0) {
+            return;
+        }
+        try {
+            SDFJceNative.releasePrivateKeyAccessRight(sessionHandle, acquiredPrivateKeyAccessIndex);
+        } catch (Exception ignored) {
+        } finally {
+            acquiredPrivateKeyAccessIndex = -1;
         }
     }
 
