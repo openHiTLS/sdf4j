@@ -51,11 +51,6 @@ public class SM2InnerTest {
         }
     }
 
-    @Before
-    public void checkInitialized() {
-        Assume.assumeTrue("SDF device not available, skipping test", initialized);
-    }
-
     @After
     public void cleanup() throws InterruptedException {
         System.gc();

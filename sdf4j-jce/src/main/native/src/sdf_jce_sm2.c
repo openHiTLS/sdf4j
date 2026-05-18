@@ -297,6 +297,10 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm2Encrypt(JNIEnv *env, jclass cls
     /* C1: 1(04) + 32(X) + 32(Y) = 65字节 */
     /* C3: 32字节 */
     /* C2: L字节 */
+    if (cipher->L > INT32_MAX - 97) {
+        throw_exception(env, "java/lang/IllegalStateException", "SM2 cipher length too large");
+        goto ERR;
+    }
     jint cipherLen = 65 + 32 + (jint)cipher->L;
     result = (*env)->NewByteArray(env, cipherLen);
     if (result == NULL) {

@@ -308,6 +308,8 @@ public final class SM2Cipher extends CipherSpi {
     @Override
     protected void finalize() throws Throwable {
         try {
+            privateKey = null;
+            publicKey = null;
             releaseSession();
         } finally {
             super.finalize();

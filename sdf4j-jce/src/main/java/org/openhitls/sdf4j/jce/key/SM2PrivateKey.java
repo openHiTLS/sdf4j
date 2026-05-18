@@ -25,6 +25,7 @@ public class SM2PrivateKey implements PrivateKey {
     private static final String ALGORITHM = "SM2";
 
     private final byte[] keyBytes;
+    private boolean destroyed;
 
     /**
      * @param keyBytes private key material; stored by reference without cloning
@@ -48,10 +49,12 @@ public class SM2PrivateKey implements PrivateKey {
 
     @Override
     public byte[] getEncoded() {
+        checkDestroyed();
         return keyBytes.clone();
     }
 
     public byte[] getKeyBytes() {
+        checkDestroyed();
         return keyBytes.clone();
     }
 
@@ -60,6 +63,12 @@ public class SM2PrivateKey implements PrivateKey {
      */
     public void destroy() {
         Arrays.fill(keyBytes, (byte) 0);
+        destroyed = true;
+    }
+
+    @Override
+    public boolean isDestroyed() {
+        return destroyed;
     }
 
     @Override
@@ -74,6 +83,12 @@ public class SM2PrivateKey implements PrivateKey {
     @Override
     public int hashCode() {
         return Arrays.hashCode(keyBytes);
+    }
+
+    private void checkDestroyed() {
+        if (destroyed) {
+            throw new IllegalStateException("SM2 private key has been destroyed");
+        }
     }
 
 }

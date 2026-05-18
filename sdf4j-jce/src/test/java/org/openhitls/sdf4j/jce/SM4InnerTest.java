@@ -662,6 +662,38 @@ public class SM4InnerTest {
         assertArrayEquals("Streaming CBC PKCS5 roundtrip failed", plaintext, decrypted);
     }
 
+    @Test
+    public void testCBCStreamingDoFinalResetsCipherForReuse() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+        IvParameterSpec iv = new IvParameterSpec(IV);
+        byte[] plaintext = "CBC streaming doFinal reset test data".getBytes(); // 37 bytes
+
+        Cipher encCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        encCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] ct1 = concat(
+                encCipher.update(plaintext, 0, 11),
+                encCipher.doFinal(plaintext, 11, plaintext.length - 11));
+        byte[] ct2 = concat(
+                encCipher.update(plaintext, 0, 17),
+                encCipher.doFinal(plaintext, 17, plaintext.length - 17));
+
+        assertArrayEquals("doFinal should reset encryption state for reuse", ct1, ct2);
+
+        Cipher decCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+        decCipher.init(Cipher.DECRYPT_MODE, key, iv);
+        byte[] pt1 = concat(
+                decCipher.update(ct1, 0, 16),
+                decCipher.doFinal(ct1, 16, ct1.length - 16));
+        byte[] pt2 = concat(
+                decCipher.update(ct2, 0, 32),
+                decCipher.doFinal(ct2, 32, ct2.length - 32));
+
+        assertArrayEquals("First streaming decrypt should recover plaintext", plaintext, pt1);
+        assertArrayEquals("doFinal should reset decryption state for reuse", plaintext, pt2);
+    }
+
     // ==================== CBC 流式测试 ====================
 
     @Test
@@ -1400,7 +1432,116 @@ public class SM4InnerTest {
         }
     }
 
+    // ==================== Padding Oracle 防护测试 ====================
+
+    @Test
+    public void testRemovePkcs5PaddingRejectsInvalidPadding() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        Cipher enc = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        enc.init(Cipher.ENCRYPT_MODE, key);
+
+        Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+        dec.init(Cipher.DECRYPT_MODE, key);
+
+        // padding byte = 0x00 (invalid: must be 1..16)
+        byte[] block0 = new byte[16];
+        block0[15] = 0x00;
+        byte[] ct0 = enc.doFinal(block0);
+        enc.init(Cipher.ENCRYPT_MODE, key);
+        assertPaddingRejected(dec, key, ct0);
+
+        // padding byte = 0x11 (17, exceeds block size)
+        byte[] block17 = new byte[16];
+        block17[15] = 0x11;
+        byte[] ct17 = enc.doFinal(block17);
+        enc.init(Cipher.ENCRYPT_MODE, key);
+        assertPaddingRejected(dec, key, ct17);
+
+        // padding says 4 but only last byte is 0x04
+        byte[] blockBad = new byte[16];
+        blockBad[15] = 0x04;
+        blockBad[14] = 0x04;
+        blockBad[13] = 0x04;
+        blockBad[12] = 0x05; // wrong
+        byte[] ctBad = enc.doFinal(blockBad);
+        enc.init(Cipher.ENCRYPT_MODE, key);
+        assertPaddingRejected(dec, key, ctBad);
+
+        // all 16 bytes = 0x10 is valid full-block padding
+        byte[] blockFull = new byte[16];
+        Arrays.fill(blockFull, (byte) 0x10);
+        byte[] ctFull = enc.doFinal(blockFull);
+        dec.init(Cipher.DECRYPT_MODE, key);
+        byte[] ptFull = dec.doFinal(ctFull);
+        assertEquals("Full block padding should produce empty plaintext", 0, ptFull.length);
+    }
+
+    @Test
+    public void testPaddingValidationConstantTimeBehavior() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        Cipher enc = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+
+        // Generate multiple invalid padding variants and verify they all throw
+        // the same exception with the same message (no information leakage)
+        byte[][] invalidBlocks = new byte[5][16];
+        invalidBlocks[0][15] = 0x00;
+        invalidBlocks[1][15] = 0x11;
+        invalidBlocks[2][15] = 0x02; invalidBlocks[2][14] = 0x03; // mismatch
+        invalidBlocks[3][15] = 0x03; invalidBlocks[3][14] = 0x03; invalidBlocks[3][13] = 0x02; // partial mismatch
+        Arrays.fill(invalidBlocks[4], (byte) 0xFF);
+
+        for (int i = 0; i < invalidBlocks.length; i++) {
+            enc.init(Cipher.ENCRYPT_MODE, key);
+            byte[] ct = enc.doFinal(invalidBlocks[i]);
+            dec.init(Cipher.DECRYPT_MODE, key);
+            try {
+                dec.doFinal(ct);
+                fail("Invalid padding variant " + i + " should throw BadPaddingException");
+            } catch (BadPaddingException e) {
+                assertEquals("All invalid padding errors must use identical message",
+                        "Invalid PKCS5 padding", e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testPaddingValidationAllLengths() throws Exception {
+        Assume.assumeTrue("SDF not initialized", initialized);
+        SecretKeySpec key = new SecretKeySpec(KEY, "SM4");
+
+        Cipher enc = Cipher.getInstance("SM4/ECB/NoPadding", "SDF");
+        Cipher dec = Cipher.getInstance("SM4/ECB/PKCS5Padding", "SDF");
+
+        // Valid padding for each length 1..16
+        for (int padLen = 1; padLen <= 16; padLen++) {
+            byte[] block = new byte[16];
+            for (int i = 16 - padLen; i < 16; i++) {
+                block[i] = (byte) padLen;
+            }
+            enc.init(Cipher.ENCRYPT_MODE, key);
+            byte[] ct = enc.doFinal(block);
+            dec.init(Cipher.DECRYPT_MODE, key);
+            byte[] pt = dec.doFinal(ct);
+            assertEquals("Valid padding length " + padLen, 16 - padLen, pt.length);
+        }
+    }
+
     // ==================== 工具方法 ====================
+
+    private void assertPaddingRejected(Cipher dec, SecretKeySpec key, byte[] ct) throws Exception {
+        dec.init(Cipher.DECRYPT_MODE, key);
+        try {
+            dec.doFinal(ct);
+            fail("Should throw BadPaddingException for invalid padding");
+        } catch (BadPaddingException e) {
+            assertEquals("Invalid PKCS5 padding", e.getMessage());
+        }
+    }
 
     private static byte[] concat(byte[] a, byte[] b) {
         if (a == null || a.length == 0) return b != null ? b : new byte[0];

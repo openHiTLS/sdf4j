@@ -46,6 +46,8 @@ static const JNINativeMethod sdf_jce_methods[] = {
     /* ==================== SM4 Symmetric Encryption ==================== */
     {"sm4AuthEnc", "(JI[B[B[B[B)[B", (void*)JNI_SDFJceNative_sm4AuthEnc},
     {"sm4AuthDec", "(JI[B[B[B[B[B)[B", (void*)JNI_SDFJceNative_sm4AuthDec},
+    {"sm4AuthEncWithKeyHandle", "(JJI[B[B[B)[B", (void*)JNI_SDFJceNative_sm4AuthEncWithKeyHandle},
+    {"sm4AuthDecWithKeyHandle", "(JJI[B[B[B[B)[B", (void*)JNI_SDFJceNative_sm4AuthDecWithKeyHandle},
     {"sm4EncryptInit", "(JI[B[B)J", (void*)JNI_SDFJceNative_sm4EncryptInit},
     {"sm4EncryptUpdate", "(J[BII)[B", (void*)JNI_SDFJceNative_sm4EncryptUpdate},
     {"sm4EncryptFinal", "(J)[B", (void*)JNI_SDFJceNative_sm4EncryptFinal},

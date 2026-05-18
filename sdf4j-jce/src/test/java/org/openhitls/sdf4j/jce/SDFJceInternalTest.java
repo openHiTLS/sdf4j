@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.InputStream;
 import java.security.*;
@@ -356,6 +357,94 @@ public class SDFJceInternalTest {
         }
     }
 
+    @Test
+    public void testSM4InternalCBCDoFinalResetsCipherForReuse() throws Exception {
+        try {
+            SDFInternalSymmetricKey encKey = new SDFInternalSymmetricKey(
+                sm4KekIndex, sm4KekPassword.toCharArray());
+
+            byte[] iv = new byte[16];
+            Arrays.fill(iv, (byte) 0x33);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            byte[] plaintext = "Internal KEK doFinal reset data".getBytes("UTF-8");
+
+            Cipher encCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+            encCipher.init(Cipher.ENCRYPT_MODE, encKey, ivSpec);
+            byte[] ct1 = concat(
+                encCipher.update(plaintext, 0, 12),
+                encCipher.doFinal(plaintext, 12, plaintext.length - 12));
+            byte[] blob1 = encKey.getEncryptedKeyBlob();
+
+            byte[] ct2 = concat(
+                encCipher.update(plaintext, 0, 9),
+                encCipher.doFinal(plaintext, 9, plaintext.length - 9));
+            byte[] blob2 = encKey.getEncryptedKeyBlob();
+
+            assertNotNull("Encrypted key blob must be set after first encryption", blob1);
+            assertArrayEquals("doFinal reset must not overwrite the internal key blob", blob1, blob2);
+            assertArrayEquals("doFinal should reset internal encryption state for reuse", ct1, ct2);
+
+            SDFInternalSymmetricKey decKey = new SDFInternalSymmetricKey(
+                sm4KekIndex, sm4KekPassword.toCharArray());
+            decKey.setEncryptedKeyBlob(blob1);
+
+            Cipher decCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "SDF");
+            decCipher.init(Cipher.DECRYPT_MODE, decKey, ivSpec);
+            byte[] pt1 = concat(
+                decCipher.update(ct1, 0, 16),
+                decCipher.doFinal(ct1, 16, ct1.length - 16));
+            byte[] pt2 = concat(
+                decCipher.update(ct2, 0, 16),
+                decCipher.doFinal(ct2, 16, ct2.length - 16));
+
+            assertArrayEquals("First internal decrypt should recover plaintext", plaintext, pt1);
+            assertArrayEquals("doFinal should reset internal decryption state for reuse", plaintext, pt2);
+        } catch (Exception e) {
+            handleSdfException(e, "SM4 Internal CBC doFinal Reset");
+        }
+    }
+
+    @Test
+    public void testSM4InternalGCMEncryptDecrypt() throws Exception {
+        try {
+            SDFInternalSymmetricKey encKey = new SDFInternalSymmetricKey(
+                sm4KekIndex, sm4KekPassword.toCharArray());
+
+            byte[] iv = new byte[12];
+            Arrays.fill(iv, (byte) 0x24);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+            byte[] aad = "internal gcm aad".getBytes("UTF-8");
+            byte[] plaintext = "Internal KEK GCM roundtrip data".getBytes("UTF-8");
+
+            Cipher encCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+            encCipher.init(Cipher.ENCRYPT_MODE, encKey, gcmSpec);
+            encCipher.updateAAD(aad);
+            byte[] ciphertext = encCipher.doFinal(plaintext);
+
+            assertNotNull("GCM ciphertext should not be null", ciphertext);
+            assertEquals("GCM output should be plaintext plus 16-byte tag",
+                plaintext.length + 16, ciphertext.length);
+
+            byte[] blob = encKey.getEncryptedKeyBlob();
+            assertNotNull("Encrypted key blob must be set after internal GCM encryption", blob);
+            assertTrue("Encrypted key blob must be non-empty", blob.length > 0);
+
+            SDFInternalSymmetricKey decKey = new SDFInternalSymmetricKey(
+                sm4KekIndex, sm4KekPassword.toCharArray());
+            decKey.setEncryptedKeyBlob(blob);
+
+            Cipher decCipher = Cipher.getInstance("SM4/GCM/NoPadding", "SDF");
+            decCipher.init(Cipher.DECRYPT_MODE, decKey, gcmSpec);
+            decCipher.updateAAD(aad);
+            byte[] decrypted = decCipher.doFinal(ciphertext);
+
+            assertArrayEquals("Internal GCM decrypted plaintext must match original",
+                plaintext, decrypted);
+        } catch (Exception e) {
+            handleSdfException(e, "SM4 Internal GCM EncryptDecrypt");
+        }
+    }
+
     // ==================== Key Type Tests (no device required) ====================
 
     @Test
@@ -432,5 +521,14 @@ public class SDFJceInternalTest {
     @Test(expected = IllegalArgumentException.class)
     public void testSDFInternalSymmetricKeyInvalidIndex() {
         new SDFInternalSymmetricKey(-1, null);
+    }
+
+    private static byte[] concat(byte[] a, byte[] b) {
+        if (a == null || a.length == 0) return b != null ? b : new byte[0];
+        if (b == null || b.length == 0) return a;
+        byte[] result = new byte[a.length + b.length];
+        System.arraycopy(a, 0, result, 0, a.length);
+        System.arraycopy(b, 0, result, a.length, b.length);
+        return result;
     }
 }

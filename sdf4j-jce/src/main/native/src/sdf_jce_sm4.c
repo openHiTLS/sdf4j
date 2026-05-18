@@ -115,7 +115,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthEnc(JNIEnv *env, jclass cls
     authOutputLen = SM4_GCM_TAG_LENGTH;
     authOutput = (BYTE *)malloc((size_t)authOutputLen);
     if (encOutput == NULL || authOutput == NULL) {
-        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        if (ret != SDR_OK) {
+            throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
+            goto ERR;
+        }
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate output buffers");
         goto ERR;
     }
@@ -128,9 +132,13 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthEnc(JNIEnv *env, jclass cls
         encOutput, &encOutputLen,
         authOutput, &authOutputLen);
 
-    g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
     if (ret != SDR_OK) {
         throw_jce_exception(env, (int)ret, "SM4 auth encrypt failed");
+        goto ERR;
+    }
+    ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
         goto ERR;
     }
 
@@ -144,8 +152,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthEnc(JNIEnv *env, jclass cls
     (*env)->SetByteArrayRegion(env, result, (jsize)encOutputLen, (jsize)authOutputLen, (jbyte *)authOutput);
 
 ERR:
-    if (encOutput != NULL) free(encOutput);
-    if (authOutput != NULL) free(authOutput);
+    if (encOutput != NULL) {
+        SDF_Clear(encOutput, encOutputLen);
+        free(encOutput);
+    }
+    if (authOutput != NULL) {
+        SDF_Clear(authOutput, authOutputLen);
+        free(authOutput);
+    }
     (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
@@ -250,7 +264,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDec(JNIEnv *env, jclass cls
     outputLen = (ULONG)cipherLen;
     output = (BYTE *)malloc((size_t)outputLen);
     if (output == NULL) {
-        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        if (ret != SDR_OK) {
+            throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
+            goto ERR;
+        }
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate output buffer");
         goto ERR;
     }
@@ -264,10 +282,13 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDec(JNIEnv *env, jclass cls
         (BYTE *)cipherBytes, (ULONG)cipherLen,
         output, &outputLen);
 
-    g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
-
     if (ret != SDR_OK) {
         throw_jce_exception(env, (int)ret, "SM4 auth decrypt failed");
+        goto ERR;
+    }
+    ret = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
         goto ERR;
     }
 
@@ -281,6 +302,210 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDec(JNIEnv *env, jclass cls
 ERR:
     if (output != NULL) free(output);
     (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, tag, tagBytes, JNI_ABORT);
+    if (aadBytes != NULL) (*env)->ReleaseByteArrayElements(env, aad, aadBytes, JNI_ABORT);
+    return result;
+}
+
+/*
+ * Method:    sm4AuthEncWithKeyHandle
+ * Signature: (JJI[B[B[B)[B
+ *
+ * Authenticated encryption (GCM/CCM) using an existing SDF key handle.
+ * Returns byte[] = ciphertext || tag. The caller owns keyHandle.
+ */
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthEncWithKeyHandle(JNIEnv *env, jclass cls,
+    jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv, jbyteArray aad, jbyteArray data)
+{
+    (void)cls;
+    jbyteArray result = NULL;
+    BYTE *encOutput = NULL;
+    BYTE *authOutput = NULL;
+    ULONG encOutputLen = 0;
+    ULONG authOutputLen = 0;
+    LONG ret = 0;
+
+    CHECK_INIT_RET(env, NULL);
+    CHECK_FUNCTION_RET(SDF_AuthEnc, env, "SDF_AuthEnc", NULL);
+
+    if (keyHandle == 0 || data == NULL || iv == NULL) {
+        throw_exception(env, "java/lang/NullPointerException", "keyHandle, iv, or data is null");
+        return NULL;
+    }
+
+    jbyte *ivBytes = (*env)->GetByteArrayElements(env, iv, NULL);
+    if (ivBytes == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get iv bytes");
+        return NULL;
+    }
+
+    jbyte *dataBytes = (*env)->GetByteArrayElements(env, data, NULL);
+    if (dataBytes == NULL) {
+        (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get data bytes");
+        return NULL;
+    }
+
+    jbyte *aadBytes = NULL;
+    jsize aadLen = 0;
+    if (aad != NULL) {
+        aadLen = (*env)->GetArrayLength(env, aad);
+        aadBytes = (*env)->GetByteArrayElements(env, aad, NULL);
+        if (aadBytes == NULL) {
+            (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+            (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+            throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get aad bytes");
+            return NULL;
+        }
+    }
+
+    jsize ivLen = (*env)->GetArrayLength(env, iv);
+    jsize dataLen = (*env)->GetArrayLength(env, data);
+    ULONG algId = sm4_mode_to_alg_id(mode);
+
+    encOutputLen = (ULONG)(dataLen + SM4_BLOCK_SIZE);
+    encOutput = (BYTE *)malloc((size_t)encOutputLen);
+    authOutputLen = SM4_GCM_TAG_LENGTH;
+    authOutput = (BYTE *)malloc((size_t)authOutputLen);
+    if (encOutput == NULL || authOutput == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate output buffers");
+        goto ERR;
+    }
+
+    ret = g_sdf_functions.SDF_AuthEnc(
+        (HANDLE)sessionHandle, (HANDLE)(uintptr_t)keyHandle, algId,
+        (BYTE *)ivBytes, (ULONG)ivLen,
+        (BYTE *)aadBytes, (ULONG)aadLen,
+        (BYTE *)dataBytes, (ULONG)dataLen,
+        encOutput, &encOutputLen,
+        authOutput, &authOutputLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM4 auth encrypt with key handle failed");
+        goto ERR;
+    }
+
+    result = (*env)->NewByteArray(env, (jsize)(encOutputLen + authOutputLen));
+    if (result == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create result array");
+        goto ERR;
+    }
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize)encOutputLen, (jbyte *)encOutput);
+    (*env)->SetByteArrayRegion(env, result, (jsize)encOutputLen, (jsize)authOutputLen, (jbyte *)authOutput);
+
+ERR:
+    if (encOutput != NULL) {
+        SDF_Clear(encOutput, encOutputLen);
+        free(encOutput);
+    }
+    if (authOutput != NULL) {
+        SDF_Clear(authOutput, authOutputLen);
+        free(authOutput);
+    }
+    (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+    if (aadBytes != NULL) (*env)->ReleaseByteArrayElements(env, aad, aadBytes, JNI_ABORT);
+    return result;
+}
+
+/*
+ * Method:    sm4AuthDecWithKeyHandle
+ * Signature: (JJI[B[B[B[B)[B
+ *
+ * Authenticated decryption (GCM/CCM) using an existing SDF key handle.
+ * The caller owns keyHandle.
+ */
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDecWithKeyHandle(JNIEnv *env, jclass cls,
+    jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv,
+    jbyteArray aad, jbyteArray tag, jbyteArray ciphertext)
+{
+    (void)cls;
+    jbyteArray result = NULL;
+    BYTE *output = NULL;
+    LONG ret = 0;
+    ULONG outputLen = 0;
+    ULONG authTagLen = 0;
+
+    CHECK_INIT_RET(env, NULL);
+    CHECK_FUNCTION_RET(SDF_AuthDec, env, "SDF_AuthDec", NULL);
+
+    if (keyHandle == 0 || ciphertext == NULL || iv == NULL || tag == NULL) {
+        throw_exception(env, "java/lang/NullPointerException", "keyHandle, iv, tag, or ciphertext is null");
+        return NULL;
+    }
+
+    jbyte *ivBytes = (*env)->GetByteArrayElements(env, iv, NULL);
+    if (ivBytes == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get iv bytes");
+        return NULL;
+    }
+
+    jbyte *cipherBytes = (*env)->GetByteArrayElements(env, ciphertext, NULL);
+    if (cipherBytes == NULL) {
+        (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get ciphertext bytes");
+        return NULL;
+    }
+
+    jbyte *tagBytes = (*env)->GetByteArrayElements(env, tag, NULL);
+    if (tagBytes == NULL) {
+        (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get tag bytes");
+        return NULL;
+    }
+
+    jbyte *aadBytes = NULL;
+    jsize aadLen = 0;
+    if (aad != NULL) {
+        aadLen = (*env)->GetArrayLength(env, aad);
+        aadBytes = (*env)->GetByteArrayElements(env, aad, NULL);
+        if (aadBytes == NULL) {
+            (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
+            (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
+            (*env)->ReleaseByteArrayElements(env, tag, tagBytes, JNI_ABORT);
+            throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get aad bytes");
+            return NULL;
+        }
+    }
+
+    jsize ivLen = (*env)->GetArrayLength(env, iv);
+    jsize cipherLen = (*env)->GetArrayLength(env, ciphertext);
+    jsize tagLen = (*env)->GetArrayLength(env, tag);
+    ULONG algId = sm4_mode_to_alg_id(mode);
+
+    outputLen = (ULONG)cipherLen;
+    output = (BYTE *)malloc((size_t)outputLen);
+    if (output == NULL && outputLen != 0) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to allocate output buffer");
+        goto ERR;
+    }
+
+    authTagLen = (ULONG)tagLen;
+    ret = g_sdf_functions.SDF_AuthDec(
+        (HANDLE)sessionHandle, (HANDLE)(uintptr_t)keyHandle, algId,
+        (BYTE *)ivBytes, (ULONG)ivLen,
+        (BYTE *)aadBytes, (ULONG)aadLen,
+        (BYTE *)tagBytes, &authTagLen,
+        (BYTE *)cipherBytes, (ULONG)cipherLen,
+        output, &outputLen);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SM4 auth decrypt with key handle failed");
+        goto ERR;
+    }
+
+    result = (*env)->NewByteArray(env, (jsize)outputLen);
+    if (result == NULL) {
+        throw_exception(env, "java/lang/OutOfMemoryError", "Failed to create byte array");
+        goto ERR;
+    }
+    if (outputLen > 0) {
+        (*env)->SetByteArrayRegion(env, result, 0, (jsize)outputLen, (jbyte *)output);
+    }
+
+ERR:
+    if (output != NULL) free(output);
     (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, ciphertext, cipherBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, tag, tagBytes, JNI_ABORT);
@@ -355,8 +580,13 @@ JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4EncryptInit(JNIEnv *env, jclass cls,
 
     ret = g_sdf_functions.SDF_EncryptInit(ctx->session_handle, keyHandle, algId, (BYTE *)ivBytes, (ULONG)ivLen);
     if (ret != SDR_OK) {
-        g_sdf_functions.SDF_DestroyKey(ctx->session_handle, keyHandle);
-        throw_jce_exception(env, (int)ret, "SM4 encrypt init failed");
+        LONG encInitRet = ret;
+        ret = g_sdf_functions.SDF_DestroyKey(ctx->session_handle, keyHandle);
+        if (ret != SDR_OK) {
+            throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
+            goto ERR;
+        }
+        throw_jce_exception(env, (int)encInitRet, "SM4 encrypt init failed");
         goto ERR;
     }
 
@@ -493,6 +723,7 @@ JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4DecryptInit(JNIEnv *env, jclass cls,
         throw_exception(env, "java/lang/OutOfMemoryError", "Failed to get key bytes");
         return 0;
     }
+    jsize keyLen = (*env)->GetArrayLength(env, key);
 
     jbyte *ivBytes = NULL;
     jsize ivLen = 0;
@@ -519,7 +750,7 @@ JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4DecryptInit(JNIEnv *env, jclass cls,
 
     algId = sm4_mode_to_alg_id(mode);
 
-    ret = g_sdf_functions.SDF_ImportKey(ctx->session_handle, (BYTE *)keyBytes, SM4_KEY_LENGTH, &keyHandle);
+    ret = g_sdf_functions.SDF_ImportKey(ctx->session_handle, (BYTE *)keyBytes, keyLen, &keyHandle);
     if (ret != SDR_OK) {
         throw_jce_exception(env, (int)ret, "SM4 import key failed");
         goto ERR;
@@ -528,8 +759,13 @@ JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4DecryptInit(JNIEnv *env, jclass cls,
 
     ret = g_sdf_functions.SDF_DecryptInit(ctx->session_handle, keyHandle, algId, (BYTE *)ivBytes, (ULONG)ivLen);
     if (ret != SDR_OK) {
-        g_sdf_functions.SDF_DestroyKey(ctx->session_handle, keyHandle);
-        throw_jce_exception(env, (int)ret, "SM4 decrypt init failed");
+        LONG decInitRet = ret;
+        ret = g_sdf_functions.SDF_DestroyKey(ctx->session_handle, keyHandle);
+        if (ret != SDR_OK) {
+            throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
+            goto ERR;
+        }
+        throw_jce_exception(env, (int)decInitRet, "SM4 decrypt init failed");
         goto ERR;
     }
 
@@ -648,17 +884,20 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4DecryptFinal(JNIEnv *env, jclas
  */
 JNIEXPORT void JNICALL JNI_SDFJceNative_sm4Free(JNIEnv *env, jclass cls, jlong ctxHandle)
 {
-    (void)env;
     (void)cls;
 
     SM4Context *ctx = (SM4Context *)(uintptr_t)ctxHandle;
     if (ctx == NULL) {
         return;
     }
+    CHECK_FUNCTION(SDF_DestroyKey, env, "SDF_DestroyKey");
 
     /* Destroy the cached key handle */
-    if (ctx->key_handle != 0 && g_sdf_functions.SDF_DestroyKey != NULL) {
-        g_sdf_functions.SDF_DestroyKey(ctx->session_handle, ctx->key_handle);
+    if (ctx->key_handle != 0) {
+        LONG ret = g_sdf_functions.SDF_DestroyKey(ctx->session_handle, ctx->key_handle);
+        if (ret != SDR_OK) {
+            throw_jce_exception(env, (int)ret, "SDF_DestroyKey failed");
+        }
     }
 
     SDF_Clear(ctx, sizeof(SM4Context));

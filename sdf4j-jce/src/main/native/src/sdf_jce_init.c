@@ -37,9 +37,14 @@ int sdf_jce_initialize(const char *library_path) {
         }
         /* 句柄无效，先清理（不加锁，因为已持有锁） */
         g_sdf_initialized = 0;
-        if (g_device_handle != NULL && g_sdf_functions.SDF_CloseDevice != NULL) {
-            g_sdf_functions.SDF_CloseDevice(g_device_handle);
+        if (g_device_handle != NULL) {
+            int closeRet = g_sdf_functions.SDF_CloseDevice(g_device_handle);
             g_device_handle = NULL;
+            if (closeRet != SDR_OK) {
+                sdf_unload_library();
+                pthread_mutex_unlock(&g_init_mutex);
+                return closeRet;
+            }
         }
         sdf_unload_library();
     }
@@ -75,7 +80,7 @@ void sdf_jce_cleanup(void) {
     }
 
     /* 关闭设备 */
-    if (g_device_handle != NULL && g_sdf_functions.SDF_CloseDevice != NULL) {
+    if (g_device_handle != NULL) {
         g_sdf_functions.SDF_CloseDevice(g_device_handle);
         g_device_handle = NULL;
     }

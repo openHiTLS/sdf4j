@@ -55,7 +55,8 @@ JNIEXPORT void JNICALL Sdf4j_jce_SDFJceNative_closeSession(JNIEnv *env, jclass c
     CHECK_FUNCTION(SDF_CloseSession, env, "SDF_CloseSession");
 
     HANDLE handle = (HANDLE)(uintptr_t)sessionHandle;
-    if (g_sdf_functions.SDF_CloseSession != NULL) {
-        g_sdf_functions.SDF_CloseSession(handle);
+    LONG ret = g_sdf_functions.SDF_CloseSession(handle);
+    if (ret != SDR_OK) {
+        throw_jce_exception(env, (int)ret, "SDF_CloseSession failed");
     }
 }

@@ -75,6 +75,7 @@ public class SM4Cipher extends CipherSpi {
     protected boolean useInternalKey = false;
     protected SDFInternalSymmetricKey internalKey;
     protected long internalKeyHandle = 0;
+    private boolean generatedInternalKeyForCipher = false;
 
     // GCM specific fields
     protected int gcmTagLenBits = DEFAULT_GCM_TAG_BITS;
@@ -109,6 +110,20 @@ public class SM4Cipher extends CipherSpi {
 
     private boolean isAeadMode() {
         return cipherMode == MODE_GCM || cipherMode == MODE_CCM;
+    }
+
+    private boolean isEncryptingOperation() {
+        return opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE;
+    }
+
+    private boolean isDecryptingOperation() {
+        return opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE;
+    }
+
+    private void ensureSupportedOpmode() {
+        if (!isEncryptingOperation() && !isDecryptingOperation()) {
+            throw new IllegalStateException("Unsupported opmode: " + opmode);
+        }
     }
 
     @Override
@@ -150,20 +165,22 @@ public class SM4Cipher extends CipherSpi {
         int totalLen = inputLen + (buffer != null ? buffer.size() : 0);
         if (isAeadMode()) {
             int tagBytes = gcmTagLenBits / 8;
-            if (opmode == Cipher.ENCRYPT_MODE) {
+            if (isEncryptingOperation()) {
                 return totalLen + tagBytes;
-            } else {
+            } else if (isDecryptingOperation()) {
                 return Math.max(0, totalLen - tagBytes);
             }
+            throw new IllegalStateException("Unsupported opmode: " + opmode);
         }
-        if (opmode == Cipher.ENCRYPT_MODE) {
+        if (isEncryptingOperation()) {
             if (paddingMode == PADDING_PKCS5) {
                 return ((totalLen / BLOCK_SIZE) + 1) * BLOCK_SIZE;
             }
             return totalLen;
-        } else {
+        } else if (isDecryptingOperation()) {
             return totalLen;
         }
+        throw new IllegalStateException("Unsupported opmode: " + opmode);
     }
 
     @Override
@@ -192,6 +209,7 @@ public class SM4Cipher extends CipherSpi {
         cleanup();
 
         this.opmode = opmode;
+        ensureSupportedOpmode();
 
         // Detect Internal (KEK) key vs External key
         if (key instanceof SDFInternalSymmetricKey) {
@@ -214,6 +232,10 @@ public class SM4Cipher extends CipherSpi {
                     throw new InvalidAlgorithmParameterException("GCMParameterSpec only valid for GCM/CCM modes");
                 }
                 GCMParameterSpec gcmSpec = (GCMParameterSpec) params;
+                if (gcmSpec.getTLen() != DEFAULT_GCM_TAG_BITS) {
+                    throw new InvalidAlgorithmParameterException(
+                            "Only 128-bit tag length is supported, got " + gcmSpec.getTLen() + " bits");
+                }
                 this.iv = gcmSpec.getIV();
                 this.gcmTagLenBits = gcmSpec.getTLen();
             } else if (params instanceof IvParameterSpec) {
@@ -241,14 +263,34 @@ public class SM4Cipher extends CipherSpi {
         if (useInternalKey) {
             initInternalStreamingContext();
         } else {
-            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
-                ctx = SDFJceNative.sm4EncryptInit(sessionHandle, cipherMode, key, iv);
-            } else {
-                ctx = SDFJceNative.sm4DecryptInit(sessionHandle, cipherMode, key, iv);
-            }
+            initRawKeyStreamingContext();
         }
         if (ctx == 0) {
             throw new IllegalStateException("Failed to initialize SM4 streaming context");
+        }
+    }
+
+    /**
+     * Reset the native streaming context to the state established by the last init call.
+     */
+    private void resetStreamingContext() {
+        if (useInternalKey) {
+            resetInternalStreamingContext();
+        } else {
+            initRawKeyStreamingContext();
+        }
+        if (ctx == 0) {
+            throw new IllegalStateException("Failed to reset SM4 streaming context");
+        }
+    }
+
+    private void initRawKeyStreamingContext() {
+        if (isEncryptingOperation()) {
+            ctx = SDFJceNative.sm4EncryptInit(sessionHandle, cipherMode, key, iv);
+        } else if (isDecryptingOperation()) {
+            ctx = SDFJceNative.sm4DecryptInit(sessionHandle, cipherMode, key, iv);
+        } else {
+            throw new IllegalStateException("Unsupported opmode: " + opmode);
         }
     }
 
@@ -270,6 +312,23 @@ public class SM4Cipher extends CipherSpi {
         }
     }
 
+    private void acquireKekAccessRight() {
+        char[] pwd = internalKey.getPassword();
+        if (pwd == null) {
+            return;
+        }
+        byte[] pwdBytes = new byte[pwd.length];
+        for (int i = 0; i < pwd.length; i++) {
+            pwdBytes[i] = (byte) pwd[i];
+        }
+        try {
+            SDFJceNative.getKEKAccessRight(sessionHandle, internalKey.getKekIndex(), pwdBytes);
+        } finally {
+            Arrays.fill(pwdBytes, (byte) 0);
+            Arrays.fill(pwd, '\0');
+        }
+    }
+
     /**
      * Initialize streaming context using an Internal (KEK-protected) key.
      *
@@ -282,23 +341,10 @@ public class SM4Cipher extends CipherSpi {
      * calls {@code SDF_ImportKeyWithKEK} to recover the same session key handle.
      */
     private void initInternalStreamingContext() {
-        // Acquire KEK access right
-        char[] pwd = internalKey.getPassword();
-        if (pwd != null) {
-            byte[] pwdBytes = new byte[pwd.length];
-            for (int i = 0; i < pwd.length; i++) {
-                pwdBytes[i] = (byte) pwd[i];
-            }
-            try {
-                SDFJceNative.getKEKAccessRight(sessionHandle, internalKey.getKekIndex(), pwdBytes);
-            } finally {
-                Arrays.fill(pwdBytes, (byte) 0);
-                Arrays.fill(pwd, '\0');
-            }
-        }
+        acquireKekAccessRight();
 
         try {
-            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            if (isEncryptingOperation()) {
                 // Generate a new random session key wrapped by the KEK.
                 byte[] result = SDFJceNative.sm4GenerateKeyWithKEK(
                     sessionHandle, KEY_SIZE * 8, getSdfAlgId(), internalKey.getKekIndex());
@@ -313,7 +359,7 @@ public class SM4Cipher extends CipherSpi {
                 this.internalKeyHandle = extractKeyHandle(result);
                 ctx = SDFJceNative.sm4EncryptInitWithKeyHandle(
                     sessionHandle, internalKeyHandle, cipherMode, iv);
-            } else {
+            } else if (isDecryptingOperation()) {
                 // Recover the session key from the blob produced during encryption.
                 byte[] blob = internalKey.getEncryptedKeyBlob();
                 if (blob == null) {
@@ -330,6 +376,8 @@ public class SM4Cipher extends CipherSpi {
                 this.internalKeyHandle = keyHandle;
                 ctx = SDFJceNative.sm4DecryptInitWithKeyHandle(
                     sessionHandle, internalKeyHandle, cipherMode, iv);
+            } else {
+                throw new IllegalStateException("Unsupported opmode: " + opmode);
             }
 
             if (ctx == 0) {
@@ -343,6 +391,112 @@ public class SM4Cipher extends CipherSpi {
                 internalKeyHandle = 0;
             }
             throw t;
+        }
+    }
+
+    private void initInternalAeadKeyHandle() {
+        acquireKekAccessRight();
+
+        try {
+            if (isEncryptingOperation()) {
+                if (generatedInternalKeyForCipher) {
+                    byte[] blob = internalKey.getEncryptedKeyBlob();
+                    if (blob == null) {
+                        throw new IllegalStateException("No encrypted key blob found for SM4 internal AEAD reset");
+                    }
+                    long keyHandle = SDFJceNative.sm4ImportKeyWithKEK(
+                        sessionHandle, getSdfAlgId(), internalKey.getKekIndex(), blob);
+                    if (keyHandle == 0) {
+                        throw new IllegalStateException("Failed to import key with KEK");
+                    }
+                    this.internalKeyHandle = keyHandle;
+                    return;
+                }
+
+                byte[] result = SDFJceNative.sm4GenerateKeyWithKEK(
+                    sessionHandle, KEY_SIZE * 8, getSdfAlgId(), internalKey.getKekIndex());
+                if (result == null || result.length < 8) {
+                    throw new IllegalStateException("Failed to generate key with KEK");
+                }
+                byte[] blob = Arrays.copyOf(result, result.length - 8);
+                internalKey.setEncryptedKeyBlob(blob);
+                this.internalKeyHandle = extractKeyHandle(result);
+                this.generatedInternalKeyForCipher = true;
+            } else if (isDecryptingOperation()) {
+                byte[] blob = internalKey.getEncryptedKeyBlob();
+                if (blob == null) {
+                    throw new IllegalStateException(
+                        "No encrypted key blob found in SDFInternalSymmetricKey. " +
+                        "For decryption, setEncryptedKeyBlob() must be called with the blob " +
+                        "that was saved during the corresponding encryption operation.");
+                }
+                long keyHandle = SDFJceNative.sm4ImportKeyWithKEK(
+                    sessionHandle, getSdfAlgId(), internalKey.getKekIndex(), blob);
+                if (keyHandle == 0) {
+                    throw new IllegalStateException("Failed to import key with KEK");
+                }
+                this.internalKeyHandle = keyHandle;
+            } else {
+                throw new IllegalStateException("Unsupported opmode: " + opmode);
+            }
+        } catch (Throwable t) {
+            destroyDetachedInternalKey();
+            throw t;
+        }
+    }
+
+    /**
+     * Reset an Internal (KEK-protected) stream without generating a new wrapped key blob.
+     *
+     * <p>JCE requires a successful doFinal to return the Cipher to the previous init state.
+     * For internal encryption that means reusing the session key generated at init time,
+     * not calling GenerateKeyWithKEK again and overwriting the blob the caller needs.
+     */
+    private void resetInternalStreamingContext() {
+        byte[] blob = internalKey.getEncryptedKeyBlob();
+        if (blob == null) {
+            throw new IllegalStateException("No encrypted key blob found for SM4 internal key reset");
+        }
+
+        try {
+            long keyHandle = SDFJceNative.sm4ImportKeyWithKEK(
+                sessionHandle, getSdfAlgId(), internalKey.getKekIndex(), blob);
+            if (keyHandle == 0) {
+                throw new IllegalStateException("Failed to import key with KEK");
+            }
+            this.internalKeyHandle = keyHandle;
+            if (isEncryptingOperation()) {
+                ctx = SDFJceNative.sm4EncryptInitWithKeyHandle(
+                    sessionHandle, internalKeyHandle, cipherMode, iv);
+            } else if (isDecryptingOperation()) {
+                ctx = SDFJceNative.sm4DecryptInitWithKeyHandle(
+                    sessionHandle, internalKeyHandle, cipherMode, iv);
+            } else {
+                throw new IllegalStateException("Unsupported opmode: " + opmode);
+            }
+            if (ctx == 0) {
+                throw new IllegalStateException("Failed to reset SM4 streaming context with key handle");
+            }
+        } catch (Throwable t) {
+            destroyDetachedInternalKey();
+            throw t;
+        }
+    }
+
+    private void freeStreamingContext() {
+        if (ctx != 0) {
+            SDFJceNative.sm4Free(ctx);
+            ctx = 0;
+            internalKeyHandle = 0;
+        }
+    }
+
+    private void destroyDetachedInternalKey() {
+        if (internalKeyHandle != 0) {
+            try {
+                SDFJceNative.destroyKey(sessionHandle, internalKeyHandle);
+            } catch (Exception ignored) { }
+            internalKeyHandle = 0;
         }
     }
 
@@ -406,11 +560,12 @@ public class SM4Cipher extends CipherSpi {
             throw new IllegalStateException("Cipher not initialized");
         }
 
-        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+        if (isEncryptingOperation()) {
             return encryptUpdate(input, inputOffset, inputLen);
-        } else {
+        } else if (isDecryptingOperation()) {
             return decryptUpdate(input, inputOffset, inputLen);
         }
+        throw new IllegalStateException("Unsupported opmode: " + opmode);
     }
 
     /**
@@ -501,18 +656,29 @@ public class SM4Cipher extends CipherSpi {
 
         int tagBytes = gcmTagLenBits / 8;
 
-        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+        if (isEncryptingOperation()) {
             if (data.length == 0) {
                 throw new IllegalBlockSizeException("SM4 GCM/CCM does not support empty plaintext");
             }
-            // sm4AuthEnc returns ciphertext || tag directly
-            byte[] result = SDFJceNative.sm4AuthEnc(sessionHandle, cipherMode, key, iv,
-                    aad.length > 0 ? aad : null, data);
+            byte[] result;
+            if (useInternalKey) {
+                initInternalAeadKeyHandle();
+                try {
+                    result = SDFJceNative.sm4AuthEncWithKeyHandle(sessionHandle, internalKeyHandle,
+                            cipherMode, iv, aad.length > 0 ? aad : null, data);
+                } finally {
+                    destroyDetachedInternalKey();
+                }
+            } else {
+                // sm4AuthEnc returns ciphertext || tag directly
+                result = SDFJceNative.sm4AuthEnc(sessionHandle, cipherMode, key, iv,
+                        aad.length > 0 ? aad : null, data);
+            }
             if (result == null) {
                 throw new IllegalBlockSizeException("AuthEnc returned null");
             }
             return result;
-        } else {
+        } else if (isDecryptingOperation()) {
             // Decrypt: input is ciphertext || tag
             if (data.length < tagBytes) {
                 throw new BadPaddingException("Input too short for GCM tag");
@@ -521,14 +687,25 @@ public class SM4Cipher extends CipherSpi {
             byte[] tag = new byte[tagBytes];
             System.arraycopy(data, 0, ciphertext, 0, ciphertext.length);
             System.arraycopy(data, ciphertext.length, tag, 0, tagBytes);
-
-            byte[] plaintext = SDFJceNative.sm4AuthDec(sessionHandle, cipherMode, key, iv,
-                    aad.length > 0 ? aad : null, tag, ciphertext);
+            byte[] plaintext;
+            if (useInternalKey) {
+                initInternalAeadKeyHandle();
+                try {
+                    plaintext = SDFJceNative.sm4AuthDecWithKeyHandle(sessionHandle, internalKeyHandle,
+                            cipherMode, iv, aad.length > 0 ? aad : null, tag, ciphertext);
+                } finally {
+                    destroyDetachedInternalKey();
+                }
+            } else {
+                plaintext = SDFJceNative.sm4AuthDec(sessionHandle, cipherMode, key, iv,
+                        aad.length > 0 ? aad : null, tag, ciphertext);
+            }
             if (plaintext == null) {
                 throw new AEADBadTagException("GCM authentication failed");
             }
             return plaintext;
         }
+        throw new IllegalStateException("Unsupported opmode: " + opmode);
     }
 
     /**
@@ -540,11 +717,13 @@ public class SM4Cipher extends CipherSpi {
         }
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
+        boolean success = false;
         try {
             byte[] remaining = buffer.toByteArray();
             buffer.reset();
 
-            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            byte[] output;
+            if (isEncryptingOperation()) {
                 if (paddingMode == PADDING_PKCS5) {
                     remaining = addPkcs5Padding(remaining);
                 } else if (remaining.length > 0 && remaining.length % BLOCK_SIZE != 0) {
@@ -563,9 +742,9 @@ public class SM4Cipher extends CipherSpi {
                 if (finalOutput != null && finalOutput.length > 0) {
                     result.write(finalOutput, 0, finalOutput.length);
                 }
-                return result.toByteArray();
+                output = result.toByteArray();
 
-            } else {
+            } else if (isDecryptingOperation()) {
                 if (remaining.length > 0) {
                     byte[] decrypted = SDFJceNative.sm4DecryptUpdate(ctx, remaining, 0, remaining.length);
                     if (decrypted != null && decrypted.length > 0) {
@@ -578,15 +757,20 @@ public class SM4Cipher extends CipherSpi {
                     result.write(finalOutput, 0, finalOutput.length);
                 }
 
-                byte[] output = result.toByteArray();
+                output = result.toByteArray();
                 if (paddingMode == PADDING_PKCS5) {
-                    return removePkcs5Padding(output);
+                    output = removePkcs5Padding(output);
                 }
-                return output;
+            } else {
+                throw new IllegalStateException("Unsupported opmode: " + opmode);
             }
+            success = true;
+            return output;
         } finally {
-            SDFJceNative.sm4Free(ctx);
-            ctx = 0;
+            freeStreamingContext();
+            if (success) {
+                resetStreamingContext();
+            }
         }
     }
 
@@ -604,7 +788,7 @@ public class SM4Cipher extends CipherSpi {
     }
 
     /**
-     * Remove PKCS#5/PKCS#7 padding from data
+     * Remove PKCS#5/PKCS#7 padding from data (constant-time).
      */
     private byte[] removePkcs5Padding(byte[] data) throws BadPaddingException {
         if (data == null || data.length == 0) {
@@ -614,16 +798,19 @@ public class SM4Cipher extends CipherSpi {
             throw new BadPaddingException("Data length not block aligned");
         }
         int paddingLen = data[data.length - 1] & 0xFF;
-        if (paddingLen < 1 || paddingLen > BLOCK_SIZE) {
+        int invalid = 0;
+        invalid |= (paddingLen - 1) >> 31;
+        invalid |= (BLOCK_SIZE - paddingLen) >> 31;
+
+        for (int i = 1; i <= BLOCK_SIZE; i++) {
+            int b = data[data.length - i] & 0xFF;
+            int mask = ~((paddingLen - i) >> 31);
+            invalid |= mask & (b ^ paddingLen);
+        }
+        if (invalid != 0) {
             throw new BadPaddingException("Invalid PKCS5 padding");
         }
 
-        // Verify all padding bytes are correct
-        for (int i = data.length - paddingLen; i < data.length; i++) {
-            if ((data[i] & 0xFF) != paddingLen) {
-                throw new BadPaddingException("Invalid PKCS5 padding");
-            }
-        }
         byte[] unpadded = new byte[data.length - paddingLen];
         System.arraycopy(data, 0, unpadded, 0, unpadded.length);
         return unpadded;
@@ -652,18 +839,11 @@ public class SM4Cipher extends CipherSpi {
             Arrays.fill(iv, (byte) 0);
             iv = null;
         }
-        if (ctx != 0) {
-            SDFJceNative.sm4Free(ctx);
-            ctx = 0;
-        }
-        if (internalKeyHandle != 0) {
-            try {
-                SDFJceNative.destroyKey(sessionHandle, internalKeyHandle);
-            } catch (Exception ignored) { }
-            internalKeyHandle = 0;
-        }
+        freeStreamingContext();
+        destroyDetachedInternalKey();
         internalKey = null;
         useInternalKey = false;
+        generatedInternalKeyForCipher = false;
         if (buffer != null) {
             buffer.reset();
         }

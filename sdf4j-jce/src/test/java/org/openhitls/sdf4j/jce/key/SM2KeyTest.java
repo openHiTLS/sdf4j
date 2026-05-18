@@ -12,10 +12,16 @@
 
 package org.openhitls.sdf4j.jce.key;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 import java.util.Arrays;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.Test;
 
 /**
  * Tests for SM2 key classes (no SDF device required)
@@ -93,12 +99,16 @@ public class SM2KeyTest {
     public void testPrivateKeyDestroy() {
         byte[] keyData = TEST_PRIVATE_KEY.clone();
         SM2PrivateKey key = new SM2PrivateKey(keyData);
+        assertFalse(key.isDestroyed());
         key.destroy();
+        assertTrue(key.isDestroyed());
 
-        // After destroy, getKeyBytes should return zeroed bytes
-        byte[] destroyed = key.getKeyBytes();
-        byte[] expected = new byte[32];
-        assertArrayEquals(expected, destroyed);
+        try {
+            key.getKeyBytes();
+            fail("Expected IllegalStateException after destroy");
+        } catch (IllegalStateException e) {
+            // expected failed
+        }
     }
 
     // ==================== SM2PublicKey Tests ====================

@@ -115,7 +115,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4Mac(JNIEnv *env, jclass cls, jl
 
 ERR:
     if (keyHandle != 0) {
-        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        LONG dkRet = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        if (dkRet != SDR_OK) {
+            result = NULL;
+            throw_jce_exception(env, (int)dkRet, "SDF_DestroyKey failed");
+        }
     }
     (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
     if (ivBytes) (*env)->ReleaseByteArrayElements(env, iv, ivBytes, JNI_ABORT);
@@ -200,7 +204,11 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_hmacSm3(JNIEnv *env, jclass cls, j
 
 ERR:
     if (keyHandle != 0) {
-        g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        LONG dkRet = g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, keyHandle);
+        if (dkRet != SDR_OK) {
+            result = NULL;
+            throw_jce_exception(env, (int)dkRet, "SDF_DestroyKey failed");
+        }
     }
     (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);

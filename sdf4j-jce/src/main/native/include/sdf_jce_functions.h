@@ -58,6 +58,14 @@ JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDec(JNIEnv *env,
     jclass cls, jlong sessionHandle, jint mode, jbyteArray key, jbyteArray iv,
     jbyteArray aad, jbyteArray tag, jbyteArray ciphertext);
 
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthEncWithKeyHandle(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv,
+    jbyteArray aad, jbyteArray data);
+
+JNIEXPORT jbyteArray JNICALL JNI_SDFJceNative_sm4AuthDecWithKeyHandle(JNIEnv *env,
+    jclass cls, jlong sessionHandle, jlong keyHandle, jint mode, jbyteArray iv,
+    jbyteArray aad, jbyteArray tag, jbyteArray ciphertext);
+
 JNIEXPORT jlong JNICALL JNI_SDFJceNative_sm4EncryptInit(JNIEnv *env,
     jclass cls, jlong sessionHandle, jint mode, jbyteArray key, jbyteArray iv);
 

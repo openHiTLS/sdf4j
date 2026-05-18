@@ -125,6 +125,36 @@ public final class SDFJceNative {
     public static native byte[] sm4AuthDec(long sessionHandle, int mode, byte[] key, byte[] iv, byte[] aad, byte[] tag, byte[] ciphertext);
 
     /**
+     * SM4 authenticated encryption (GCM/CCM) with an existing key handle.
+     *
+     * @param sessionHandle Session handle from {@link #openSession()}
+     * @param keyHandle     Key handle from generateKeyWithKEK or importKeyWithKEK
+     * @param mode          Cipher mode
+     * @param iv            IV/Nonce
+     * @param aad           Additional authenticated data (can be null)
+     * @param data          Plaintext
+     * @return byte[] ciphertext || tag
+     */
+    public static native byte[] sm4AuthEncWithKeyHandle(long sessionHandle, long keyHandle,
+                                                        int mode, byte[] iv, byte[] aad, byte[] data);
+
+    /**
+     * SM4 authenticated decryption (GCM/CCM) with an existing key handle.
+     *
+     * @param sessionHandle Session handle from {@link #openSession()}
+     * @param keyHandle     Key handle from generateKeyWithKEK or importKeyWithKEK
+     * @param mode          Cipher mode
+     * @param iv            IV/Nonce
+     * @param aad           Additional authenticated data (can be null)
+     * @param tag           Authentication tag
+     * @param ciphertext    Ciphertext
+     * @return Plaintext
+     */
+    public static native byte[] sm4AuthDecWithKeyHandle(long sessionHandle, long keyHandle,
+                                                        int mode, byte[] iv, byte[] aad,
+                                                        byte[] tag, byte[] ciphertext);
+
+    /**
      * SM4 streaming encrypt init
      *
      * @param sessionHandle Session handle from {@link #openSession()}
