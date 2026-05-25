@@ -116,6 +116,31 @@ public class DeviceAndSessionManageTest {
     }
 
     /**
+     * 测试重复调用 SDF_OpenDevice 会释放旧设备和旧会话
+     */
+    @Test
+    public void testOpenDeviceReleasesExistingDevice() throws SDFException {
+        deviceHandle = sdf.SDF_OpenDevice();
+        assertTrue("设备句柄应该非零", deviceHandle != 0);
+
+        long oldSession = sdf.SDF_OpenSession(deviceHandle);
+        assertTrue("旧会话句柄应该非零", oldSession != 0);
+
+        deviceHandle = sdf.SDF_OpenDevice();
+        assertTrue("重新打开后的设备句柄应该非零", deviceHandle != 0);
+
+        try {
+            sdf.SDF_CloseSession(oldSession);
+            fail("重新打开设备后，旧会话应已被释放");
+        } catch (SDFException e) {
+            // 旧会话已经随旧设备清理，符合预期
+        }
+
+        sessionHandle = sdf.SDF_OpenSession(deviceHandle);
+        assertTrue("新会话句柄应该非零", sessionHandle != 0);
+    }
+
+    /**
      * 测试 6.2.3 SDF_CloseDevice - 关闭设备
      */
     @Test

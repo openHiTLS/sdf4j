@@ -123,6 +123,20 @@ public class Example {
 }
 ```
 
+### 设备打开行为
+
+`SDF` 实例只维护一个当前设备句柄。调用 `SDF_OpenDevice()` 或
+`SDF_OpenDeviceWithConf(configFile)` 时，如果该实例已经打开过设备，
+SDF4J 会先调用 `SDF_CloseDevice` 释放旧设备，并同步清理其下已登记的
+session/key 资源，然后再打开新设备。
+
+- `SDF_OpenDevice()` 等价于不带配置文件打开设备，底层调用标准
+  `SDF_OpenDevice`。
+- `SDF_OpenDeviceWithConf(configFile)` 仅在传入配置文件时调用底层
+  `SDF_OpenDeviceWithConf`；该底层函数是可选能力，不支持时会抛出
+  `SDR_NOTSUPPORT`。
+- 重复打开设备后，旧的 device/session/key 句柄都不应继续使用。
+
 ## 安装
 
 ### 从源码构建
