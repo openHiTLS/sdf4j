@@ -20,7 +20,7 @@
 static JNINativeMethod sdf_methods[] = {
     /* 6.2 设备管理类函数 */
     {"SDF_OpenDeviceNative", "()J", (void*)JNI_SDF_OpenDevice},
-    {"SDF_OpenDeviceWithConf", "(Ljava/lang/String;)J", (void*)JNI_SDF_OpenDeviceWithConf},
+    {"SDF_OpenDeviceWithConfNative", "(Ljava/lang/String;)J", (void*)JNI_SDF_OpenDeviceWithConf},
     {"SDF_CloseDeviceNative", "(J)V", (void*)JNI_SDF_CloseDevice},
     {"SDF_OpenSessionNative", "(J)J", (void*)JNI_SDF_OpenSession},
     {"SDF_CloseSessionNative", "(J)V", (void*)JNI_SDF_CloseSession},

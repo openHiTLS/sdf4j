@@ -160,20 +160,20 @@ public class SDF {
      * @throws SDFException 如果操作失败 / if operation fails
      */
     public long SDF_OpenDevice() throws SDFException {
-        // 如果已初始化，直接返回
-        if (gDevHandle != null) {
-            return gDevHandle;
-        }
-        long handle;
-        try {
-            handle = SDF_OpenDeviceNative();
-        } catch (SDFException e) {
-            throw e;
-        }
-        // 初始化 device
+        return SDF_OpenDeviceWithConf(null);
+    }
+
+    private long registerDevice(long handle) {
         gDevHandle = handle;
         gDevResource = new DeviceResource();
         return gDevHandle;
+    }
+
+    private void closeCurrentDevice() throws SDFException {
+        if (gDevHandle != null) {
+            SDF_CloseDevice(gDevHandle);
+            gDevHandle = null;
+        }
     }
 
     /**
@@ -192,7 +192,18 @@ public class SDF {
      * @return 设备句柄 / Device handle
      * @throws SDFException 如果操作失败 / if operation fails
      */
-    public native long SDF_OpenDeviceWithConf(String configFile) throws SDFException;
+    public long SDF_OpenDeviceWithConf(String configFile) throws SDFException {
+        closeCurrentDevice();
+        if (configFile == null) {
+            return registerDevice(SDF_OpenDeviceNative());
+        }
+        return registerDevice(SDF_OpenDeviceWithConfNative(configFile));
+    }
+
+    /**
+     * Native 方法：使用配置文件打开设备
+     */
+    private native long SDF_OpenDeviceWithConfNative(String configFile) throws SDFException;
 
     /**
      * 6.2.3 关闭设备
@@ -209,12 +220,14 @@ public class SDF {
         if (deviceHandle != gDevHandle) {
             throw new SDFException(ErrorCode.SDR_INARGERR, "Device handle does not belong to this SDF instance");
         }
-        // 先关闭所有关联的 session（session 关闭时会自动清理其 keyHandle）
-        for (Long sessionHandle : new java.util.HashSet<>(gDevResource.sessions)) {
-            // 从 device resource 中移除, 避免 finalize 重复处理
-            gDevResource.removeSession(sessionHandle);
-            // 关闭 session（会自动清理密钥和从 gSessResource 移除）
-            SDF_CloseSession(sessionHandle);
+        if (gDevResource != null) {
+            // 先关闭所有关联的 session（session 关闭时会自动清理其 keyHandle）
+            for (Long sessionHandle : new java.util.HashSet<>(gDevResource.sessions)) {
+                // 从 device resource 中移除, 避免 finalize 重复处理
+                gDevResource.removeSession(sessionHandle);
+                // 关闭 session（会自动清理密钥和从 gSessResource 移除）
+                SDF_CloseSession(sessionHandle);
+            }
         }
         SDF_CloseDeviceNative(deviceHandle);
         gDevHandle = null;
