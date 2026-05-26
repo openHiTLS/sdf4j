@@ -171,8 +171,8 @@ jobject native_to_java_ECCPublicKey(JNIEnv *env, const ECCrefPublicKey *native_k
     (*env)->SetByteArrayRegion(env, y_array, 0, ECCref_MAX_LEN, (jbyte*)native_key->y);
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccPublicKey.cls,
-                            g_jni_cache.eccPublicKey.ctor,
-                            (jint)native_key->bits, x_array, y_array);
+                                    g_jni_cache.eccPublicKey.native_ctor,
+                                    (jint)native_key->bits, x_array, y_array, JNI_TRUE);
     if (obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create ECCPublicKey object");
     }
@@ -213,8 +213,8 @@ jobject native_to_java_ECCSignature(JNIEnv *env, const ECCSignature *native_sig)
     }
     (*env)->SetByteArrayRegion(env, s_array, 0, s_len, (jbyte*)native_sig->s);
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccSignature.cls,
-                            g_jni_cache.eccSignature.ctor,
-                            r_array, s_array);
+                                    g_jni_cache.eccSignature.native_ctor,
+                                    r_array, s_array, JNI_TRUE);
     if (obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create ECCSignature object");
     }
@@ -257,9 +257,9 @@ jobject native_to_java_ECCCipher(JNIEnv *env, const ECCCipher *native_cipher) {
     (*env)->SetByteArrayRegion(env, c_array, 0, cipher_len, (jbyte*)&native_cipher->C);
 
     jobject obj = (*env)->NewObject(env, g_jni_cache.eccCipher.cls,
-                            g_jni_cache.eccCipher.ctor,
-                            x_array, y_array, m_array,
-                            (jlong)native_cipher->L, c_array);
+                                    g_jni_cache.eccCipher.native_ctor,
+                                    x_array, y_array, m_array,
+                                    (jlong)native_cipher->L, c_array, JNI_TRUE);
     if (obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create ECCCipher object");
     }
@@ -824,10 +824,10 @@ jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_ciph
 
     /* Create HybridCipher via parameterized constructor */
     jobject obj = (*env)->NewObject(env, g_jni_cache.hybridCipher.cls,
-                                    g_jni_cache.hybridCipher.ctor,
+                                    g_jni_cache.hybridCipher.native_ctor,
                                     (jlong)native_cipher->L1, ctm_array,
                                     (jlong)native_cipher->uiAlgID,
-                                    ecc_cipher_obj, (jlong)key_handle);
+                                    ecc_cipher_obj, (jlong)key_handle, JNI_TRUE);
     if (obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create HybridCipher");
     }
@@ -837,7 +837,7 @@ jobject native_to_java_HybridCipher(JNIEnv *env, const HybridCipher *native_ciph
 HybridCipher* java_to_native_HybridCipher_alloc(JNIEnv *env, jobject java_cipher) {
 
     jlong l1_value = (*env)->GetLongField(env, java_cipher, g_jni_cache.hybridCipher.l1);
-    if (l1_value > HYBRIDENCref_MAX_LEN) {
+    if (l1_value <= 0 || l1_value > HYBRIDENCref_MAX_LEN) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "HybridCipher L1 exceeds %d", HYBRIDENCref_MAX_LEN);
         return NULL;
     }
@@ -905,10 +905,9 @@ jobject native_to_java_HybridSignature(JNIEnv *env, const HybridSignature *nativ
     }
     (*env)->SetByteArrayRegion(env, sig_m_array, 0, (jsize)native_sig->L, (jbyte*)native_sig->sig_m);
 
-    /* Create HybridSignature via parameterized constructor */
     jobject obj = (*env)->NewObject(env, g_jni_cache.hybridSignature.cls,
-                                    g_jni_cache.hybridSignature.ctor,
-                                    ecc_sig_obj, (jint)native_sig->L, sig_m_array);
+                                    g_jni_cache.hybridSignature.native_ctor,
+                                    ecc_sig_obj, (jint)native_sig->L, sig_m_array, JNI_TRUE);
     if (obj == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_INARGERR, "Failed to create HybridSignature");
     }

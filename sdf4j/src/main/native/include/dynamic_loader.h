@@ -278,6 +278,38 @@ typedef LONG (*SDF_ExternalVerify_Composite_FN)(HANDLE hSessionHandle, ULONG uiA
                                                 BYTE *pucPublicKey, ULONG *puiPublicKeyLength, BYTE *pucDataInput,
                                                 ULONG pucDataInputLength, HybridSignature *pucSignature);
 
+/* 纯后量子算法函数 */
+typedef LONG (*SDF_ExportPublicKey_PQC_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                           ULONG uiAlgID, ULONG uiFormat,
+                                           BYTE *pucPublicKey, ULONG *puiPublicKeyLen);
+typedef LONG (*SDF_InternalSign_PQC_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                        ULONG uiAlgID, ULONG uiFormat,
+                                        BYTE *pucData, ULONG uiDataLength,
+                                        BYTE *pucSign, ULONG *puiSignLen);
+typedef LONG (*SDF_InternalVerify_PQC_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                          ULONG uiAlgID, ULONG uiFormat,
+                                          BYTE *pucData, ULONG uiDataLength,
+                                          BYTE *pucSign, ULONG uiSignLen);
+typedef LONG (*SDF_ExternalVerify_PQC_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
+                                          BYTE *pucPublicKey, ULONG uiPublicKeyLen,
+                                          ULONG uiFormat, BYTE *pucData,
+                                          ULONG uiDataLength, BYTE *pucSign,
+                                          ULONG uiSignLen);
+typedef LONG (*SDF_GenerateKeyWithIPK_PQC_FN)(HANDLE hSessionHandle, ULONG uiIPKIndex,
+                                              ULONG uiAlgID, ULONG uiKeyBits,
+                                              ULONG uiFormat, BYTE *pucKey,
+                                              ULONG *puiKeyLength,
+                                              HANDLE *phKeyHandle);
+typedef LONG (*SDF_GenerateKeyWithEPK_PQC_FN)(HANDLE hSessionHandle, ULONG uiAlgID,
+                                              ULONG uiKeyBits, ULONG uiFormat,
+                                              BYTE *pucPublicKey, ULONG uiPublicKeyLen,
+                                              BYTE *pucKey, ULONG *puiKeyLength,
+                                              HANDLE *phKeyHandle);
+typedef LONG (*SDF_ImportKeyWithISK_PQC_FN)(HANDLE hSessionHandle, ULONG uiKeyIndex,
+                                            ULONG uiAlgID, ULONG uiFormat,
+                                            BYTE *pucKey, ULONG uiKeyLength,
+                                            HANDLE *phKeyHandle);
+
 /**
  * SDF函数指针表
  */
@@ -381,6 +413,15 @@ typedef struct {
     SDF_GenerateKeyWithEPK_Hybrid_FN           SDF_GenerateKeyWithEPK_Hybrid;
     SDF_InternalSign_Composite_FN           SDF_InternalSign_Composite;
     SDF_ExternalVerify_Composite_FN         SDF_ExternalVerify_Composite;
+
+    /* 纯后量子算法 */
+    SDF_ExportPublicKey_PQC_FN              SDF_ExportPublicKey_PQC;
+    SDF_InternalSign_PQC_FN                 SDF_InternalSign_PQC;
+    SDF_InternalVerify_PQC_FN               SDF_InternalVerify_PQC;
+    SDF_ExternalVerify_PQC_FN               SDF_ExternalVerify_PQC;
+    SDF_GenerateKeyWithIPK_PQC_FN           SDF_GenerateKeyWithIPK_PQC;
+    SDF_GenerateKeyWithEPK_PQC_FN           SDF_GenerateKeyWithEPK_PQC;
+    SDF_ImportKeyWithISK_PQC_FN             SDF_ImportKeyWithISK_PQC;
 } SDFFunctionTable;
 
 /**

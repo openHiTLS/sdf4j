@@ -1415,6 +1415,10 @@ public class SDF {
      * 使用外部公钥对数据进行混合加密运算
      * External Encrypt with Hybrid Public Key
      *
+     * <p>为减少性能损耗，该接口直接透传到底层 SDF 实现，返回的会话密钥句柄不会注册到
+     * SDF4J 会话资源管理中；调用方使用完 {@link #SDF_DestroyKey(long, long)}
+     * 主动销毁 {@link HybridCipher#getKeyHandle()}。
+     *
      * @param sessionHandle 会话句柄 / Session handle
      * @param algID         算法标识 / Algorithm ID
      * @param publicKey     外部公钥 / External public key
@@ -1450,4 +1454,115 @@ public class SDF {
      */
     public native void SDF_ExternalVerify_Composite(long sessionHandle, int algID,
             byte[] publicKey, byte[] data, HybridSignature signature) throws SDFException;
+
+    /**
+     * 导出密码设备内部存储的指定索引位置的PQC公钥
+     * Export PQC public key from internal storage.
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      密钥索引号 / Key index
+     * @param algID         PQC算法标识 / PQC algorithm ID
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @return PQC公钥编码数据 / PQC public key bytes
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native byte[] SDF_ExportPublicKey_PQC(long sessionHandle, int keyIndex,
+            int algID, int format) throws SDFException;
+
+    /**
+     * 使用内部指定索引的私钥进行PQC单包签名。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      私钥索引号 / Private key index
+     * @param algID         PQC签名算法标识 / PQC signature algorithm ID
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @param data          待签名数据 / Data to be signed
+     * @return 签名值 / Signature bytes
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native byte[] SDF_InternalSign_PQC(long sessionHandle, int keyIndex,
+            int algID, int format, byte[] data) throws SDFException;
+
+    /**
+     * 使用内部指定索引的公钥进行PQC单包验签。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      公钥索引号 / Public key index
+     * @param algID         PQC签名算法标识 / PQC signature algorithm ID
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @param data          原始数据 / Original data
+     * @param signature     签名值 / Signature bytes
+     * @throws SDFException 如果操作失败或验签失败 / if operation or verification fails
+     */
+    public native void SDF_InternalVerify_PQC(long sessionHandle, int keyIndex,
+            int algID, int format, byte[] data, byte[] signature) throws SDFException;
+
+    /**
+     * 使用外部PQC公钥进行单包验签。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param algID         PQC签名算法标识 / PQC signature algorithm ID
+     * @param publicKey     外部公钥编码 / External public key bytes
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @param data          原始数据 / Original data
+     * @param signature     签名值 / Signature bytes
+     * @throws SDFException 如果操作失败或验签失败 / if operation or verification fails
+     */
+    public native void SDF_ExternalVerify_PQC(long sessionHandle, int algID,
+            byte[] publicKey, int format, byte[] data, byte[] signature) throws SDFException;
+
+    /**
+     * 使用内部PQC KEM公钥生成会话密钥。
+     *
+     * <p>为减少性能损耗，该接口直接透传到底层 SDF 实现，返回的会话密钥句柄不会注册到
+     * SDF4J 会话资源管理中；调用方使用完 {@link #SDF_DestroyKey(long, long)}
+     * 主动销毁 {@link KeyEncryptionResult#getKeyHandle()}。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部公钥索引 / Internal public key index
+     * @param algID         PQC KEM算法标识 / PQC KEM algorithm ID
+     * @param keyBits       会话密钥长度（位）/ Session key length in bits
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @return 密钥封装结果（KEM密文和会话密钥句柄）/ KEM ciphertext and session key handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native KeyEncryptionResult SDF_GenerateKeyWithIPK_PQC(long sessionHandle,
+            int keyIndex, int algID, int keyBits, int format) throws SDFException;
+
+    /**
+     * 使用外部PQC KEM公钥生成会话密钥。
+     *
+     * <p>为减少性能损耗，该接口直接透传到底层 SDF 实现，返回的会话密钥句柄不会注册到
+     * SDF4J 会话资源管理中；调用方使用完 {@link #SDF_DestroyKey(long, long)}
+     * 主动销毁 {@link KeyEncryptionResult#getKeyHandle()}。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param algID         PQC KEM算法标识 / PQC KEM algorithm ID
+     * @param keyBits       会话密钥长度（位）/ Session key length in bits
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @param publicKey     外部PQC KEM公钥编码 / External PQC KEM public key bytes
+     * @return 密钥封装结果（KEM密文和会话密钥句柄）/ KEM ciphertext and session key handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native KeyEncryptionResult SDF_GenerateKeyWithEPK_PQC(long sessionHandle,
+            int algID, int keyBits, int format, byte[] publicKey) throws SDFException;
+
+    /**
+     * 使用内部PQC KEM私钥导入会话密钥。
+     *
+     * <p>为减少性能损耗，该接口直接透传到底层 SDF 实现，返回的会话密钥句柄不会注册到
+     * SDF4J 会话资源管理中；调用方使用完 {@link #SDF_DestroyKey(long, long)}
+     * 主动销毁返回的 keyHandle。
+     *
+     * @param sessionHandle 会话句柄 / Session handle
+     * @param keyIndex      内部私钥索引 / Internal private key index
+     * @param algID         PQC KEM算法标识 / PQC KEM algorithm ID
+     * @param format        格式标识，当前按草案保留字段传入 / Format flag, reserved by the draft
+     * @param encryptedKey  KEM密文 / KEM ciphertext
+     * @return 解封装后的会话密钥句柄 / Session key handle
+     * @throws SDFException 如果操作失败 / if operation fails
+     */
+    public native long SDF_ImportKeyWithISK_PQC(long sessionHandle, int keyIndex,
+            int algID, int format, byte[] encryptedKey) throws SDFException;
+
 }

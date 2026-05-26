@@ -63,6 +63,13 @@ public class ECCPublicKey {
         this.y = y.clone();
     }
 
+    /* Parameterized constructor used by JNI layer for efficient object creation. */
+    private ECCPublicKey(int bits, byte[] x, byte[] y, boolean adopt) {
+        this.bits = bits;
+        this.x = x;
+        this.y = y;
+    }
+
     // ========================================================================
     // Getters and Setters
     // ========================================================================

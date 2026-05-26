@@ -55,7 +55,7 @@ public class ECCCipher {
     }
 
     /**
-     * Parameterized constructor used by JNI layer for efficient object creation.
+     * Parameterized constructor.
      *
      * @param x X coordinate
      * @param y Y coordinate
@@ -76,6 +76,15 @@ public class ECCCipher {
         this.m = m.clone();
         this.l = l;
         this.c = c.clone();
+    }
+
+    /* Parameterized constructor used by JNI layer for efficient object creation. */
+    private ECCCipher(byte[] x, byte[] y, byte[] m, long l, byte[] c, boolean adopt) {
+        this.x = x;
+        this.y = y;
+        this.m = m;
+        this.l = l;
+        this.c = c;
     }
 
     // ========================================================================

@@ -1076,6 +1076,82 @@ LONG SDF_GenerateKeywithEPK_SSL(
     ULONG uiServerIVLength
 );
 
+LONG SDF_ExportPublicKey_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    ULONG uiAlgID,
+    ULONG uiFormat,
+    BYTE *pucPublicKey,
+    ULONG *puiPublicKeyLen
+);
+
+LONG SDF_InternalSign_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    ULONG uiAlgID,
+    ULONG uiFormat,
+    BYTE *pucData,
+    ULONG uiDataLength,
+    BYTE *pucSign,
+    ULONG *puiSignLen
+);
+
+LONG SDF_InternalVerify_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    ULONG uiAlgID,
+    ULONG uiFormat,
+    BYTE *pucData,
+    ULONG uiDataLength,
+    BYTE *pucSign,
+    ULONG uiSignLen
+);
+
+LONG SDF_ExternalVerify_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiAlgID,
+    BYTE *pucPublicKey,
+    ULONG uiPublicKeyLen,
+    ULONG uiFormat,
+    BYTE *pucData,
+    ULONG uiDataLength,
+    BYTE *pucSign,
+    ULONG uiSignLen
+);
+
+LONG SDF_GenerateKeyWithIPK_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiIPKIndex,
+    ULONG uiAlgID,
+    ULONG uiKeyBits,
+    ULONG uiFormat,
+    BYTE *pucKey,
+    ULONG *puiKeyLength,
+    HANDLE *phKeyHandle
+);
+
+LONG SDF_GenerateKeyWithEPK_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiAlgID,
+    ULONG uiKeyBits,
+    ULONG uiFormat,
+    BYTE *pucPublicKey,
+    ULONG uiPublicKeyLen,
+    BYTE *pucKey,
+    ULONG *puiKeyLength,
+    HANDLE *phKeyHandle
+);
+
+LONG SDF_ImportKeyWithISK_PQC(
+    HANDLE hSessionHandle,
+    ULONG uiKeyIndex,
+    ULONG uiAlgID,
+    ULONG uiFormat,
+    BYTE *pucKey,
+    ULONG uiKeyLength,
+    HANDLE *phKeyHandle
+);
+
 
 /************************************************************************
  * 混合算法相关接口函数 (Hybrid Algorithm Interface Functions)

@@ -126,6 +126,7 @@ public class HybridAlgorithmTest {
         sessionHandle2 = sdf.SDF_OpenSession(deviceHandle);
 
         boolean accessRightObtained = false;
+        long generatedKeyHandle = 0;
         long keyHandle = 0;
         int sessionIndex = (hybridEncryptKeyIndex | (AlgorithmID.SGD_HYBRID << KEY_INDEX_DIGIT));
         try {
@@ -139,6 +140,7 @@ public class HybridAlgorithmTest {
                     sessionHandle2, AlgorithmID.SGD_HYBRID_ENV_SM2_MLKEM_512, publicKey);
             assertNotNull("混合密文不应为null", cipher);
             assertNotEquals("密文对象密钥句柄应不为0", 0, cipher.getKeyHandle());
+            generatedKeyHandle = cipher.getKeyHandle();
 
             // 步骤3：获取私钥访问权限
             sdf.SDF_GetPrivateKeyAccessRight(sessionHandle1, sessionIndex, hybridEncryptKeyPassword);
@@ -167,6 +169,13 @@ public class HybridAlgorithmTest {
                 throw e;
             }
         } finally {
+            if (generatedKeyHandle != 0) {
+                try {
+                    sdf.SDF_DestroyKey(sessionHandle2, generatedKeyHandle);
+                } catch (SDFException e) {
+                    System.err.println("销毁生成密钥失败: " + e.getMessage());
+                }
+            }
             if (keyHandle != 0) {
                 try {
                     sdf.SDF_DestroyKey(sessionHandle1, keyHandle);
@@ -193,7 +202,7 @@ public class HybridAlgorithmTest {
         boolean accessRightObtained = false;
         int sessionIndex = (compositeSignKeyIndex | (AlgorithmID.SGD_HYBRID << KEY_INDEX_DIGIT));
         try {
-            // 步骤1：导出混合加密公钥
+            // 步骤1：导出混合签名公钥
             byte[] publicKey = sdf.SDF_ExportPublicKey_Hybrid(sessionHandle1, compositeSignKeyIndex);
             assertNotNull("公钥不应为null", publicKey);
 

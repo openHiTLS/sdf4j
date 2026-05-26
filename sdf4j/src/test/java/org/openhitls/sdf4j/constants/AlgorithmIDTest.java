@@ -82,6 +82,9 @@ public class AlgorithmIDTest {
         assertEquals(0x00020200, AlgorithmID.SGD_SM2_1);
         assertEquals(0x00020800, AlgorithmID.SGD_SM2_3);
         assertEquals(0x00000001, AlgorithmID.SGD_SM3);
+        assertEquals(0x00090100, AlgorithmID.SGD_PQC_ML_DSA_44);
+        assertEquals(0x00200100, AlgorithmID.SGD_PQC_AIGIS_SIG1);
+        assertEquals(0x00400100, AlgorithmID.SGD_PQC_ML_KEM_512);
     }
 
     @Test
@@ -97,5 +100,17 @@ public class AlgorithmIDTest {
         // 测试杂凑算法分类
         assertTrue("SM3应该是杂凑算法",
                    AlgorithmID.isHashAlgorithm(AlgorithmID.SGD_SM3));
+    }
+
+    @Test
+    public void testPQCAlgorithms() {
+        assertTrue(AlgorithmID.isPQCAlgorithm(AlgorithmID.SGD_PQC_ML_DSA_44));
+        assertTrue(AlgorithmID.isPQCAlgorithm(AlgorithmID.SGD_PQC_AIGIS_SIG1));
+        assertTrue(AlgorithmID.isPQCAlgorithm(AlgorithmID.SGD_PQC_ML_KEM_512));
+        assertFalse(AlgorithmID.isPQCAlgorithm(AlgorithmID.SGD_SM2_1));
+
+        assertEquals("PQC-ML-DSA-44", AlgorithmID.getPQCAlgorithmName(AlgorithmID.SGD_PQC_ML_DSA_44));
+        assertEquals("PQC-AIGIS-SIG1", AlgorithmID.getPQCAlgorithmName(AlgorithmID.SGD_PQC_AIGIS_SIG1));
+        assertEquals("PQC-ML-KEM-512", AlgorithmID.getPQCAlgorithmName(AlgorithmID.SGD_PQC_ML_KEM_512));
     }
 }

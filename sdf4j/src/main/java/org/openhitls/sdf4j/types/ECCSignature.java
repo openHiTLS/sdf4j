@@ -53,6 +53,12 @@ public class ECCSignature {
         this.s = s.clone();
     }
 
+    /* Parameterized constructor used by JNI layer for efficient object creation. */
+    private ECCSignature(byte[] r, byte[] s, boolean adopt) {
+        this.r = r;
+        this.s = s;
+    }
+
     // ========================================================================
     // Getters and Setters
     // ========================================================================

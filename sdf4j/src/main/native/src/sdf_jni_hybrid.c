@@ -83,7 +83,8 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
     jlong sessionHandle, jint algID, jbyteArray publicKey) {
     UNUSED(obj);
 
-    if (g_sdf_functions.SDF_GenerateKeyWithEPK_Hybrid == NULL) {
+    if (g_sdf_functions.SDF_GenerateKeyWithEPK_Hybrid == NULL ||
+        g_sdf_functions.SDF_DestroyKey == NULL) {
         THROW_SDF_EXCEPTION(env, SDR_NOTSUPPORT, "Function not supported");
         return NULL;
     }
@@ -124,6 +125,9 @@ JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_Hybrid(JNIEnv *env, jobject
     }
 
     jobject result = native_to_java_HybridCipher(env, cipher, key_handle);
+    if (result == NULL) {
+        (void)g_sdf_functions.SDF_DestroyKey((HANDLE)sessionHandle, key_handle);
+    }
     free(cipher);
     return result;
 }

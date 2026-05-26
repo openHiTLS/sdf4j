@@ -276,6 +276,72 @@ public final class AlgorithmID {
     public static final int SGD_HYBRID = 0x00000FFF;
 
     /**
+     * PQC ML-DSA algorithm family.
+     */
+    public static final int SGD_PQC_ML_DSA = 0x00000FF0;
+
+    /**
+     * PQC ML-DSA-44 signature algorithm.
+     *
+     * {@link #getPQCAlgorithmName(int)} when PQC-specific naming is required.
+     */
+    public static final int SGD_PQC_ML_DSA_44 = 0x00090100;
+
+    /**
+     * PQC ML-DSA-65 signature algorithm.
+     *
+     * {@link #getPQCAlgorithmName(int)} when PQC-specific naming is required.
+     */
+    public static final int SGD_PQC_ML_DSA_65 = 0x00090200;
+
+    /**
+     * PQC ML-DSA-87 signature algorithm.
+     *
+     * {@link #getPQCAlgorithmName(int)} when PQC-specific naming is required.
+     */
+    public static final int SGD_PQC_ML_DSA_87 = 0x00090400;
+
+    /**
+     * PQC AIGIS-SIG algorithm family.
+     */
+    public static final int SGD_PQC_AIGIS_SIG = 0x00000FF2;
+
+    /**
+     * PQC AIGIS-SIG parameter set 1.
+     */
+    public static final int SGD_PQC_AIGIS_SIG1 = 0x00200100;
+
+    /**
+     * PQC AIGIS-SIG parameter set 2.
+     */
+    public static final int SGD_PQC_AIGIS_SIG2 = 0x00200200;
+
+    /**
+     * PQC AIGIS-SIG parameter set 3.
+     */
+    public static final int SGD_PQC_AIGIS_SIG3 = 0x00200400;
+
+    /**
+     * PQC ML-KEM algorithm family.
+     */
+    public static final int SGD_PQC_ML_KEM = 0x00000FF3;
+
+    /**
+     * PQC ML-KEM-512 key encapsulation mechanism.
+     */
+    public static final int SGD_PQC_ML_KEM_512 = 0x00400100;
+
+    /**
+     * PQC ML-KEM-768 key encapsulation mechanism.
+     */
+    public static final int SGD_PQC_ML_KEM_768 = 0x00400200;
+
+    /**
+     * PQC ML-KEM-1024 key encapsulation mechanism.
+     */
+    public static final int SGD_PQC_ML_KEM_1024 = 0x00400400;
+
+    /**
      * Hybrid envelope: SM2 + ML-KEM-512
      *
      * <p>Combines SM2 elliptic curve key encapsulation with ML-KEM-512
@@ -363,6 +429,10 @@ public final class AlgorithmID {
      * @return 算法名称字符串
      */
     public static String getAlgorithmName(int algorithmID) {
+        if (isPQCAlgorithm(algorithmID)) {
+            return getPQCAlgorithmName(algorithmID);
+        }
+
         switch (algorithmID) {
             // SM1
             case SGD_SM1_ECB:
@@ -453,6 +523,8 @@ public final class AlgorithmID {
                 return "SM2-Decrypt";
             case SGD_SM3_HMAC:
                 return "SM3-HMAC";
+            case SGD_HYBRID:
+                return "HYBRID";
             case SGD_HYBRID_ENV_SM2_MLKEM_512:
                 return "HYBRID-ENV-SM2-MLKEM-512";
             case SGD_HYBRID_ENV_SM2_MLKEM_768:
@@ -508,5 +580,63 @@ public final class AlgorithmID {
      */
     public static boolean isHashAlgorithm(int algorithmID) {
         return algorithmID >= 0x00000001 && algorithmID <= 0x00000008;
+    }
+
+    /**
+     * 判断是否为本项目支持的纯PQC算法标识。
+     *
+     * @param algorithmID 算法标识符
+     * @return 如果是 ML-DSA、AIGIS-SIG 或 ML-KEM 返回 true
+     */
+    public static boolean isPQCAlgorithm(int algorithmID) {
+        return algorithmID == SGD_PQC_ML_DSA
+                || algorithmID == SGD_PQC_ML_DSA_44
+                || algorithmID == SGD_PQC_ML_DSA_65
+                || algorithmID == SGD_PQC_ML_DSA_87
+                || algorithmID == SGD_PQC_AIGIS_SIG
+                || algorithmID == SGD_PQC_AIGIS_SIG1
+                || algorithmID == SGD_PQC_AIGIS_SIG2
+                || algorithmID == SGD_PQC_AIGIS_SIG3
+                || algorithmID == SGD_PQC_ML_KEM
+                || algorithmID == SGD_PQC_ML_KEM_512
+                || algorithmID == SGD_PQC_ML_KEM_768
+                || algorithmID == SGD_PQC_ML_KEM_1024;
+    }
+
+    /**
+     * 获取PQC算法名称。
+     *
+     * @param algorithmID PQC算法标识符
+     * @return PQC算法名称字符串
+     */
+    public static String getPQCAlgorithmName(int algorithmID) {
+        switch (algorithmID) {
+            case SGD_PQC_ML_DSA:
+                return "PQC-ML-DSA";
+            case SGD_PQC_ML_DSA_44:
+                return "PQC-ML-DSA-44";
+            case SGD_PQC_ML_DSA_65:
+                return "PQC-ML-DSA-65";
+            case SGD_PQC_ML_DSA_87:
+                return "PQC-ML-DSA-87";
+            case SGD_PQC_AIGIS_SIG:
+                return "PQC-AIGIS-SIG";
+            case SGD_PQC_AIGIS_SIG1:
+                return "PQC-AIGIS-SIG1";
+            case SGD_PQC_AIGIS_SIG2:
+                return "PQC-AIGIS-SIG2";
+            case SGD_PQC_AIGIS_SIG3:
+                return "PQC-AIGIS-SIG3";
+            case SGD_PQC_ML_KEM:
+                return "PQC-ML-KEM";
+            case SGD_PQC_ML_KEM_512:
+                return "PQC-ML-KEM-512";
+            case SGD_PQC_ML_KEM_768:
+                return "PQC-ML-KEM-768";
+            case SGD_PQC_ML_KEM_1024:
+                return "PQC-ML-KEM-1024";
+            default:
+                return "Unknown-PQC(0x" + Integer.toHexString(algorithmID).toUpperCase() + ")";
+        }
     }
 }

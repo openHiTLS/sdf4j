@@ -118,6 +118,15 @@ static JNINativeMethod sdf_methods[] = {
     {"SDF_InternalSign_Composite", "(JI[B)Lorg/openhitls/sdf4j/types/HybridSignature;", (void*)JNI_SDF_InternalSign_Composite},
     {"SDF_ExternalVerify_Composite", "(JI[B[BLorg/openhitls/sdf4j/types/HybridSignature;)V", (void*)JNI_SDF_ExternalVerify_Composite},
 
+    /* 纯后量子相关接口 */
+    {"SDF_ExportPublicKey_PQC", "(JIII)[B", (void*)JNI_SDF_ExportPublicKey_PQC},
+    {"SDF_InternalSign_PQC", "(JIII[B)[B", (void*)JNI_SDF_InternalSign_PQC},
+    {"SDF_InternalVerify_PQC", "(JIII[B[B)V", (void*)JNI_SDF_InternalVerify_PQC},
+    {"SDF_ExternalVerify_PQC", "(JI[BI[B[B)V", (void*)JNI_SDF_ExternalVerify_PQC},
+    {"SDF_GenerateKeyWithIPK_PQC", "(JIIII)Lorg/openhitls/sdf4j/types/KeyEncryptionResult;", (void*)JNI_SDF_GenerateKeyWithIPK_PQC},
+    {"SDF_GenerateKeyWithEPK_PQC", "(JIII[B)Lorg/openhitls/sdf4j/types/KeyEncryptionResult;", (void*)JNI_SDF_GenerateKeyWithEPK_PQC},
+    {"SDF_ImportKeyWithISK_PQC", "(JIII[B)J", (void*)JNI_SDF_ImportKeyWithISK_PQC},
+
 };
 
 /* JNI 方法注册表 - NativeLibraryLoader 类 */

@@ -74,6 +74,7 @@ typedef struct {
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCPublicKey */
     jmethodID ctor;                 /* <init>(I[B[B)V */
+    jmethodID native_ctor;          /* <init>(I[B[BZ)V */
     jfieldID bits;                  /* I */
     jfieldID x;                     /* [B */
     jfieldID y;                     /* [B */
@@ -91,6 +92,7 @@ typedef struct {
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCSignature */
     jmethodID ctor;                 /* <init>([B[B)V */
+    jmethodID native_ctor;          /* <init>([B[BZ)V */
     jfieldID r;                     /* [B */
     jfieldID s;                     /* [B */
 } ECCSignatureCache;
@@ -99,6 +101,7 @@ typedef struct {
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/ECCCipher */
     jmethodID ctor;                 /* <init>([B[B[BJ[B)V */
+    jmethodID native_ctor;          /* <init>([B[B[BJ[BZ)V */
     jfieldID x;                     /* [B */
     jfieldID y;                     /* [B */
     jfieldID m;                     /* [B */
@@ -128,6 +131,7 @@ typedef struct {
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/HybridCipher */
     jmethodID ctor;                 /* <init>(J[BJLorg/openhitls/sdf4j/types/ECCCipher;J)V */
+    jmethodID native_ctor;          /* <init>(J[BJLorg/openhitls/sdf4j/types/ECCCipher;JZ)V */
     jfieldID l1;                    /* J */
     jfieldID ctM;                   /* [B */
     jfieldID uiAlgID;               /* J */
@@ -139,6 +143,7 @@ typedef struct {
 typedef struct {
     jclass cls;                     /* org/openhitls/sdf4j/types/HybridSignature */
     jmethodID ctor;                 /* <init>(Lorg/openhitls/sdf4j/types/ECCSignature;I[B)V */
+    jmethodID native_ctor;          /* <init>(Lorg/openhitls/sdf4j/types/ECCSignature;I[BZ)V */
     jfieldID sigS;                  /* Lorg/openhitls/sdf4j/types/ECCSignature; */
     jfieldID l;                     /* I */
     jfieldID sigM;                  /* [B */
