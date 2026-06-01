@@ -235,6 +235,21 @@ JNIEXPORT jobject JNICALL JNI_SDF_InternalSign_Composite(JNIEnv *env, jobject ob
 JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_Composite(JNIEnv *env, jobject obj,
     jlong sessionHandle, jint algID, jbyteArray publicKey, jbyteArray data, jobject signature);
 
+JNIEXPORT jbyteArray JNICALL JNI_SDF_ExportPublicKey_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint algID, jint format);
+JNIEXPORT jbyteArray JNICALL JNI_SDF_InternalSign_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint algID, jint format, jbyteArray data);
+JNIEXPORT void JNICALL JNI_SDF_InternalVerify_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint algID, jint format, jbyteArray data, jbyteArray signature);
+JNIEXPORT void JNICALL JNI_SDF_ExternalVerify_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint algID, jbyteArray publicKey, jint format, jbyteArray data, jbyteArray signature);
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithIPK_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint algID, jint keyBits, jint format);
+JNIEXPORT jobject JNICALL JNI_SDF_GenerateKeyWithEPK_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint algID, jint keyBits, jint format, jbyteArray publicKey);
+JNIEXPORT jlong JNICALL JNI_SDF_ImportKeyWithISK_PQC(JNIEnv *env, jobject obj,
+    jlong sessionHandle, jint keyIndex, jint algID, jint format, jbyteArray encryptedKey);
+
 #ifdef __cplusplus
 }
 #endif

@@ -267,6 +267,22 @@ static bool load_all_functions(void *handle) {
     load_function(handle, (void**)&g_sdf_functions.SDF_ExternalVerify_Composite,
                  "SDF_ExternalVerify_Composite", false);
 
+
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExportPublicKey_PQC,
+                 "SDF_ExportPublicKey_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_InternalSign_PQC,
+                 "SDF_InternalSign_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_InternalVerify_PQC,
+                 "SDF_InternalVerify_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ExternalVerify_PQC,
+                 "SDF_ExternalVerify_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_GenerateKeyWithIPK_PQC,
+                 "SDF_GenerateKeyWithIPK_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_GenerateKeyWithEPK_PQC,
+                 "SDF_GenerateKeyWithEPK_PQC", false);
+    load_function(handle, (void**)&g_sdf_functions.SDF_ImportKeyWithISK_PQC,
+                 "SDF_ImportKeyWithISK_PQC", false);
+
     return true;
 }
 

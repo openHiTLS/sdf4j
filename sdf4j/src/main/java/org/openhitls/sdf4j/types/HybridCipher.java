@@ -71,7 +71,7 @@ public class HybridCipher {
     }
 
     /**
-     * Parameterized constructor used by JNI layer for efficient object creation.
+     * Parameterized constructor.
      *
      * @param l1        post-quantum ciphertext length (bytes)
      * @param ctM       post-quantum ciphertext data (e.g., ML-KEM ciphertext)
@@ -91,6 +91,15 @@ public class HybridCipher {
         this.ctM = ctM.clone();
         this.uiAlgID = uiAlgID;
         this.ctS = ECCCipher.dup(ctS);
+        this.keyHandle = keyHandle;
+    }
+
+    /* Parameterized constructor used by JNI layer for efficient object creation. */
+    private HybridCipher(long l1, byte[] ctM, long uiAlgID, ECCCipher ctS, long keyHandle, boolean adopt) {
+        this.l1 = l1;
+        this.ctM = ctM;
+        this.uiAlgID = uiAlgID;
+        this.ctS = ctS;
         this.keyHandle = keyHandle;
     }
 

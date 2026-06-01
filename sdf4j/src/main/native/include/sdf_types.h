@@ -85,6 +85,20 @@ typedef struct DeviceInfo_st
 #define SGD_SM9_2                   0x00080200   /* SM9 identity-based key exchange protocol */
 #define SGD_SM9_3                   0x00080400   /* SM9 identity-based encryption algorithm */
 
+/* 纯后量子算法 (PQC Algorithms) */
+#define SGD_PQC_ML_DSA              0x00000FF0   /* ML-DSA algorithm family */
+#define SGD_PQC_ML_DSA_44           0x00090100   /* ML-DSA-44 signature algorithm */
+#define SGD_PQC_ML_DSA_65           0x00090200   /* ML-DSA-65 signature algorithm */
+#define SGD_PQC_ML_DSA_87           0x00090400   /* ML-DSA-87 signature algorithm */
+#define SGD_PQC_AIGIS_SIG           0x00000FF2   /* AIGIS-SIG algorithm family */
+#define SGD_PQC_AIGIS_SIG1          0x00200100   /* AIGIS-SIG parameter set 1 */
+#define SGD_PQC_AIGIS_SIG2          0x00200200   /* AIGIS-SIG parameter set 2 */
+#define SGD_PQC_AIGIS_SIG3          0x00200400   /* AIGIS-SIG parameter set 3 */
+#define SGD_PQC_ML_KEM              0x00000FF3   /* ML-KEM algorithm family */
+#define SGD_PQC_ML_KEM_512          0x00400100   /* ML-KEM-512 KEM algorithm */
+#define SGD_PQC_ML_KEM_768          0x00400200   /* ML-KEM-768 KEM algorithm */
+#define SGD_PQC_ML_KEM_1024         0x00400400   /* ML-KEM-1024 KEM algorithm */
+
 /* 5.5 RSA密钥数据结构定义 (RSA Key Data Structure Definitions) */
 #define RSAref_MAX_BITS     2048
 #define RSAref_MAX_LEN      ((RSAref_MAX_BITS + 7) / 8)
@@ -288,4 +302,3 @@ typedef struct HybridSignature_st {
 #endif
 
 #endif /* __SDF_TYPES_H__ */
-

@@ -57,7 +57,7 @@ public class HybridSignature {
     }
 
     /**
-     * Parameterized constructor used by JNI layer for efficient object creation.
+     * Parameterized constructor.
      *
      * @param sigS classical ECC signature component
      * @param l    post-quantum signature data length (bytes)
@@ -74,6 +74,12 @@ public class HybridSignature {
         this.sigS = ECCSignature.dup(sigS);
         this.l = l;
         this.sigM = sigM.clone();
+    }
+
+    private HybridSignature(ECCSignature sigS, int l, byte[] sigM, boolean adopt) {
+        this.sigS = sigS;
+        this.l = l;
+        this.sigM = sigM;
     }
 
     /**
